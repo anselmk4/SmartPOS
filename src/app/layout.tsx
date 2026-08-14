@@ -3,6 +3,8 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { SyncProvider } from "@/lib/sync/sync-context";
 import { AdminAuthProvider } from "@/lib/admin/admin-context";
+import { SidebarProvider } from "@/components/navigation/sidebar-context";
+import { Sidebar } from "@/components/navigation/sidebar";
 import { Navbar } from "@/components/navigation/navbar";
 
 export const metadata: Metadata = {
@@ -26,12 +28,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className="h-full">
-      <body className="h-full bg-slate-50 text-slate-900 antialiased flex flex-col pb-16 md:pb-0">
+      <body className="h-full bg-slate-50 text-slate-900 antialiased">
         <AdminAuthProvider>
           <AuthProvider>
             <SyncProvider>
-              <Navbar />
-              <main className="flex-1 flex flex-col">{children}</main>
+              <SidebarProvider>
+                <div className="flex min-h-screen bg-slate-50">
+                  {/* Left Retractable Dashboard Sidebar */}
+                  <Sidebar />
+
+                  {/* Main Content Area */}
+                  <div className="flex-1 flex flex-col min-w-0">
+                    <Navbar />
+                    <main className="flex-1 flex flex-col">{children}</main>
+                  </div>
+                </div>
+              </SidebarProvider>
             </SyncProvider>
           </AuthProvider>
         </AdminAuthProvider>
