@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
 import { UpgradePromptModal } from "@/components/plans/upgrade-prompt-modal";
 import ExportReportModal from "@/components/reports/export-report-modal";
-import { EXPENSE_CATEGORIES } from "@/app/expenses/page";
+import { EXPENSE_CATEGORIES } from "@/lib/shared/types";
 import {
   TrendingUp,
   CreditCard,

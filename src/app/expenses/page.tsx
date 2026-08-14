@@ -6,7 +6,7 @@ import { db, DEFAULT_STORE_ID, createExpense, deleteExpense } from "@/lib/db/dex
 import { useSync } from "@/lib/sync/sync-context";
 import { useAuth } from "@/lib/auth/auth-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
-import type { Expense, PaymentMethod, ExpenseCategory } from "@/lib/shared/types";
+import { EXPENSE_CATEGORIES, type Expense, type PaymentMethod, type ExpenseCategory } from "@/lib/shared/types";
 import {
   Wallet,
   Plus,
@@ -32,24 +32,6 @@ import {
   CheckCircle2,
   X,
 } from "lucide-react";
-
-export const EXPENSE_CATEGORIES: Array<{
-  id: ExpenseCategory;
-  label: string;
-  icon: string;
-  color: string;
-  bgColor: string;
-}> = [
-  { id: "LOYER", label: "Loyer & Bail", icon: "🏢", color: "text-amber-700", bgColor: "bg-amber-100" },
-  { id: "ELECTRICITE_EAU", label: "Électricité, Eau & Carburant", icon: "💡", color: "text-yellow-700", bgColor: "bg-yellow-100" },
-  { id: "TRANSPORT_LOGISTIQUE", label: "Transport & Déchargement", icon: "🚚", color: "text-blue-700", bgColor: "bg-blue-100" },
-  { id: "SALAIRES", label: "Salaires & Avances Personnel", icon: "👥", color: "text-purple-700", bgColor: "bg-purple-100" },
-  { id: "ACHAT_FOURNITURES", label: "Sachets, Emballages & Fournitures", icon: "📦", color: "text-indigo-700", bgColor: "bg-indigo-100" },
-  { id: "TAXES_IMPOTS", label: "Taxes Communales & Patente", icon: "🏛️", color: "text-red-700", bgColor: "bg-red-100" },
-  { id: "REPAS_COMMUNICATION", label: "Repas & Forfaits Internet", icon: "🍱", color: "text-emerald-700", bgColor: "bg-emerald-100" },
-  { id: "MAINTENANCE_REPARATION", label: "Entretien & Réparations", icon: "🔧", color: "text-slate-700", bgColor: "bg-slate-200" },
-  { id: "DIVERS", label: "Dépenses Diverses", icon: "📝", color: "text-slate-700", bgColor: "bg-slate-100" },
-];
 
 export default function ExpensesPage() {
   const { store: authStore, tenant, isAuthenticated, isLoading, isCashier } = useAuth();

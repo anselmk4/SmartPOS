@@ -593,8 +593,34 @@ export default function SettingsPage() {
               className="w-full py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs flex items-center justify-center gap-1.5 touch-press"
             >
               <PackagePlus className="w-3.5 h-3.5 text-blue-600" />
-              <span>Charger Catalogue Démo RDC (Franc Congolais)</span>
+              <span>Charger Catalogue Démo</span>
             </button>
+          </div>
+
+          {/* PWA Offline-First App Info */}
+          <div className="bg-slate-900 text-white rounded-3xl p-5 border border-slate-800 shadow-md">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-xs">
+                PWA
+              </div>
+              <div>
+                <h4 className="font-bold text-xs text-white">Application 100% Hors-Ligne</h4>
+                <p className="text-[10px] text-blue-400 font-semibold">Service Worker & IndexedDB Actifs</p>
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-300 leading-relaxed mb-3">
+              L'application reste accessible et opérationnelle même lorsque vous coupez totalement votre connexion Internet.
+            </p>
+            <div className="bg-white/10 rounded-2xl p-2.5 text-[10px] text-slate-300 space-y-1">
+              <div className="flex items-center justify-between">
+                <span>Mise en cache du shell :</span>
+                <span className="text-emerald-400 font-bold">Actif (sw.js)</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Base locale :</span>
+                <span className="text-blue-300 font-bold">Dexie v5 (IndexedDB)</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

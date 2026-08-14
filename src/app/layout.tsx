@@ -6,11 +6,21 @@ import { AdminAuthProvider } from "@/lib/admin/admin-context";
 import { SidebarProvider } from "@/components/navigation/sidebar-context";
 import { Sidebar } from "@/components/navigation/sidebar";
 import { Navbar } from "@/components/navigation/navbar";
+import { PWARegister } from "@/components/pwa/pwa-register";
 
 export const metadata: Metadata = {
-  title: "Kuettu SMART POS | Caisse Tactile, Dettes WhatsApp & Mobile Money",
-  description: "Kuettu SMART POS - La solution SaaS tout-en-un pour le commerce de détail en Afrique : Caisse Tactile Offline-First, Carnet de dettes WhatsApp, Gestion des stocks et Encaissement Mobile Money.",
+  title: "Kuettu SMART POS | Caisse Tactile Offline-First, Dettes WhatsApp & Mobile Money",
+  description: "Kuettu SMART POS - Solution SaaS de caisse tactile 100% hors-ligne, carnet de dettes WhatsApp, stocks et encaissement Mobile Money pour le commerce de détail.",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "SMART POS",
+  },
+  icons: {
+    icon: "/icon-192.svg",
+    apple: "/icon-192.svg",
+  },
 };
 
 export const viewport: Viewport = {
@@ -28,6 +38,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className="h-full">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="SMART POS" />
+      </head>
       <body className="h-full bg-slate-50 text-slate-900 antialiased">
         <AdminAuthProvider>
           <AuthProvider>
@@ -43,6 +60,9 @@ export default function RootLayout({
                     <main className="flex-1 flex flex-col">{children}</main>
                   </div>
                 </div>
+
+                {/* PWA Service Worker & Install Manager */}
+                <PWARegister />
               </SidebarProvider>
             </SyncProvider>
           </AuthProvider>
