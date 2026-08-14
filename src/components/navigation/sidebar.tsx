@@ -22,6 +22,7 @@ import {
   User,
   X,
   Sparkles,
+  Wallet,
 } from "lucide-react";
 import CashReconciliationModal from "@/components/pos/cash-reconciliation-modal";
 import ExportReportModal from "@/components/reports/export-report-modal";
@@ -58,6 +59,15 @@ export function Sidebar() {
       color: "text-rose-600",
       bgActive: "bg-rose-600 text-white shadow-md shadow-rose-600/30",
       allowed: true,
+    },
+    {
+      label: "Dépenses & Frais",
+      shortLabel: "Dépenses",
+      href: "/expenses",
+      icon: Wallet,
+      color: "text-red-500",
+      bgActive: "bg-red-600 text-white shadow-md shadow-red-600/30",
+      allowed: !isCashier,
     },
     {
       label: "Stocks & Articles",
@@ -108,7 +118,7 @@ export function Sidebar() {
 
   const sidebarContent = (
     <div className="h-full flex flex-col justify-between bg-white border-r border-slate-200/90 shadow-sm select-none">
-      {/* 1. Header & Store Info */}
+      {/* 1. Header: Kuettu Platform Brand */}
       <div className="p-3.5 border-b border-slate-100">
         <div className="flex items-center justify-between">
           <Link
@@ -116,6 +126,7 @@ export function Sidebar() {
             className={`flex items-center gap-2.5 overflow-hidden transition-all ${
               isCollapsed ? "justify-center w-full" : ""
             }`}
+            title="Kuettu SMART POS"
           >
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700 flex items-center justify-center text-white shadow-md shadow-blue-500/25 shrink-0">
               <StoreIcon className="w-5 h-5" />
@@ -124,24 +135,13 @@ export function Sidebar() {
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <h2 className="font-extrabold text-slate-900 text-sm truncate leading-tight">
-                    {store?.name || tenant?.name || "Smart POS"}
-                  </h2>
+                  <span className="font-black text-slate-900 text-sm tracking-tight">
+                    Kuettu <span className="text-blue-600">SMART POS</span>
+                  </span>
                 </div>
                 <div className="flex items-center gap-1 mt-0.5">
-                  <span
-                    className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-md ${
-                      plan === "BUSINESS"
-                        ? "bg-indigo-100 text-indigo-800"
-                        : plan === "PRO"
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-slate-100 text-slate-600"
-                    }`}
-                  >
-                    {plan === "BUSINESS" ? "Business" : plan === "PRO" ? "Pro" : "Gratuit"}
-                  </span>
-                  <span className="text-[10px] text-slate-400 truncate">
-                    • {store?.managerName || user?.name}
+                  <span className="text-[10px] font-bold text-slate-400">
+                    Offline-First SaaS
                   </span>
                 </div>
               </div>

@@ -7,6 +7,50 @@ import { countPendingSyncItems } from "./sync-queue";
 import { useAuth } from "../auth/auth-context";
 import type { Store } from "../shared/types";
 
+export interface CountryOption {
+  code: string;
+  name: string;
+  flag: string;
+  currency: string;
+  currencySymbol: string;
+  callingCode: string;
+}
+
+export const COUNTRIES: CountryOption[] = [
+  { code: "CD", name: "RDC (RD Congo)", flag: "🇨🇩", currency: "CDF", currencySymbol: "FC", callingCode: "+243" },
+  { code: "CG", name: "Congo-Brazzaville", flag: "🇨🇬", currency: "XAF", currencySymbol: "FCFA", callingCode: "+242" },
+  { code: "CI", name: "Côte d'Ivoire", flag: "🇨🇮", currency: "XOF", currencySymbol: "FCFA", callingCode: "+225" },
+  { code: "SN", name: "Sénégal", flag: "🇸🇳", currency: "XOF", currencySymbol: "FCFA", callingCode: "+221" },
+  { code: "CM", name: "Cameroun", flag: "🇨🇲", currency: "XAF", currencySymbol: "FCFA", callingCode: "+237" },
+  { code: "GA", name: "Gabon", flag: "🇬🇦", currency: "XAF", currencySymbol: "FCFA", callingCode: "+241" },
+  { code: "GN", name: "Guinée (Conakry)", flag: "🇬🇳", currency: "GNF", currencySymbol: "FG", callingCode: "+224" },
+  { code: "ML", name: "Mali", flag: "🇲🇱", currency: "XOF", currencySymbol: "FCFA", callingCode: "+223" },
+  { code: "TG", name: "Togo", flag: "🇹🇬", currency: "XOF", currencySymbol: "FCFA", callingCode: "+228" },
+  { code: "BJ", name: "Bénin", flag: "🇧🇯", currency: "XOF", currencySymbol: "FCFA", callingCode: "+229" },
+  { code: "BF", name: "Burkina Faso", flag: "🇧🇫", currency: "XOF", currencySymbol: "FCFA", callingCode: "+226" },
+  { code: "RW", name: "Rwanda", flag: "🇷🇼", currency: "RWF", currencySymbol: "FRw", callingCode: "+250" },
+  { code: "BI", name: "Burundi", flag: "🇧🇮", currency: "BIF", currencySymbol: "FBu", callingCode: "+257" },
+  { code: "KE", name: "Kenya", flag: "🇰🇪", currency: "KES", currencySymbol: "KSh", callingCode: "+254" },
+  { code: "UG", name: "Ouganda", flag: "🇺🇬", currency: "UGX", currencySymbol: "USh", callingCode: "+256" },
+  { code: "TZ", name: "Tanzanie", flag: "🇹🇿", currency: "TZS", currencySymbol: "TSh", callingCode: "+255" },
+  { code: "US", name: "Dollar US ($)", flag: "🇺🇸", currency: "USD", currencySymbol: "$", callingCode: "+1" },
+  { code: "FR", name: "France / Zone Euro (€)", flag: "🇪🇺", currency: "EUR", currencySymbol: "€", callingCode: "+33" },
+];
+
+export const CURRENCY_SYMBOLS: Record<string, string> = {
+  CDF: "FC",
+  USD: "$",
+  XOF: "FCFA",
+  XAF: "FCFA",
+  GNF: "FG",
+  RWF: "FRw",
+  BIF: "FBu",
+  EUR: "€",
+  KES: "KSh",
+  TZS: "TSh",
+  UGX: "USh",
+};
+
 interface SyncContextType {
   isOnline: boolean;
   isSyncing: boolean;
@@ -14,7 +58,9 @@ interface SyncContextType {
   lastSyncedAt: string | null;
   store: Store | null;
   currency: string;
-  formatMoney: (amount: number) => string;
+  rawCurrency: string;
+  countryCode: string;
+  formatMoney: (amount: number, overrideCurrency?: string) => string;
   syncNow: () => Promise<{ success: boolean; message: string }>;
   refreshStore: () => Promise<void>;
 }
@@ -26,6 +72,8 @@ const SyncContext = createContext<SyncContextType>({
   lastSyncedAt: null,
   store: null,
   currency: "FC",
+  rawCurrency: "CDF",
+  countryCode: "CD",
   formatMoney: (amt) => `${Math.round(amt || 0).toLocaleString("fr-FR")} FC`,
   syncNow: async () => ({ success: false, message: "" }),
   refreshStore: async () => {},
@@ -115,26 +163,34 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     return res;
   };
 
-  const rawCurrency = tenant?.currency || store?.currency || "CDF";
-  const currency =
-    rawCurrency === "CDF"
-      ? "FC"
-      : rawCurrency === "USD"
-      ? "$"
-      : rawCurrency === "XOF" || rawCurrency === "XAF"
-      ? "FCFA"
-      : rawCurrency;
+  const rawCurrency = store?.currency || tenant?.currency || "CDF";
+  const countryCode = store?.countryCode || tenant?.countryCode || "CD";
+
+  const currency = CURRENCY_SYMBOLS[rawCurrency] || rawCurrency;
 
   const formatMoney = useCallback(
-    (amount: number): string => {
+    (amount: number, overrideCurrency?: string): string => {
       const val = amount || 0;
-      if (currency === "$") {
-        return `$${val.toLocaleString("fr-FR", { minimumFractionDigits: val % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
+      const currCode = overrideCurrency || rawCurrency;
+      const symbol = CURRENCY_SYMBOLS[currCode] || currCode;
+
+      if (currCode === "USD" || symbol === "$") {
+        return `$${val.toLocaleString("fr-FR", {
+          minimumFractionDigits: val % 1 === 0 ? 0 : 2,
+          maximumFractionDigits: 2,
+        })}`;
       }
+      if (currCode === "EUR" || symbol === "€") {
+        return `${val.toLocaleString("fr-FR", {
+          minimumFractionDigits: val % 1 === 0 ? 0 : 2,
+          maximumFractionDigits: 2,
+        })} €`;
+      }
+
       const formatted = Math.round(val).toLocaleString("fr-FR");
-      return `${formatted} ${currency}`;
+      return `${formatted} ${symbol}`;
     },
-    [currency]
+    [rawCurrency]
   );
 
   return (
@@ -146,6 +202,8 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         lastSyncedAt,
         store,
         currency,
+        rawCurrency,
+        countryCode,
         formatMoney,
         syncNow,
         refreshStore,

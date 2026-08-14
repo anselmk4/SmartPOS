@@ -9,6 +9,7 @@ import type {
   Sale,
   SaleItem,
   DebtPayment,
+  Expense,
   StockTransfer,
   CashClosing,
   SyncQueueItem,
@@ -26,22 +27,24 @@ export class MicroERPDatabase extends Dexie {
   sales!: Table<Sale, string>;
   saleItems!: Table<SaleItem, string>;
   debtPayments!: Table<DebtPayment, string>;
+  expenses!: Table<Expense, string>;
   stockTransfers!: Table<StockTransfer, string>;
   cashClosings!: Table<CashClosing, string>;
   syncQueue!: Table<SyncQueueItem, string>;
 
   constructor() {
     super("MicroERPDb");
-    this.version(4).stores({
-      tenants: "id, slug, plan, planStatus, updatedAt",
+    this.version(5).stores({
+      tenants: "id, slug, plan, planStatus, countryCode, currency, updatedAt",
       users: "id, tenantId, storeId, phone, email, role, pinCode, updatedAt",
       subscriptions: "id, tenantId, plan, paymentStatus, createdAt",
-      stores: "id, tenantId, name, currency, managerId, updatedAt",
+      stores: "id, tenantId, name, currency, countryCode, managerId, updatedAt",
       products: "id, tenantId, storeId, name, category, stockQuantity, minStockAlert, updatedAt, isSynced",
       customers: "id, tenantId, storeId, name, phone, currentDebtBalance, updatedAt, isSynced",
       sales: "id, tenantId, storeId, customerId, userId, paymentMethod, status, createdAt, updatedAt, isSynced",
       saleItems: "id, saleId, productId, createdAt",
       debtPayments: "id, tenantId, storeId, customerId, createdAt, isSynced",
+      expenses: "id, tenantId, storeId, category, expenseDate, createdAt, isSynced",
       stockTransfers: "id, tenantId, fromStoreId, toStoreId, productId, createdAt",
       cashClosings: "id, tenantId, storeId, userId, createdAt",
       syncQueue: "id, tenantId, storeId, entity, action, status, createdAt",
@@ -145,7 +148,7 @@ export async function getOrCreateDefaultStore(): Promise<{ tenant: Tenant; store
 export async function enqueueSync(item: {
   tenantId?: string;
   storeId: string;
-  entity: "tenant" | "user" | "store" | "product" | "customer" | "sale" | "debt_payment" | "subscription" | "stock_transfer" | "cash_closing";
+  entity: SyncQueueItem["entity"];
   action: "CREATE" | "UPDATE" | "DELETE" | "STOCK_DELTA";
   payload: string;
 }): Promise<string> {
@@ -612,6 +615,188 @@ export async function assignManagerToStore(
     entity: "store",
     action: "UPDATE",
     payload: JSON.stringify(updatedStore),
+  });
+}
+
+/**
+ * Creates a new business expense in local Dexie DB and queues for sync
+ */
+export async function createExpense(data: {
+  tenantId?: string;
+  storeId: string;
+  category: string;
+  amount: number;
+  currency: string;
+  paymentMethod: PaymentMethod;
+  notes?: string;
+  receiptUrl?: string;
+  expenseDate?: string;
+}): Promise<Expense> {
+  const now = new Date().toISOString();
+  const expense: Expense = {
+    id: generateUUID(),
+    tenantId: data.tenantId,
+    storeId: data.storeId,
+    category: data.category,
+    amount: data.amount,
+    currency: data.currency,
+    paymentMethod: data.paymentMethod,
+    notes: data.notes?.trim() || undefined,
+    receiptUrl: data.receiptUrl,
+    expenseDate: data.expenseDate || now.split("T")[0],
+    isSynced: false,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await db.expenses.add(expense);
+
+  await enqueueSync({
+    tenantId: data.tenantId,
+    storeId: data.storeId,
+    entity: "expense",
+    action: "CREATE",
+    payload: JSON.stringify(expense),
+  });
+
+  return expense;
+}
+
+/**
+ * Delete an expense
+ */
+export async function deleteExpense(expenseId: string): Promise<void> {
+  const exp = await db.expenses.get(expenseId);
+  if (!exp) return;
+
+  await db.expenses.delete(expenseId);
+
+  await enqueueSync({
+    tenantId: exp.tenantId,
+    storeId: exp.storeId,
+    entity: "expense",
+    action: "DELETE",
+    payload: JSON.stringify({ id: expenseId }),
+  });
+}
+
+/**
+ * Update store branding (logo, country, currency, contact)
+ */
+export async function updateStoreBranding(
+  storeId: string,
+  data: {
+    name?: string;
+    logoUrl?: string;
+    countryCode?: string;
+    currency?: string;
+    phone?: string;
+    address?: string;
+    ownerName?: string;
+  }
+): Promise<Store> {
+  const store = await db.stores.get(storeId);
+  if (!store) throw new Error("Magasin introuvable");
+
+  const now = new Date().toISOString();
+  const updatedStore: Store = {
+    ...store,
+    name: data.name !== undefined ? data.name.trim() : store.name,
+    logoUrl: data.logoUrl !== undefined ? data.logoUrl : store.logoUrl,
+    countryCode: data.countryCode !== undefined ? data.countryCode : store.countryCode,
+    currency: data.currency !== undefined ? data.currency : store.currency,
+    phone: data.phone !== undefined ? data.phone.trim() : store.phone,
+    address: data.address !== undefined ? data.address.trim() : store.address,
+    ownerName: data.ownerName !== undefined ? data.ownerName.trim() : store.ownerName,
+    updatedAt: now,
+  };
+
+  await db.stores.put(updatedStore);
+
+  // If tenant exists, synchronize tenant currency and logo
+  if (store.tenantId) {
+    const tenant = await db.tenants.get(store.tenantId);
+    if (tenant) {
+      const updatedTenant: Tenant = {
+        ...tenant,
+        name: updatedStore.name,
+        logoUrl: updatedStore.logoUrl,
+        countryCode: updatedStore.countryCode || tenant.countryCode,
+        currency: updatedStore.currency || tenant.currency,
+        updatedAt: now,
+      };
+      await db.tenants.put(updatedTenant);
+    }
+  }
+
+  await enqueueSync({
+    tenantId: store.tenantId,
+    storeId,
+    entity: "store",
+    action: "UPDATE",
+    payload: JSON.stringify(updatedStore),
+  });
+
+  return updatedStore;
+}
+
+/**
+ * Update user / staff member (PIN, name, phone, role, store)
+ */
+export async function updateStaffUser(
+  userId: string,
+  data: {
+    name?: string;
+    phone?: string;
+    pinCode?: string;
+    role?: "OWNER" | "MANAGER" | "CASHIER";
+    storeId?: string;
+    isActive?: boolean;
+  }
+): Promise<User> {
+  const user = await db.users.get(userId);
+  if (!user) throw new Error("Utilisateur introuvable");
+
+  const now = new Date().toISOString();
+  const updatedUser: User = {
+    ...user,
+    name: data.name !== undefined ? data.name.trim() : user.name,
+    phone: data.phone !== undefined ? data.phone.trim() : user.phone,
+    pinCode: data.pinCode !== undefined ? data.pinCode.trim() : user.pinCode,
+    role: data.role !== undefined ? data.role : user.role,
+    storeId: data.storeId !== undefined ? data.storeId : user.storeId,
+    isActive: data.isActive !== undefined ? data.isActive : user.isActive,
+    updatedAt: now,
+  };
+
+  await db.users.put(updatedUser);
+
+  await enqueueSync({
+    tenantId: user.tenantId,
+    storeId: user.storeId || DEFAULT_STORE_ID,
+    entity: "user",
+    action: "UPDATE",
+    payload: JSON.stringify(updatedUser),
+  });
+
+  return updatedUser;
+}
+
+/**
+ * Delete a user / staff member
+ */
+export async function deleteStaffUser(userId: string): Promise<void> {
+  const user = await db.users.get(userId);
+  if (!user) return;
+
+  await db.users.delete(userId);
+
+  await enqueueSync({
+    tenantId: user.tenantId,
+    storeId: user.storeId || DEFAULT_STORE_ID,
+    entity: "user",
+    action: "DELETE",
+    payload: JSON.stringify({ id: userId }),
   });
 }
 

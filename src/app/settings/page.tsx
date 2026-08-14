@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, DEFAULT_STORE_ID, enqueueSync, generateUUID } from "@/lib/db/dexie-db";
+import { db, DEFAULT_STORE_ID, enqueueSync, generateUUID, updateStoreBranding } from "@/lib/db/dexie-db";
 import { SAMPLE_PRODUCTS, SAMPLE_CUSTOMERS } from "@/lib/db/mock-data";
-import { useSync } from "@/lib/sync/sync-context";
+import { useSync, COUNTRIES } from "@/lib/sync/sync-context";
 import { useAuth } from "@/lib/auth/auth-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
 import type { Product, Customer } from "@/lib/shared/types";
@@ -30,6 +30,9 @@ import {
   Lock,
   User,
   Shield,
+  Upload,
+  Image as ImageIcon,
+  Trash2,
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -58,6 +61,8 @@ export default function SettingsPage() {
 
   // Store form state
   const [storeName, setStoreName] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [countryCode, setCountryCode] = useState("CD");
   const [currency, setCurrency] = useState("CDF");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -68,7 +73,9 @@ export default function SettingsPage() {
   useEffect(() => {
     if (authStore || tenant) {
       setStoreName(authStore?.name || tenant?.name || "");
-      setCurrency(tenant?.currency || authStore?.currency || "CDF");
+      setLogoUrl(authStore?.logoUrl || tenant?.logoUrl || "");
+      setCountryCode(authStore?.countryCode || tenant?.countryCode || "CD");
+      setCurrency(authStore?.currency || tenant?.currency || "CDF");
       setPhone(authStore?.phone || tenant?.phone || "");
       setAddress(authStore?.address || "");
       setOwnerName(authStore?.ownerName || user?.name || "");
@@ -90,35 +97,42 @@ export default function SettingsPage() {
     return <PinLockScreen title="Paramètres Verrouillés" />;
   }
 
+  const handleCountryChange = (newCountryCode: string) => {
+    setCountryCode(newCountryCode);
+    const country = COUNTRIES.find((c) => c.code === newCountryCode);
+    if (country) {
+      setCurrency(country.currency);
+    }
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1.5 * 1024 * 1024) {
+      alert("L'image est trop volumineuse (max 1.5 Mo).");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setLogoUrl(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSaveStore = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!authStore && !tenant) return;
 
-    const now = new Date().toISOString();
-    const updatedStore = {
-      id: currentStoreId,
-      tenantId: currentTenantId,
+    await updateStoreBranding(currentStoreId, {
       name: storeName.trim(),
+      logoUrl: logoUrl || undefined,
+      countryCode,
       currency,
       phone: phone.trim() || undefined,
       address: address.trim() || undefined,
       ownerName: ownerName.trim() || undefined,
-      updatedAt: now,
-      createdAt: authStore?.createdAt || now,
-    };
-
-    await db.stores.put(updatedStore);
-    if (tenant) {
-      const updatedTenant = { ...tenant, name: storeName.trim(), currency, updatedAt: now };
-      await db.tenants.put(updatedTenant);
-    }
-
-    await enqueueSync({
-      tenantId: currentTenantId,
-      storeId: currentStoreId,
-      entity: "store",
-      action: "UPDATE",
-      payload: JSON.stringify(updatedStore),
     });
 
     await refreshStore();
@@ -203,10 +217,10 @@ export default function SettingsPage() {
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
             <SettingsIcon className="w-6 h-6 text-blue-600" />
-            <span>Paramètres & Synchronisation</span>
+            <span>Paramètres de la Boutique</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Boutique : <b>{tenant?.name}</b> • Utilisateur : <b>{user?.name}</b> ({user?.role})
+            Boutique : <b>{storeName || tenant?.name}</b> • Gérant : <b>{user?.name}</b> ({user?.role})
           </p>
         </div>
       </div>
@@ -215,17 +229,66 @@ export default function SettingsPage() {
         {/* LEFT: Store Profile & Session */}
         <div className="lg:col-span-2 space-y-5">
           {/* Store Profile */}
-          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm">
             <h3 className="font-bold text-slate-900 text-base mb-4 flex items-center gap-2">
               <Store className="w-5 h-5 text-blue-600" />
-              <span>Profil de la Boutique</span>
+              <span>Identité, Logo & Devise</span>
             </h3>
 
             <form onSubmit={handleSaveStore} className="space-y-4">
+              {/* Store Logo Upload */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 flex flex-col sm:flex-row items-center gap-4">
+                <div className="relative">
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt="Logo Boutique"
+                      className="w-16 h-16 rounded-2xl object-cover border-2 border-white shadow-md"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-md">
+                      <Store className="w-8 h-8" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 text-center sm:text-left">
+                  <label className="text-xs font-bold text-slate-800 block mb-1">
+                    Logo Officiel de votre Boutique
+                  </label>
+                  <p className="text-[11px] text-slate-500 mb-2">
+                    Apparaît sur l'en-tête de votre caisse et les tickets de vente
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+                    <label className="py-1.5 px-3 rounded-xl bg-white hover:bg-slate-100 text-blue-700 border border-slate-200 text-xs font-bold cursor-pointer shadow-xs transition-colors inline-flex items-center gap-1">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{logoUrl ? "Changer le logo" : "Importer un logo"}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {logoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setLogoUrl("")}
+                        className="py-1.5 px-2.5 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-semibold"
+                      >
+                        Supprimer
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Store Name & Country */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-600 block mb-1">
-                    Nom du Commerce *
+                    Nom du Commerce / Boutique *
                   </label>
                   <input
                     type="text"
@@ -238,23 +301,43 @@ export default function SettingsPage() {
 
                 <div>
                   <label className="text-xs font-semibold text-slate-600 block mb-1">
-                    Devise Monétaire
+                    Pays de la Boutique
+                  </label>
+                  <select
+                    value={countryCode}
+                    onChange={(e) => handleCountryChange(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-slate-800"
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.flag} {c.name} ({c.currencySymbol})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Currency & Phone */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">
+                    Devise Monétaire Principale
                   </label>
                   <select
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}
                     className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-slate-800"
                   >
-                    <option value="CDF">CDF - Franc Congolais (RDC)</option>
+                    <option value="CDF">CDF - Franc Congolais (FC)</option>
                     <option value="USD">USD - Dollar Américain ($)</option>
-                    <option value="XOF">XOF - Franc CFA UEMOA (CI, Sénégal, Mali...)</option>
-                    <option value="XAF">XAF - Franc CFA CEMAC (Cameroun, Gabon, Congo...)</option>
-                    <option value="GNF">GNF - Franc Guinéen (Guinée)</option>
+                    <option value="XOF">XOF - Franc CFA UEMOA (FCFA)</option>
+                    <option value="XAF">XAF - Franc CFA CEMAC (FCFA)</option>
+                    <option value="GNF">GNF - Franc Guinéen (FG)</option>
+                    <option value="RWF">RWF - Franc Rwandais (FRw)</option>
+                    <option value="EUR">EUR - Euro (€)</option>
                   </select>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-600 block mb-1">
                     Téléphone Boutique / WhatsApp
@@ -267,7 +350,9 @@ export default function SettingsPage() {
                     className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
+              </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-600 block mb-1">
                     Nom du Propriétaire / Gérant
@@ -280,33 +365,33 @@ export default function SettingsPage() {
                     className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1">
-                  Adresse / Commune / Quartier
-                </label>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Avenue du Commerce, Gombe, Kinshasa"
-                  className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">
+                    Adresse / Commune
+                  </label>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Avenue du Commerce, Gombe, Kinshasa"
+                    className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
               </div>
 
               <div className="flex items-center justify-between pt-2">
                 {isSaved && (
                   <span className="text-xs font-bold text-blue-600 flex items-center gap-1">
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Paramètres enregistrés !</span>
+                    <span>Paramètres enregistrés avec succès !</span>
                   </span>
                 )}
                 <button
                   type="submit"
                   className="ml-auto py-2.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20 touch-press"
                 >
-                  Enregistrer
+                  Enregistrer les Modifications
                 </button>
               </div>
             </form>

@@ -27,9 +27,10 @@ export interface Tenant {
   id: string;
   name: string;
   slug: string;
+  logoUrl?: string;
   phone?: string;
   countryCode: string;
-  currency: string; // XOF, XAF, GNF, CDF, USD, etc.
+  currency: string; // CDF, USD, XOF, XAF, GNF, RWF, EUR, etc.
   plan: SubscriptionPlan;
   planStatus: SubscriptionStatus;
   planExpiresAt?: string;
@@ -72,6 +73,8 @@ export interface Store {
   tenantId?: string;
   name: string;
   currency: string;
+  countryCode?: string;
+  logoUrl?: string;
   phone?: string;
   address?: string;
   ownerName?: string;
@@ -154,6 +157,33 @@ export interface DebtPayment {
   updatedAt: string;
 }
 
+export type ExpenseCategory =
+  | "LOYER"
+  | "ELECTRICITE_EAU"
+  | "TRANSPORT_LOGISTIQUE"
+  | "SALAIRES"
+  | "ACHAT_FOURNITURES"
+  | "TAXES_IMPOTS"
+  | "REPAS_COMMUNICATION"
+  | "MAINTENANCE_REPARATION"
+  | "DIVERS";
+
+export interface Expense {
+  id: string;
+  tenantId?: string;
+  storeId: string;
+  category: ExpenseCategory | string;
+  amount: number;
+  currency: string;
+  paymentMethod: PaymentMethod;
+  notes?: string;
+  receiptUrl?: string;
+  expenseDate: string; // YYYY-MM-DD
+  isSynced: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface StockTransfer {
   id: string;
   tenantId?: string;
@@ -188,7 +218,7 @@ export interface SyncQueueItem {
   id: string;
   tenantId?: string;
   storeId: string;
-  entity: "tenant" | "user" | "store" | "product" | "customer" | "sale" | "debt_payment" | "subscription" | "stock_transfer" | "cash_closing";
+  entity: "tenant" | "user" | "store" | "product" | "customer" | "sale" | "debt_payment" | "expense" | "subscription" | "stock_transfer" | "cash_closing";
   action: SyncAction;
   payload: string;
   status: SyncStatus;
@@ -213,7 +243,7 @@ export interface SyncPushRequest {
   lastPulledAt?: string;
   mutations: Array<{
     id: string;
-    entity: "tenant" | "user" | "store" | "product" | "customer" | "sale" | "debt_payment" | "subscription" | "stock_transfer" | "cash_closing";
+    entity: "tenant" | "user" | "store" | "product" | "customer" | "sale" | "debt_payment" | "expense" | "subscription" | "stock_transfer" | "cash_closing";
     action: SyncAction;
     data: any;
     clientTimestamp: string;
@@ -230,6 +260,7 @@ export interface SyncPushResponse {
     customers?: Customer[];
     sales?: Sale[];
     debtPayments?: DebtPayment[];
+    expenses?: Expense[];
     users?: User[];
     tenant?: Tenant;
   };
@@ -289,7 +320,7 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     canUseWhatsAppTemplates: true,
     canExportReports: false,
     canTransferStock: false,
-    canCreateMultipleCashiers: false,
+    canCreateMultipleCashiers: true,
     canUseCloudSync: true,
     canPerformCashClosing: true,
   },

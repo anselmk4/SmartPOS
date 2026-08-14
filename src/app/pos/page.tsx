@@ -845,10 +845,21 @@ export default function POSPage() {
       {completedSale && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in zoom-in-95">
           <div className="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl border border-slate-100 text-center">
-            <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-3">
-              <CheckCircle2 className="w-7 h-7" />
-            </div>
+            {authStore?.logoUrl ? (
+              <img
+                src={authStore.logoUrl}
+                alt="Logo Boutique"
+                className="w-14 h-14 rounded-2xl object-cover mx-auto mb-2 border border-slate-200 shadow-xs"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-2">
+                <CheckCircle2 className="w-7 h-7" />
+              </div>
+            )}
 
+            <div className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-0.5">
+              {authStore?.name || tenant?.name || "Kuettu SMART POS"}
+            </div>
             <h3 className="font-extrabold text-slate-900 text-lg mb-1">Vente Enregistrée !</h3>
             <p className="text-xs text-slate-500 mb-3">
               N° Reçu : <span className="font-semibold text-slate-700">{completedSale.sale.receiptNumber}</span>

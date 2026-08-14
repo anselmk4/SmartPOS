@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, generateUUID, DEFAULT_STORE_ID } from "@/lib/db/dexie-db";
+import { db, generateUUID, DEFAULT_STORE_ID, updateStaffUser, deleteStaffUser } from "@/lib/db/dexie-db";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
@@ -30,6 +30,9 @@ import {
   Building,
   Plus,
   Sparkles,
+  Edit2,
+  Trash2,
+  X,
 } from "lucide-react";
 
 export default function OwnerSupervisionPage() {
@@ -55,6 +58,14 @@ export default function OwnerSupervisionPage() {
   const currentTenantId = tenant?.id;
 
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editUserName, setEditUserName] = useState("");
+  const [editUserPhone, setEditUserPhone] = useState("");
+  const [editUserPin, setEditUserPin] = useState("0000");
+  const [editUserRole, setEditUserRole] = useState<UserRole>("CASHIER");
+  const [editUserStoreId, setEditUserStoreId] = useState("");
+
   const [isAddStoreModalOpen, setIsAddStoreModalOpen] = useState(false);
   const [isAssignManagerModalOpen, setIsAssignManagerModalOpen] = useState(false);
   const [selectedStoreForManager, setSelectedStoreForManager] = useState<Store | null>(null);
@@ -65,6 +76,7 @@ export default function OwnerSupervisionPage() {
   const [newUserPhone, setNewUserPhone] = useState("");
   const [newUserPin, setNewUserPin] = useState("0000");
   const [newUserRole, setNewUserRole] = useState<UserRole>("CASHIER");
+  const [newUserStoreId, setNewUserStoreId] = useState("");
 
   // Add Store Form State with Manager
   const [newStoreName, setNewStoreName] = useState("");
@@ -228,6 +240,7 @@ export default function OwnerSupervisionPage() {
     const newUser: User = {
       id: generateUUID(),
       tenantId: tenant.id,
+      storeId: newUserStoreId || currentStoreId,
       name: newUserName.trim(),
       phone: newUserPhone.trim() || undefined,
       pinCode: newUserPin.trim() || "0000",
@@ -241,7 +254,39 @@ export default function OwnerSupervisionPage() {
     setNewUserName("");
     setNewUserPhone("");
     setNewUserPin("0000");
+    setNewUserStoreId("");
     setIsAddUserModalOpen(false);
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser || !editUserName.trim()) return;
+
+    try {
+      await updateStaffUser(editingUser.id, {
+        name: editUserName.trim(),
+        phone: editUserPhone.trim() || undefined,
+        pinCode: editUserPin.trim() || "0000",
+        role: editUserRole,
+        storeId: editUserStoreId || undefined,
+      });
+
+      setIsEditUserModalOpen(false);
+      setEditingUser(null);
+    } catch (err: any) {
+      alert("Erreur modification utilisateur : " + err.message);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (userId === user?.id) {
+      alert("Vous ne pouvez pas supprimer votre propre compte actif.");
+      return;
+    }
+
+    if (confirm("Voulez-vous vraiment supprimer cet utilisateur du personnel ?")) {
+      await deleteStaffUser(userId);
+    }
   };
 
   const handleCreateStore = async (e: React.FormEvent) => {
@@ -535,66 +580,129 @@ export default function OwnerSupervisionPage() {
         </div>
       </div>
 
-      {/* Staff Management */}
+      {/* Staff Management (Cashiers & Managers) */}
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
-            <h3 className="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-600" />
-              <span>Gestion du Personnel & Caissiers</span>
-            </h3>
-            <p className="text-xs text-slate-500">
-              Créez des accès caisse avec code PIN simplifié sans donner accès aux marges d'achat
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-600" />
+                <span>Gestion du Personnel & Caissiers</span>
+              </h3>
+              {!canAccess("canCreateMultipleCashiers") && (
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                  Plan Payant
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Créez et gérez des accès caisse avec code PIN sécurisé sans visibilité sur vos marges d'achat
             </p>
           </div>
 
           <button
-            onClick={() => setIsAddUserModalOpen(true)}
-            className="py-2.5 px-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-blue-600/20 touch-press"
+            onClick={() => {
+              if (!canAccess("canCreateMultipleCashiers")) {
+                setIsUpgradeModalOpen(true);
+              } else {
+                setIsAddUserModalOpen(true);
+              }
+            }}
+            className="py-2.5 px-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/20 touch-press"
           >
             <UserPlus className="w-4 h-4" />
             <span>Nouveau Membre</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {users.map((u) => {
-            const assignedStore = stores.find((st) => st.id === u.storeId || st.managerId === u.id);
-            return (
-              <div
-                key={u.id}
-                className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 flex items-start justify-between"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-bold text-slate-900 text-sm">{u.name}</h4>
-                    <span
-                      className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                        u.role === "OWNER"
-                          ? "bg-amber-100 text-amber-800"
-                          : u.role === "MANAGER"
-                          ? "bg-indigo-100 text-indigo-800"
-                          : "bg-blue-100 text-blue-800"
-                      }`}
-                    >
-                      {u.role === "OWNER" ? "Propriétaire" : u.role === "MANAGER" ? "Gérant" : "Caissier"}
-                    </span>
-                  </div>
-                  <div className="text-xs text-slate-500 mt-1">{u.phone || "Sans téléphone"}</div>
-                  {assignedStore && (
-                    <div className="text-[11px] font-medium text-indigo-700 mt-1">
-                      🏬 {assignedStore.name}
+        {!canAccess("canCreateMultipleCashiers") ? (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 rounded-2xl p-5 text-center">
+            <Users className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+            <h4 className="font-bold text-slate-900 text-sm">Débloquez la Gestion d'Équipe Multi-Caissiers</h4>
+            <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto">
+              Créez des profils dédiés pour vos caissiers et gérants avec codes PIN 4 chiffres distincts pour chaque boutique.
+            </p>
+            <button
+              onClick={() => setIsUpgradeModalOpen(true)}
+              className="mt-3 py-2 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20"
+            >
+              Passer au Forfait Pro / Business
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {users.map((u) => {
+              const assignedStore = stores.find((st) => st.id === u.storeId || st.managerId === u.id);
+              const isCurrentUser = u.id === user?.id;
+
+              return (
+                <div
+                  key={u.id}
+                  className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="font-bold text-slate-900 text-sm truncate">{u.name}</h4>
+                      <span
+                        className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                          u.role === "OWNER"
+                            ? "bg-amber-100 text-amber-800"
+                            : u.role === "MANAGER"
+                            ? "bg-indigo-100 text-indigo-800"
+                            : "bg-blue-100 text-blue-800"
+                        }`}
+                      >
+                        {u.role === "OWNER" ? "Propriétaire" : u.role === "MANAGER" ? "Gérant" : "Caissier"}
+                      </span>
                     </div>
-                  )}
-                  <div className="flex items-center gap-1 text-xs text-slate-600 mt-2">
-                    <KeyRound className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Code PIN Caisse : <b className="font-mono">{u.pinCode || "0000"}</b></span>
+
+                    <div className="text-xs text-slate-500 mt-1">{u.phone || "Sans téléphone"}</div>
+
+                    {assignedStore && (
+                      <div className="text-[11px] font-medium text-indigo-700 mt-1 flex items-center gap-1">
+                        <span>🏬 {assignedStore.name}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-1 text-xs text-slate-600 mt-2">
+                      <KeyRound className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Code PIN : <b className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200">{u.pinCode || "0000"}</b></span>
+                    </div>
+                  </div>
+
+                  {/* Actions for paid plans */}
+                  <div className="mt-3 pt-3 border-t border-slate-200/70 flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingUser(u);
+                        setEditUserName(u.name);
+                        setEditUserPhone(u.phone || "");
+                        setEditUserPin(u.pinCode || "0000");
+                        setEditUserRole(u.role);
+                        setEditUserStoreId(u.storeId || currentStoreId);
+                        setIsEditUserModalOpen(true);
+                      }}
+                      className="py-1 px-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold flex items-center gap-1 transition-colors"
+                    >
+                      <Edit2 className="w-3 h-3 text-slate-500" />
+                      <span>Modifier</span>
+                    </button>
+
+                    {!isCurrentUser && (
+                      <button
+                        onClick={() => handleDeleteUser(u.id)}
+                        className="py-1 px-2.5 rounded-xl bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-xs font-semibold flex items-center gap-1 transition-colors"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Supprimer</span>
+                      </button>
+                    )}
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* MODAL: Add User */}
@@ -651,7 +759,7 @@ export default function OwnerSupervisionPage() {
                   <select
                     value={newUserRole}
                     onChange={(e) => setNewUserRole(e.target.value as UserRole)}
-                    className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold"
                   >
                     <option value="CASHIER">Caissier (Vente seule)</option>
                     <option value="MANAGER">Gérant Magasin</option>
@@ -674,6 +782,26 @@ export default function OwnerSupervisionPage() {
                   />
                 </div>
               </div>
+
+              {/* Store assignment */}
+              {stores.length > 1 && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">
+                    Boutique assignée
+                  </label>
+                  <select
+                    value={newUserStoreId || currentStoreId}
+                    onChange={(e) => setNewUserStoreId(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 rounded-xl text-xs font-semibold border border-slate-200 focus:bg-white"
+                  >
+                    {stores.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        🏬 {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -689,6 +817,127 @@ export default function OwnerSupervisionPage() {
                 className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20"
               >
                 Créer l'accès
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL: Edit User */}
+      {isEditUserModalOpen && editingUser && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <form
+            onSubmit={handleUpdateUser}
+            className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-100"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="font-bold text-slate-900 text-base">Modifier le Membre du Personnel</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditUserModalOpen(false);
+                  setEditingUser(null);
+                }}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 mb-5">
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">
+                  Nom complet *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editUserName}
+                  onChange={(e) => setEditUserName(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">
+                  Téléphone
+                </label>
+                <input
+                  type="tel"
+                  value={editUserPhone}
+                  onChange={(e) => setEditUserPhone(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">
+                    Rôle
+                  </label>
+                  <select
+                    value={editUserRole}
+                    onChange={(e) => setEditUserRole(e.target.value as UserRole)}
+                    className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white font-bold"
+                  >
+                    <option value="CASHIER">Caissier</option>
+                    <option value="MANAGER">Gérant</option>
+                    <option value="OWNER">Propriétaire</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">
+                    Code PIN Caisse
+                  </label>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    required
+                    value={editUserPin}
+                    onChange={(e) => setEditUserPin(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 rounded-xl text-sm font-mono font-bold tracking-widest border border-slate-200 focus:bg-white text-center"
+                  />
+                </div>
+              </div>
+
+              {/* Store assignment */}
+              {stores.length > 1 && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">
+                    Boutique assignée
+                  </label>
+                  <select
+                    value={editUserStoreId}
+                    onChange={(e) => setEditUserStoreId(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 rounded-xl text-xs font-semibold border border-slate-200 focus:bg-white"
+                  >
+                    {stores.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        🏬 {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditUserModalOpen(false);
+                  setEditingUser(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20"
+              >
+                Enregistrer les Modifications
               </button>
             </div>
           </form>

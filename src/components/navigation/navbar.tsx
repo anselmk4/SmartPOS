@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useSync } from "@/lib/sync/sync-context";
+import { useSync, COUNTRIES } from "@/lib/sync/sync-context";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSidebar } from "./sidebar-context";
 import CashReconciliationModal from "@/components/pos/cash-reconciliation-modal";
@@ -33,6 +33,8 @@ export function Navbar() {
   const { user, tenant, store, stores, isAuthenticated, isOwner, isCashier, plan, canAccess, selectStore, lockTerminal, logout } = useAuth();
   const { toggleCollapse, toggleMobileOpen, isCollapsed } = useSidebar();
   const [syncToast, setSyncToast] = useState<string | null>(null);
+
+  const activeCountry = COUNTRIES.find((c) => c.code === (store?.countryCode || tenant?.countryCode || "CD"));
 
   // Modals state
   const [isCashClosingOpen, setIsCashClosingOpen] = useState(false);
@@ -97,17 +99,33 @@ export function Navbar() {
                   <PanelLeft className="w-5 h-5" />
                 </button>
 
-                {/* Store Name & Active Plan */}
+                {/* Store Identity, Custom Logo & Country */}
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm shadow-blue-500/20 shrink-0">
-                    <StoreIcon className="w-4 h-4" />
-                  </div>
+                  {store?.logoUrl ? (
+                    <img
+                      src={store.logoUrl}
+                      alt={store.name}
+                      className="w-9 h-9 rounded-xl object-cover border border-slate-200 shadow-xs shrink-0"
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm shadow-blue-500/20 shrink-0">
+                      <StoreIcon className="w-4 h-4" />
+                    </div>
+                  )}
 
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <h1 className="font-black text-slate-900 leading-tight text-sm sm:text-base truncate max-w-[150px] sm:max-w-[240px]">
+                      <h1 className="font-black text-slate-900 leading-tight text-sm sm:text-base truncate max-w-[140px] sm:max-w-[220px]">
                         {store?.name || tenant?.name || "Kuettu Shop"}
                       </h1>
+
+                      {/* Country Flag */}
+                      {activeCountry && (
+                        <span className="text-xs" title={`Pays : ${activeCountry.name}`}>
+                          {activeCountry.flag}
+                        </span>
+                      )}
+
                       <Link
                         href="/billing"
                         className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border transition-all ${
