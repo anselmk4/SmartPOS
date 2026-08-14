@@ -1,0 +1,237 @@
+import { db, generateUUID } from "@/lib/db/dexie-db";
+import type { Tenant, Store, User, Subscription, PaymentMethod, SubscriptionPlan } from "@/lib/shared/types";
+
+export async function seedAdminPlatformDataIfEmpty(): Promise<void> {
+  const tenantsCount = await db.tenants.count();
+  if (tenantsCount > 1) return; // Already seeded with multi-tenants
+
+  const now = new Date();
+
+  // Create 4 realistic multi-city boutiques in RDC
+  const demoTenants: Array<{
+    tenant: Tenant;
+    store: Store;
+    user: User;
+    subscription: Subscription;
+  }> = [
+    {
+      tenant: {
+        id: "ten-001-victoire",
+        name: "Alimentation Générale Victoire",
+        slug: "alimentation-victoire",
+        phone: "+243810001122",
+        countryCode: "CD",
+        currency: "CDF",
+        plan: "PRO",
+        planStatus: "ACTIVE",
+        planExpiresAt: new Date(now.getTime() + 20 * 86400000).toISOString(),
+        isActive: true,
+        createdAt: new Date(now.getTime() - 45 * 86400000).toISOString(),
+        updatedAt: now.toISOString(),
+      },
+      store: {
+        id: "str-001-victoire-main",
+        tenantId: "ten-001-victoire",
+        name: "Victoire - Rond Point Victoire",
+        currency: "CDF",
+        phone: "+243810001122",
+        address: "Av. Victoire, Matonge, Kinshasa",
+        ownerName: "Dieudonné Kasongo",
+        createdAt: new Date(now.getTime() - 45 * 86400000).toISOString(),
+        updatedAt: now.toISOString(),
+      },
+      user: {
+        id: "usr-001-dieudonne",
+        tenantId: "ten-001-victoire",
+        name: "Dieudonné Kasongo",
+        phone: "+243810001122",
+        email: "dieudonne@victoire.cd",
+        pinCode: "1234",
+        role: "OWNER",
+        isActive: true,
+        lastLoginAt: now.toISOString(),
+        createdAt: new Date(now.getTime() - 45 * 86400000).toISOString(),
+        updatedAt: now.toISOString(),
+      },
+      subscription: {
+        id: "sub-001",
+        tenantId: "ten-001-victoire",
+        plan: "PRO",
+        amount: 15000,
+        currency: "CDF",
+        paymentMethod: "MPESA",
+        paymentStatus: "ACTIVE",
+        transactionId: "MPESA-RDC-984321",
+        periodStart: new Date(now.getTime() - 10 * 86400000).toISOString(),
+        periodEnd: new Date(now.getTime() + 20 * 86400000).toISOString(),
+        createdAt: new Date(now.getTime() - 10 * 86400000).toISOString(),
+      },
+    },
+    {
+      tenant: {
+        id: "ten-002-quincaillerie-kivu",
+        name: "Quincaillerie & Matériaux du Kivu",
+        slug: "quincaillerie-kivu",
+        phone: "+243997654321",
+        countryCode: "CD",
+        currency: "USD",
+        plan: "BUSINESS",
+        planStatus: "ACTIVE",
+        planExpiresAt: new Date(now.getTime() + 25 * 86400000).toISOString(),
+        isActive: true,
+        createdAt: new Date(now.getTime() - 60 * 86400000).toISOString(),
+        updatedAt: now.toISOString(),
+      },
+      store: {
+        id: "str-002-kivu-goma",
+        tenantId: "ten-002-quincaillerie-kivu",
+        name: "Dépôt Central Goma",
+        currency: "USD",
+        phone: "+243997654321",
+        address: "Boulevard Kanyamuhanga, Goma",
+        ownerName: "Faustin Bahati",
+        createdAt: new Date(now.getTime() - 60 * 86400000).toISOString(),
+        updatedAt: now.toISOString(),
+      },
+      user: {
+        id: "usr-002-faustin",
+        tenantId: "ten-002-quincaillerie-kivu",
+        name: "Faustin Bahati",
+        phone: "+243997654321",
+        email: "faustin@kivu-hardware.com",
+        pinCode: "5678",
+        role: "OWNER",
+        isActive: true,
+        lastLoginAt: new Date(now.getTime() - 2 * 86400000).toISOString(),
+        createdAt: new Date(now.getTime() - 60 * 86400000).toISOString(),
+        updatedAt: now.toISOString(),
+      },
+      subscription: {
+        id: "sub-002",
+        tenantId: "ten-002-quincaillerie-kivu",
+        plan: "BUSINESS",
+        amount: 45000,
+        currency: "CDF",
+        paymentMethod: "AIRTEL_MONEY",
+        paymentStatus: "ACTIVE",
+        transactionId: "AIRTEL-TX-773219",
+        periodStart: new Date(now.getTime() - 5 * 86400000).toISOString(),
+        periodEnd: new Date(now.getTime() + 25 * 86400000).toISOString(),
+        createdAt: new Date(now.getTime() - 5 * 86400000).toISOString(),
+      },
+    },
+    {
+      tenant: {
+        id: "ten-003-pharmacie-espoir",
+        name: "Pharmacie & Parapharmacie Espoir",
+        slug: "pharmacie-espoir",
+        phone: "+243890123987",
+        countryCode: "CD",
+        currency: "CDF",
+        plan: "PRO",
+        planStatus: "ACTIVE",
+        planExpiresAt: new Date(now.getTime() + 14 * 86400000).toISOString(),
+        isActive: true,
+        createdAt: new Date(now.getTime() - 30 * 86400000).toISOString(),
+        updatedAt: now.toISOString(),
+      },
+      store: {
+        id: "str-003-espoir-lubum",
+        tenantId: "ten-003-pharmacie-espoir",
+        name: "Officine Centrale Lubumbashi",
+        currency: "CDF",
+        phone: "+243890123987",
+        address: "Av. Sendwe, Centre-ville, Lubumbashi",
+        ownerName: "Dr. Nadine Mwamba",
+        createdAt: new Date(now.getTime() - 30 * 86400000).toISOString(),
+        updatedAt: now.toISOString(),
+      },
+      user: {
+        id: "usr-003-nadine",
+        tenantId: "ten-003-pharmacie-espoir",
+        name: "Dr. Nadine Mwamba",
+        phone: "+243890123987",
+        email: "nadine@pharma-espoir.cd",
+        pinCode: "9988",
+        role: "OWNER",
+        isActive: true,
+        lastLoginAt: new Date(now.getTime() - 1 * 86400000).toISOString(),
+        createdAt: new Date(now.getTime() - 30 * 86400000).toISOString(),
+        updatedAt: now.toISOString(),
+      },
+      subscription: {
+        id: "sub-003",
+        tenantId: "ten-003-pharmacie-espoir",
+        plan: "PRO",
+        amount: 15000,
+        currency: "CDF",
+        paymentMethod: "ORANGE_MONEY",
+        paymentStatus: "ACTIVE",
+        transactionId: "OM-RDC-440912",
+        periodStart: new Date(now.getTime() - 16 * 86400000).toISOString(),
+        periodEnd: new Date(now.getTime() + 14 * 86400000).toISOString(),
+        createdAt: new Date(now.getTime() - 16 * 86400000).toISOString(),
+      },
+    },
+    {
+      tenant: {
+        id: "ten-004-kiosque-express",
+        name: "Kiosque Multi-Services Express",
+        slug: "kiosque-express",
+        phone: "+243821234000",
+        countryCode: "CD",
+        currency: "CDF",
+        plan: "FREE",
+        planStatus: "ACTIVE",
+        isActive: true,
+        createdAt: new Date(now.getTime() - 12 * 86400000).toISOString(),
+        updatedAt: now.toISOString(),
+      },
+      store: {
+        id: "str-004-express-lemba",
+        tenantId: "ten-004-kiosque-express",
+        name: "Point de vente Lemba Super",
+        currency: "CDF",
+        phone: "+243821234000",
+        address: "Croisement Av. Scribe, Lemba, Kinshasa",
+        ownerName: "Junior Kalombo",
+        createdAt: new Date(now.getTime() - 12 * 86400000).toISOString(),
+        updatedAt: now.toISOString(),
+      },
+      user: {
+        id: "usr-004-junior",
+        tenantId: "ten-004-kiosque-express",
+        name: "Junior Kalombo",
+        phone: "+243821234000",
+        email: "junior@kiosque.cd",
+        pinCode: "0000",
+        role: "OWNER",
+        isActive: true,
+        lastLoginAt: now.toISOString(),
+        createdAt: new Date(now.getTime() - 12 * 86400000).toISOString(),
+        updatedAt: now.toISOString(),
+      },
+      subscription: {
+        id: "sub-004",
+        tenantId: "ten-004-kiosque-express",
+        plan: "FREE",
+        amount: 0,
+        currency: "CDF",
+        paymentMethod: "CASH",
+        paymentStatus: "ACTIVE",
+        transactionId: "FREE-DISCOVERY",
+        periodStart: new Date(now.getTime() - 12 * 86400000).toISOString(),
+        periodEnd: new Date(now.getTime() + 365 * 86400000).toISOString(),
+        createdAt: new Date(now.getTime() - 12 * 86400000).toISOString(),
+      },
+    },
+  ];
+
+  // Bulk add to Dexie
+  for (const item of demoTenants) {
+    await db.tenants.put(item.tenant);
+    await db.stores.put(item.store);
+    await db.users.put(item.user);
+    await db.subscriptions.put(item.subscription);
+  }
+}

@@ -1,0 +1,286 @@
+// Prisma Schema for Micro-ERP SaaS Multi-Tenant (African Retail & Mobile Money)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  MANAGER
+  CASHIER
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  BUSINESS
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  TRIAL
+}
+
+enum PaymentMethod {
+  CASH
+  MPESA
+  AIRTEL_MONEY
+  ORANGE_MONEY
+  AFRIMONEY
+  WAVE
+  MTN_MOMO
+  MOOV_MONEY
+  CREDIT
+  CARD
+  MIXED
+}
+
+enum SyncAction {
+  CREATE
+  UPDATE
+  DELETE
+  STOCK_DELTA
+}
+
+enum SyncStatus {
+  PENDING
+  SYNCING
+  SYNCED
+  FAILED
+}
+
+model Tenant {
+  id            String             @id @default(uuid())
+  name          String
+  slug          String             @unique
+  phone         String?
+  countryCode   String             @default("CD") @map("country_code") // CD (RDC), CI, SN, CM, etc.
+  currency      String             @default("CDF") // CDF (Franc Congolais), USD ($), XOF, XAF, etc.
+  plan          SubscriptionPlan   @default(FREE)
+  planStatus    SubscriptionStatus @default(ACTIVE) @map("plan_status")
+  planExpiresAt DateTime?          @map("plan_expires_at")
+  isActive      Boolean            @default(true) @map("is_active")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  users         User[]
+  stores        Store[]
+  subscriptions Subscription[]
+  products      Product[]
+  customers     Customer[]
+  sales         Sale[]
+  debtPayments  DebtPayment[]
+  syncLogs      SyncLog[]
+
+  @@map("tenants")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  tenantId     String    @map("tenant_id")
+  name         String
+  phone        String?
+  email        String?
+  pinCode      String?   @map("pin_code") // Code PIN à 4 chiffres pour connexion caisse rapide
+  passwordHash String?   @map("password_hash")
+  role         UserRole  @default(CASHIER)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sales        Sale[]
+
+  @@unique([tenantId, email])
+  @@unique([tenantId, phone])
+  @@index([tenantId])
+  @@map("users")
+}
+
+model Subscription {
+  id            String             @id @default(uuid())
+  tenantId      String             @map("tenant_id")
+  plan          SubscriptionPlan
+  amount        Float
+  currency      String             @default("XOF")
+  paymentMethod PaymentMethod      @default(WAVE) @map("payment_method")
+  paymentStatus SubscriptionStatus @default(ACTIVE) @map("payment_status")
+  transactionId String?            @map("transaction_id")
+  periodStart   DateTime           @default(now()) @map("period_start")
+  periodEnd     DateTime           @map("period_end")
+  createdAt     DateTime           @default(now()) @map("created_at")
+
+  tenant        Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("subscriptions")
+}
+
+model Store {
+  id           String        @id @default(uuid())
+  tenantId     String        @map("tenant_id")
+  name         String
+  currency     String        @default("XOF")
+  phone        String?
+  address      String?
+  ownerName    String?
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products     Product[]
+  customers    Customer[]
+  sales        Sale[]
+  debtPayments DebtPayment[]
+  syncLogs     SyncLog[]
+
+  @@index([tenantId])
+  @@map("stores")
+}
+
+model Product {
+  id            String      @id @default(uuid())
+  tenantId      String      @map("tenant_id")
+  storeId       String      @map("store_id")
+  name          String
+  unitPrice     Float       @map("unit_price") // Prix de vente
+  costPrice     Float       @default(0) @map("cost_price") // Prix d'achat / revient
+  stockQuantity Float       @default(0) @map("stock_quantity")
+  minStockAlert Float       @default(5) @map("min_stock_alert")
+  category      String      @default("Général")
+  barcode       String?
+  imageUrl      String?     @map("image_url")
+  isSynced      Boolean     @default(true) @map("is_synced")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  store         Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  saleItems     SaleItem[]
+
+  @@index([tenantId])
+  @@index([storeId])
+  @@index([updatedAt])
+  @@map("products")
+}
+
+model Customer {
+  id                 String        @id @default(uuid())
+  tenantId           String        @map("tenant_id")
+  storeId            String        @map("store_id")
+  name               String
+  phone              String?
+  currentDebtBalance Float         @default(0) @map("current_debt_balance")
+  isSynced           Boolean       @default(true) @map("is_synced")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  tenant             Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  store              Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  sales              Sale[]
+  debtPayments       DebtPayment[]
+
+  @@index([tenantId])
+  @@index([storeId])
+  @@index([phone])
+  @@index([updatedAt])
+  @@map("customers")
+}
+
+model Sale {
+  id            String        @id @default(uuid())
+  tenantId      String        @map("tenant_id")
+  storeId       String        @map("store_id")
+  customerId    String?       @map("customer_id")
+  userId        String?       @map("user_id") // Caissier ayant réalisé la vente
+  totalAmount   Float         @map("total_amount")
+  amountPaid    Float         @map("amount_paid")
+  debtAmount    Float         @default(0) @map("debt_amount")
+  paymentMethod PaymentMethod @default(CASH) @map("payment_method")
+  status        String        @default("COMPLETED")
+  receiptNumber String?       @map("receipt_number")
+  notes         String?
+  isSynced      Boolean       @default(true) @map("is_synced")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items         SaleItem[]
+
+  @@index([tenantId])
+  @@index([storeId])
+  @@index([customerId])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String   @id @default(uuid())
+  saleId    String   @map("sale_id")
+  productId String   @map("product_id")
+  quantity  Float
+  unitPrice Float    @map("unit_price")
+  costPrice Float    @default(0) @map("cost_price")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([saleId])
+  @@index([productId])
+  @@map("sale_items")
+}
+
+model DebtPayment {
+  id            String        @id @default(uuid())
+  tenantId      String        @map("tenant_id")
+  storeId       String        @map("store_id")
+  customerId    String        @map("customer_id")
+  amount        Float
+  paymentMethod PaymentMethod @default(CASH) @map("payment_method")
+  notes         String?
+  isSynced      Boolean       @default(true) @map("is_synced")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([storeId])
+  @@index([customerId])
+  @@index([updatedAt])
+  @@map("debt_payments")
+}
+
+model SyncLog {
+  id          String     @id @default(uuid())
+  tenantId    String     @map("tenant_id")
+  storeId     String     @map("store_id")
+  entity      String
+  entityId    String     @map("entity_id")
+  action      SyncAction
+  status      SyncStatus @default(SYNCED)
+  error       String?
+  processedAt DateTime   @default(now()) @map("processed_at")
+
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  store       Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([storeId])
+  @@index([processedAt])
+  @@map("sync_logs")
+}
