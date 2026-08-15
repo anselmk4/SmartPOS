@@ -61,6 +61,15 @@ export function Sidebar() {
       allowed: true,
     },
     {
+      label: "Clients & Fidélité",
+      shortLabel: "Clients",
+      href: "/customers",
+      icon: User,
+      color: "text-sky-600",
+      bgActive: "bg-sky-600 text-white shadow-md shadow-sky-600/30",
+      allowed: true,
+    },
+    {
       label: "Dépenses & Frais",
       shortLabel: "Dépenses",
       href: "/expenses",

@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/components/navigation/sidebar-context";
 import { Sidebar } from "@/components/navigation/sidebar";
 import { Navbar } from "@/components/navigation/navbar";
 import { PWARegister } from "@/components/pwa/pwa-register";
+import { PlanMotivationCapsule } from "@/components/plans/plan-motivation-capsule";
 
 export const metadata: Metadata = {
   title: "Kuettu SMART POS | Caisse Tactile Offline-First, Dettes WhatsApp & Mobile Money",
@@ -60,6 +61,9 @@ export default function RootLayout({
                     <main className="flex-1 flex flex-col">{children}</main>
                   </div>
                 </div>
+
+                {/* Plan Motivation Floating Capsule */}
+                <PlanMotivationCapsule />
 
                 {/* PWA Service Worker & Install Manager */}
                 <PWARegister />

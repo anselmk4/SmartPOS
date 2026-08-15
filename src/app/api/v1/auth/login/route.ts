@@ -131,16 +131,21 @@ export async function POST(req: NextRequest) {
     const tenantId = user.tenantId;
 
     // 4. Fetch full tenant ecosystem for instant offline-first bootstrapping
-    const [stores, allUsers, products, customers, recentSales] = await Promise.all([
+    const [stores, allUsers, products, customers, recentSales, debtPayments] = await Promise.all([
       prisma.store.findMany({ where: { tenantId } }),
       prisma.user.findMany({ where: { tenantId, isActive: true } }),
       prisma.product.findMany({ where: { tenantId } }),
       prisma.customer.findMany({ where: { tenantId } }),
       prisma.sale.findMany({
         where: { tenantId },
-        take: 100,
+        take: 500,
         orderBy: { createdAt: "desc" },
         include: { items: true },
+      }),
+      prisma.debtPayment.findMany({
+        where: { tenantId },
+        take: 200,
+        orderBy: { createdAt: "desc" },
       }),
     ]);
 
@@ -163,6 +168,7 @@ export async function POST(req: NextRequest) {
       products,
       customers,
       sales: recentSales,
+      debtPayments,
       message: `Connexion réussie ! Bienvenue sur ${user.tenant?.name || user.name}`,
     });
   } catch (error: any) {

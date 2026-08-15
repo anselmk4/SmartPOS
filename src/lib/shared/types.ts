@@ -2,7 +2,7 @@
 
 export type UserRole = "OWNER" | "MANAGER" | "CASHIER";
 
-export type SubscriptionPlan = "FREE" | "PRO" | "BUSINESS";
+export type SubscriptionPlan = "FREE" | "BASIC" | "PRO" | "BUSINESS";
 
 export type SubscriptionStatus = "ACTIVE" | "PAST_DUE" | "CANCELLED" | "TRIAL";
 
@@ -113,7 +113,12 @@ export interface Customer {
   storeId: string;
   name: string;
   phone?: string;
+  email?: string;
+  address?: string;
+  notes?: string;
   currentDebtBalance: number;
+  totalDebt?: number;
+  totalSpent?: number;
   isSynced: boolean;
   createdAt: string;
   updatedAt: string;
@@ -298,14 +303,15 @@ export interface CartItem {
   subtotal: number;
 }
 
-// Plan Limits & Feature Capabilities
 export interface PlanConfig {
   id: SubscriptionPlan;
   name: string;
   monthlyPriceCDF: number;
+  monthlyPriceUSD: number;
   maxSalesPerMonth: number | null; // null = unlimited
   maxStores: number;
   maxDebtors: number | null; // null = unlimited
+  maxCashiers: number | null; // null = unlimited
   canAccessOwnerDashboard: boolean;
   canViewGrossProfitMargins: boolean;
   canUseWhatsAppTemplates: boolean;
@@ -319,11 +325,13 @@ export interface PlanConfig {
 export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
   FREE: {
     id: "FREE",
-    name: "Découverte",
+    name: "Découverte Gratuit",
     monthlyPriceCDF: 0,
+    monthlyPriceUSD: 0,
     maxSalesPerMonth: 100,
     maxStores: 1,
-    maxDebtors: 5,
+    maxDebtors: 10,
+    maxCashiers: 1,
     canAccessOwnerDashboard: false,
     canViewGrossProfitMargins: false,
     canUseWhatsAppTemplates: false,
@@ -333,17 +341,37 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     canUseCloudSync: false,
     canPerformCashClosing: false,
   },
+  BASIC: {
+    id: "BASIC",
+    name: "Commerçant Basic",
+    monthlyPriceCDF: 15000,
+    monthlyPriceUSD: 6,
+    maxSalesPerMonth: 1000,
+    maxStores: 1,
+    maxDebtors: 100,
+    maxCashiers: 10,
+    canAccessOwnerDashboard: true,
+    canViewGrossProfitMargins: false,
+    canUseWhatsAppTemplates: true,
+    canExportReports: true,
+    canTransferStock: false,
+    canCreateMultipleCashiers: true,
+    canUseCloudSync: true,
+    canPerformCashClosing: true,
+  },
   PRO: {
     id: "PRO",
     name: "Commerçant Pro",
-    monthlyPriceCDF: 15000,
+    monthlyPriceCDF: 30000,
+    monthlyPriceUSD: 12,
     maxSalesPerMonth: null, // Unlimited
     maxStores: 1,
     maxDebtors: null, // Unlimited
+    maxCashiers: null, // Unlimited
     canAccessOwnerDashboard: true,
     canViewGrossProfitMargins: true,
     canUseWhatsAppTemplates: true,
-    canExportReports: false,
+    canExportReports: true,
     canTransferStock: false,
     canCreateMultipleCashiers: true,
     canUseCloudSync: true,
@@ -352,10 +380,12 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
   BUSINESS: {
     id: "BUSINESS",
     name: "Business Multi-Magasins",
-    monthlyPriceCDF: 45000,
+    monthlyPriceCDF: 60000,
+    monthlyPriceUSD: 25,
     maxSalesPerMonth: null, // Unlimited
     maxStores: 10, // Multi-stores
     maxDebtors: null, // Unlimited
+    maxCashiers: null, // Unlimited
     canAccessOwnerDashboard: true,
     canViewGrossProfitMargins: true,
     canUseWhatsAppTemplates: true,

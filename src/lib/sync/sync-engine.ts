@@ -244,7 +244,13 @@ export class SyncEngine {
 
         if (sales && sales.length > 0) {
           for (const sale of sales) {
-            await db.sales.put({ ...sale, isSynced: true });
+            const { items, ...saleRecord } = sale;
+            await db.sales.put({ ...saleRecord, isSynced: true });
+            if (items && Array.isArray(items)) {
+              for (const it of items) {
+                await db.saleItems.put(it);
+              }
+            }
           }
         }
 

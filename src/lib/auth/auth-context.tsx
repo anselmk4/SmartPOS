@@ -216,6 +216,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await db.customers.put({ ...c, isSynced: true });
         }
       }
+      if (cloudData.sales && Array.isArray(cloudData.sales)) {
+        for (const s of cloudData.sales) {
+          const { items, ...saleRecord } = s;
+          await db.sales.put({ ...saleRecord, isSynced: true });
+          if (items && Array.isArray(items)) {
+            for (const it of items) {
+              await db.saleItems.put(it);
+            }
+          }
+        }
+      }
+      if (cloudData.debtPayments && Array.isArray(cloudData.debtPayments)) {
+        for (const dp of cloudData.debtPayments) {
+          await db.debtPayments.put({ ...dp, isSynced: true });
+        }
+      }
+      if (cloudData.expenses && Array.isArray(cloudData.expenses)) {
+        for (const exp of cloudData.expenses) {
+          await db.expenses.put({ ...exp, isSynced: true });
+        }
+      }
     } catch (hydrateErr) {
       console.warn("[Auth] Bootstrap into Dexie warning:", hydrateErr);
     }
