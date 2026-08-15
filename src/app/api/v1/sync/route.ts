@@ -42,6 +42,40 @@ export async function POST(req: NextRequest) {
     }
 
     if (isDbConnected) {
+      // Auto-ensure tenant and store exist in database to prevent foreign key violations
+      try {
+        await prisma.tenant.upsert({
+          where: { id: tenantId },
+          update: {},
+          create: {
+            id: tenantId,
+            name: "Organisation Client",
+            slug: `tenant-${tenantId.substring(0, 8)}`,
+            countryCode: "CD",
+            currency: "CDF",
+            plan: "PRO",
+            planStatus: "ACTIVE",
+            createdAt: now,
+            updatedAt: now,
+          },
+        });
+
+        await prisma.store.upsert({
+          where: { id: storeId },
+          update: {},
+          create: {
+            id: storeId,
+            tenantId,
+            name: "Boutique Principale",
+            currency: "CDF",
+            createdAt: now,
+            updatedAt: now,
+          },
+        });
+      } catch (e) {
+        console.warn("[Sync] Ensure tenant/store fallback:", e);
+      }
+
       for (const mutation of mutations) {
         try {
           const { id, entity, action, data } = mutation;
