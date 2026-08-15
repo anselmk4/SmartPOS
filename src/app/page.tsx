@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
 import {
@@ -37,6 +38,9 @@ import {
   Printer,
   ShieldAlert,
   Flame,
+  ArrowRightLeft,
+  Receipt,
+  FileSpreadsheet,
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -54,12 +58,12 @@ export default function LandingPage() {
     {
       question: "Est-ce que l'application fonctionne vraiment sans connexion Internet ?",
       answer:
-        "Oui, à 100% ! Kuettu SMART POS est conçu avec une architecture Offline-First (Dexie IndexedDB). Vous pouvez encaisser des ventes, enregistrer des nouveaux clients, ajouter des produits et tenir votre carnet de dettes toute la journée sans aucun réseau Internet ni électricité continue. Aucune coupure réseau ne bloque votre caisse.",
+        "Oui, à 100% ! Kuettu SMART POS est conçu avec une architecture Offline-First (IndexedDB). Vous pouvez encaisser des ventes, enregistrer des nouveaux clients, ajouter des produits et tenir votre carnet de dettes toute la journée sans aucun réseau Internet ni électricité continue. Aucune coupure réseau ne bloque votre caisse.",
     },
     {
       question: "Que se passe-t-il lorsque la connexion Internet revient ?",
       answer:
-        "Dès que votre téléphone, tablette ou ordinateur capte la 3G/4G ou le Wi-Fi, Kuettu SMART POS synchronise automatiquement toutes les transactions enregistrées en local vers notre Cloud sécurisé. Vos données sont sauvegardées et consultables à distance par le propriétaire sans intervention manuelle.",
+        "Dès que votre téléphone, tablette ou ordinateur capte la 3G/4G ou le Wi-Fi, Kuettu SMART POS synchronise automatiquement toutes les transactions enregistrées en local vers notre Cloud Supabase sécurisé. Vos données sont sauvegardées et consultables à distance par le propriétaire sans intervention manuelle.",
     },
     {
       question: "Comment fonctionne la relance WhatsApp des clients endettés ?",
@@ -84,7 +88,7 @@ export default function LandingPage() {
     {
       question: "Quels moyens de paiement Mobile Money sont supportés ?",
       answer:
-        "Kuettu SMART POS prend en charge tous les opérateurs majeurs de Mobile Money en RDC : M-Pesa (Vodacom), Airtel Money, Orange Money et Afrimoney. Les encaissements en Francs Congolais (CDF) et en Dollars ($) sont comptabilisés séparément des espèces.",
+        "Kuettu SMART POS prend en charge tous les opérateurs majeurs de Mobile Money en RDC : M-Pesa (Vodacom), Airtel Money, Orange Money et Afrimoney via la passerelle PawaPay. Les encaissements en Francs Congolais (CDF) et en Dollars ($) sont comptabilisés séparément des espèces.",
     },
     {
       question: "Quels matériels (imprimantes, lecteurs code-barre) sont compatibles ?",
@@ -147,240 +151,406 @@ export default function LandingPage() {
   return (
     <div className="flex-1 bg-white text-slate-900 overflow-x-hidden scroll-smooth">
       {/* ========================================================= */}
-      {/* 1. HERO SECTION */}
+      {/* 1. HERO SECTION AVEC IMAGE RÉALISTE */}
       {/* ========================================================= */}
       <section
         id="hero"
-        className="relative overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-blue-950 text-white pt-14 pb-24 px-4 sm:px-6 lg:px-8"
+        className="relative overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-blue-950 text-white pt-12 pb-20 px-4 sm:px-6 lg:px-8"
       >
         {/* Ambient background glow */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[320px] bg-blue-500/20 blur-[130px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-0 right-10 w-[350px] h-[200px] bg-indigo-500/15 blur-[100px] rounded-full pointer-events-none" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-blue-500/20 blur-[130px] rounded-full pointer-events-none" />
 
-        <div className="max-w-6xl mx-auto relative z-10 text-center">
-          {/* Top Pill Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/15 border border-blue-400/30 text-blue-300 text-xs font-bold mb-6 backdrop-blur shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>100% Hors-Ligne • Caisse Tactile & Carnet de Dettes WhatsApp pour l'Afrique</span>
-          </div>
+        <div className="max-w-7xl mx-auto relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            {/* Left Col: Headline & CTAs */}
+            <div className="lg:col-span-7 text-left space-y-6">
+              {/* Top Pill Badge */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/15 border border-blue-400/30 text-blue-300 text-xs font-bold backdrop-blur shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>100% Hors-Ligne • Caisse Tactile & Carnet de Dettes WhatsApp</span>
+              </div>
 
-          {/* Main Hero Headline */}
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight max-w-4xl mx-auto leading-tight sm:leading-tight">
-            Pilotez votre Caisse, vos Stocks et vos{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-300">
-              Créances Clients
-            </span>{" "}
-            même sans Internet.
-          </h1>
+              {/* Main Hero Headline */}
+              <h1 className="text-3xl sm:text-5xl lg:text-5xl font-black tracking-tight leading-tight">
+                Pilotez votre Caisse, vos Stocks et vos{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-300">
+                  Créances Clients
+                </span>{" "}
+                même sans Internet.
+              </h1>
 
-          {/* Subtitle */}
-          <p className="text-slate-300 text-sm sm:text-lg max-w-3xl mx-auto mt-5 sm:mt-6 leading-relaxed">
-            <b>Kuettu SMART POS</b> est la solution tout-en-un conçue pour les commerces africains :
-            caisse tactile <b>0ms sans latence</b>, carnet de dettes avec <b>relance WhatsApp en 1 clic</b>,
-            gestion <b>multi-magasins</b> et encaissement <b>Mobile Money (M-Pesa, Airtel, Orange, Afrimoney)</b>.
-          </p>
+              {/* Subtitle */}
+              <p className="text-slate-300 text-sm sm:text-base max-w-2xl leading-relaxed">
+                <b>Kuettu SMART POS</b> est la solution tout-en-un conçue pour les commerces d'Afrique :
+                caisse tactile <b>0ms sans latence</b>, carnet de dettes avec <b>relance WhatsApp en 1 clic</b>,
+                supervision <b>multi-magasins</b> et encaissement <b>Mobile Money PawaPay (M-Pesa, Airtel, Orange, Afrimoney)</b>.
+              </p>
 
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 sm:gap-4 mt-8 max-w-lg mx-auto">
-            <Link
-              href="/auth/register"
-              className="w-full sm:w-auto py-3.5 px-7 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm shadow-xl shadow-blue-600/30 flex items-center justify-center gap-2 transition-all touch-press"
-            >
-              <span>Créer ma Boutique (Essai Gratuit)</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+              {/* CTAs */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                <Link
+                  href="/auth/register"
+                  className="w-full sm:w-auto py-3.5 px-7 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm shadow-xl shadow-blue-600/30 flex items-center justify-center gap-2 transition-all touch-press"
+                >
+                  <span>Créer ma Boutique Gratuitement</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
 
-            <Link
-              href="/pos"
-              className="w-full sm:w-auto py-3.5 px-6 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/20 flex items-center justify-center gap-2 backdrop-blur transition-all touch-press"
-            >
-              <PlayCircle className="w-4 h-4 text-sky-400" />
-              <span>Tester la Caisse Démo</span>
-            </Link>
-          </div>
+                <Link
+                  href="/pos"
+                  className="w-full sm:w-auto py-3.5 px-6 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/20 flex items-center justify-center gap-2 backdrop-blur transition-all touch-press"
+                >
+                  <PlayCircle className="w-4 h-4 text-sky-400" />
+                  <span>Tester la Caisse Démo</span>
+                </Link>
+              </div>
 
-          {/* Key Metrics Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-4xl mx-auto mt-14 pt-8 border-t border-white/10 text-left">
-            <div className="bg-white/5 backdrop-blur-sm p-4 rounded-2xl border border-white/10">
-              <div className="text-blue-400 font-black text-xl sm:text-2xl">0ms</div>
-              <div className="text-xs text-slate-300 font-semibold mt-0.5">Latence Caisse</div>
-              <div className="text-[10px] text-slate-400">100% Fonctionnel Offline</div>
+              {/* Key Metrics Bar */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-white/10">
+                <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
+                  <div className="text-blue-400 font-black text-xl">0ms</div>
+                  <div className="text-xs text-slate-300 font-semibold">Offline-First</div>
+                  <div className="text-[10px] text-slate-400">Zéro coupure</div>
+                </div>
+
+                <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
+                  <div className="text-amber-400 font-black text-xl">1 Clic</div>
+                  <div className="text-xs text-slate-300 font-semibold">WhatsApp</div>
+                  <div className="text-[10px] text-slate-400">Relance dettes</div>
+                </div>
+
+                <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
+                  <div className="text-sky-400 font-black text-xl">M-Pesa</div>
+                  <div className="text-xs text-slate-300 font-semibold">Mobile Money</div>
+                  <div className="text-[10px] text-slate-400">CDF & USD</div>
+                </div>
+
+                <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
+                  <div className="text-indigo-400 font-black text-xl">Multi-Shop</div>
+                  <div className="text-xs text-slate-300 font-semibold">Supervision</div>
+                  <div className="text-[10px] text-slate-400">Gérant à distance</div>
+                </div>
+              </div>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-sm p-4 rounded-2xl border border-white/10">
-              <div className="text-amber-400 font-black text-xl sm:text-2xl">1 Clic</div>
-              <div className="text-xs text-slate-300 font-semibold mt-0.5">Relance WhatsApp</div>
-              <div className="text-[10px] text-slate-400">Récupération des dettes</div>
-            </div>
+            {/* Right Col: Realistic African Store Image Frame */}
+            <div className="lg:col-span-5 relative">
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl border-2 border-white/20 group">
+                <img
+                  src="/images/hero-smartpos.jpg"
+                  alt="Boutique moderne en RDC équipée de Kuettu SMART POS"
+                  className="w-full h-[380px] sm:h-[450px] object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
 
-            <div className="bg-white/5 backdrop-blur-sm p-4 rounded-2xl border border-white/10">
-              <div className="text-sky-400 font-black text-xl sm:text-2xl">M-Pesa & MoMo</div>
-              <div className="text-xs text-slate-300 font-semibold mt-0.5">Paiements RDC</div>
-              <div className="text-[10px] text-slate-400">CDF & USD séparés</div>
-            </div>
+                {/* Floating Live Badge Top Left */}
+                <div className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-md text-white p-2.5 rounded-2xl border border-white/15 flex items-center gap-2 shadow-lg animate-fadeIn">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                  <div className="text-left">
+                    <div className="text-[11px] font-bold text-slate-200">Mode Hors-Ligne Actif</div>
+                    <div className="text-[9px] text-emerald-400 font-semibold">Ventes & Encaissements sans coupure</div>
+                  </div>
+                </div>
 
-            <div className="bg-white/5 backdrop-blur-sm p-4 rounded-2xl border border-white/10">
-              <div className="text-indigo-400 font-black text-xl sm:text-2xl">Multi-Boutiques</div>
-              <div className="text-xs text-slate-300 font-semibold mt-0.5">Gérants Dédiés</div>
-              <div className="text-[10px] text-slate-400">Réseau & dépôts isolés</div>
+                {/* Floating Stat Badge Bottom Right */}
+                <div className="absolute bottom-4 right-4 bg-blue-900/90 backdrop-blur-md text-white p-3 rounded-2xl border border-blue-400/30 text-left shadow-xl">
+                  <div className="flex items-center gap-1.5 text-xs font-black text-blue-300">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>+38% Recouvrement</span>
+                  </div>
+                  <div className="text-[10px] text-slate-300 mt-0.5">Grâce aux rappels WhatsApp automatiques</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* ========================================================= */}
-      {/* 2. CORE FEATURES SECTION (#features) */}
+      {/* 2. SECTION 1 : OFFLINE-FIRST & SYNCHRO CLOUD (AVEC IMAGE) */}
       {/* ========================================================= */}
-      <section id="features" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto mb-14">
-          <span className="text-xs font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-3.5 py-1 rounded-full border border-blue-200">
-            Fonctionnalités Majeures
-          </span>
-          <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3">
-            Tous les outils nécessaires pour gérer votre commerce sans faille
-          </h2>
-          <p className="text-slate-500 text-sm sm:text-base mt-2">
-            Résolvez les défis réels du quotidien : instabilité du réseau internet, pertes sur cahier de crédit et fraudes de caisse.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Feature 1: Caisse & Vente Tactile */}
-          <div className="bg-slate-50 hover:bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between group">
-            <div>
-              <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <ShoppingCart className="w-6 h-6" />
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+          {/* Left Column : Realistic Image */}
+          <div className="lg:col-span-6 order-2 lg:order-1">
+            <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 group">
+              <img
+                src="/images/offline-pos.jpg"
+                alt="Encaissement tactile sans coupure réseau sur tablette"
+                className="w-full h-[340px] sm:h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute top-4 right-4 bg-emerald-600 text-white px-3 py-1 rounded-full text-xs font-black shadow-md flex items-center gap-1.5">
+                <WifiOff className="w-3.5 h-3.5" />
+                <span>0ms Latence Locale</span>
               </div>
-              <h3 className="font-extrabold text-slate-900 text-lg mb-2">
-                Caisse Tactile 0ms Ultra-Rapide
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Ajout d'articles au panier en 1 clic avec photos, scan rapide par code-barre, sélection de client, et calcul automatique de la monnaie rendue en Francs Congolais ou Dollars.
-              </p>
+              <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-sm text-white p-3 rounded-2xl text-xs max-w-xs border border-white/10">
+                <p className="font-bold text-emerald-400">Déconnexion Internet ?</p>
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  Aucun blocage. Le stock se décompte et les tickets s'impriment immédiatement.
+                </p>
+              </div>
             </div>
-            <Link
-              href="/pos"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 mt-5 pt-3 border-t border-slate-200/60"
-            >
-              <span>Accéder à la caisse</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
           </div>
 
-          {/* Feature 2: Carnet de Dettes & WhatsApp */}
-          <div className="bg-slate-50 hover:bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between group">
-            <div>
-              <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <BookOpen className="w-6 h-6" />
-              </div>
-              <h3 className="font-extrabold text-slate-900 text-lg mb-2">
-                Carnet de Dettes & Relance WhatsApp
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Fini les cahiers tachés ou égarés. Suivez les dettes de chaque client en temps réel et envoyez des messages WhatsApp personnalisés d'un seul clic avec le solde exact dû.
-              </p>
-            </div>
-            <Link
-              href="/debts"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 mt-5 pt-3 border-t border-slate-200/60"
-            >
-              <span>Voir le carnet de dettes</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
+          {/* Right Column : Features */}
+          <div className="lg:col-span-6 order-1 lg:order-2 space-y-4 text-left">
+            <span className="text-xs font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3.5 py-1 rounded-full border border-emerald-200">
+              Résilience & Continuité d'Activité
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 leading-tight">
+              Vendez sans aucune interruption, même sans Internet ni électricité continue
+            </h2>
+            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+              En Afrique, les pannes d'électricité et les coupures 3G/4G ne doivent plus jamais paralyser votre caisse.
+              <b> Kuettu SMART POS</b> stocke 100% des articles, clients et ventes dans la mémoire locale de votre appareil (**IndexedDB**).
+            </p>
 
-          {/* Feature 3: Mobile Money RDC */}
-          <div className="bg-slate-50 hover:bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between group">
-            <div>
-              <div className="w-12 h-12 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Smartphone className="w-6 h-6" />
+            <div className="space-y-2.5 pt-2">
+              <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-xs sm:text-sm text-slate-900">Encaissement Tactile Ultra-Fluide</div>
+                  <div className="text-xs text-slate-500">Ajout d'articles au panier instantané, calcul automatique de la monnaie et rendu en CDF ou USD.</div>
+                </div>
               </div>
-              <h3 className="font-extrabold text-slate-900 text-lg mb-2">
-                Mobile Money Multi-Opérateurs RDC
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Encaissez sans confusion par <b>M-Pesa</b>, <b>Airtel Money</b>, <b>Orange Money</b> ou <b>Afrimoney</b>. Suivez séparément les flux sur téléphone et l'argent liquide du tiroir.
-              </p>
-            </div>
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-600 hover:text-sky-700 mt-5 pt-3 border-t border-slate-200/60"
-            >
-              <span>Suivre les encaissements</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
 
-          {/* Feature 4: Stocks & Marges Brutes */}
-          <div className="bg-slate-50 hover:bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between group">
-            <div>
-              <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Package className="w-6 h-6" />
+              <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-xs sm:text-sm text-slate-900">Synchronisation Automatique Silencieuse</div>
+                  <div className="text-xs text-slate-500">Dès que le réseau revient (ou toutes les 10 minutes), toutes les ventes sont sauvegardées sur Supabase Cloud.</div>
+                </div>
               </div>
-              <h3 className="font-extrabold text-slate-900 text-lg mb-2">
-                Stocks avec Photos & Marges en Direct
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Photos haute qualité pour chaque article, décompte automatique à la vente, alertes de rupture paramétrables et calcul immédiat de la marge brute réalisée.
-              </p>
             </div>
-            <Link
-              href="/inventory"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 mt-5 pt-3 border-t border-slate-200/60"
-            >
-              <span>Gérer les stocks</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
 
-          {/* Feature 5: Multi-Magasins & Gérants Dédiés */}
-          <div className="bg-slate-50 hover:bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between group">
-            <div>
-              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Building className="w-6 h-6" />
-              </div>
-              <h3 className="font-extrabold text-slate-900 text-lg mb-2">
-                Réseau Multi-Boutiques & Dépôts
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Créez plusieurs points de vente sous un même compte (Business). Chaque boutique dispose de son stock isolé, de ses ventes et d'un gérant dédié avec code PIN sécurisé.
-              </p>
+            <div className="pt-2">
+              <Link
+                href="/pos"
+                className="inline-flex items-center gap-2 py-3 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow transition-all"
+              >
+                <span>Tester la caisse tactile</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
-            <Link
-              href="/owner"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 hover:text-amber-800 mt-5 pt-3 border-t border-slate-200/60"
-            >
-              <span>Espace Propriétaire</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          {/* Feature 6: Architecture 100% Offline-First & Synchro */}
-          <div className="bg-slate-50 hover:bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between group">
-            <div>
-              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
-              <h3 className="font-extrabold text-slate-900 text-lg mb-2">
-                Résilience Hors-Ligne & Sauvegarde Cloud
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Toutes vos données restent disponibles sur l'appareil. Dès qu'un accès réseau est détecté, la synchronisation Cloud sauvegarde tout en arrière-plan sans bloquer la caisse.
-              </p>
-            </div>
-            <Link
-              href="/settings"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:text-emerald-700 mt-5 pt-3 border-t border-slate-200/60"
-            >
-              <span>Centre de synchronisation</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
           </div>
         </div>
       </section>
 
       {/* ========================================================= */}
-      {/* 3. TYPES D'ENTREPRISES SECTION (#types) */}
+      {/* 3. SECTION 2 : CARNET DE DETTES & WHATSAPP (AVEC IMAGE) */}
+      {/* ========================================================= */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100 bg-gradient-to-b from-rose-50/30 to-white">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+          {/* Left Column : Features */}
+          <div className="lg:col-span-6 space-y-4 text-left">
+            <span className="text-xs font-black uppercase tracking-wider text-rose-700 bg-rose-50 px-3.5 py-1 rounded-full border border-rose-200">
+              Recouvrement Intelligent
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 leading-tight">
+              Carnet de Dettes & Relances WhatsApp en 1 Clic
+            </h2>
+            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+              Fini les cahiers de crédit tachés, raturés ou égarés qui vous font perdre de l'argent.
+              Suivez l'historique complet de chaque débiteur et encaissez vos créances plus rapidement.
+            </p>
+
+            <div className="space-y-3 pt-2">
+              <div className="p-3.5 rounded-2xl bg-white border border-rose-100 shadow-sm flex items-start gap-3">
+                <MessageCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-xs sm:text-sm text-slate-900">3 Modèles de Messages Personnalisés</div>
+                  <div className="text-xs text-slate-500">Courtois, Rappel d'échéance ou Recouvrement ferme pré-rempli avec le nom et le montant exact.</div>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-white border border-rose-100 shadow-sm flex items-start gap-3">
+                <Receipt className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-xs sm:text-sm text-slate-900">Reçus Numériques & Historique de Remboursement</div>
+                  <div className="text-xs text-slate-500">Envoyez les reçus de paiement par WhatsApp pour rassurer vos clients et éviter toute contestation.</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <Link
+                href="/debts"
+                className="inline-flex items-center gap-2 py-3 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 transition-all"
+              >
+                <span>Explorer le Carnet de Dettes</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Right Column : Realistic Image */}
+          <div className="lg:col-span-6">
+            <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 group">
+              <img
+                src="/images/whatsapp-debt.jpg"
+                alt="Commerçant effectuant une relance de dette par WhatsApp"
+                className="w-full h-[340px] sm:h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute top-4 left-4 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-black shadow-md flex items-center gap-1.5">
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span>WhatsApp API Connecté</span>
+              </div>
+              <div className="absolute bottom-4 right-4 bg-slate-900/90 backdrop-blur-sm text-white p-3 rounded-2xl text-xs max-w-xs border border-white/10 text-left">
+                <p className="font-bold text-emerald-400">Message Pré-rempli :</p>
+                <p className="text-[10px] text-slate-300 mt-0.5">
+                  "Bonjour M. Kasongo, rappel de votre solde de 45 000 FC pour votre achat du 12/08..."
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================= */}
+      {/* 4. SECTION 3 : MULTI-BOUTIQUES & SUPERVISION (AVEC IMAGE) */}
+      {/* ========================================================= */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+          {/* Left Column : Realistic Image */}
+          <div className="lg:col-span-6 order-2 lg:order-1">
+            <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 group">
+              <img
+                src="/images/multi-store.jpg"
+                alt="Gérant supervisant son réseau de boutiques et dépôts"
+                className="w-full h-[340px] sm:h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute top-4 right-4 bg-indigo-600 text-white px-3 py-1 rounded-full text-xs font-black shadow-md flex items-center gap-1.5">
+                <Building className="w-3.5 h-3.5" />
+                <span>Multi-Boutiques & Dépôts</span>
+              </div>
+              <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-sm text-white p-3 rounded-2xl text-xs max-w-xs border border-white/10 text-left">
+                <p className="font-bold text-indigo-300">Supervision en Temps Réel :</p>
+                <p className="text-[10px] text-slate-300 mt-0.5">
+                  Consolidation du chiffre d'affaires et contrôle des transferts de stock entre vos dépôts.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column : Features */}
+          <div className="lg:col-span-6 order-1 lg:order-2 space-y-4 text-left">
+            <span className="text-xs font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 px-3.5 py-1 rounded-full border border-indigo-200">
+              Plan Business Multi-Magasins
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 leading-tight">
+              Pilotez vos Boutiques & Dépôts à Distance sur Votre Smartphone
+            </h2>
+            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+              Vous possédez plusieurs points de vente ou des dépôts de distribution ?
+              Créez jusqu'à 10 boutiques sous le même compte avec des stocks étanches et des gérants dédiés.
+            </p>
+
+            <div className="space-y-2.5 pt-2">
+              <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
+                <ArrowRightLeft className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-xs sm:text-sm text-slate-900">Transferts de Stock Traçables</div>
+                  <div className="text-xs text-slate-500">Déplacez des cartons ou marchandises d'un dépôt central vers vos magasins avec traçabilité complète.</div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
+                <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-xs sm:text-sm text-slate-900">Protection Anti-Fraude & Marges Masquées</div>
+                  <div className="text-xs text-slate-500">Les caissiers n'ont pas accès à vos bénéfices réels ni à vos prix d'achat fournisseurs.</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <Link
+                href="/owner"
+                className="inline-flex items-center gap-2 py-3 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition-all"
+              >
+                <span>Accéder à l'Espace Gérant</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================= */}
+      {/* 5. SECTION 4 : MOBILE MONEY & DEVISES (AVEC IMAGE) */}
+      {/* ========================================================= */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100 bg-gradient-to-b from-sky-50/40 to-white">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+          {/* Left Column : Features */}
+          <div className="lg:col-span-6 space-y-4 text-left">
+            <span className="text-xs font-black uppercase tracking-wider text-sky-700 bg-sky-50 px-3.5 py-1 rounded-full border border-sky-200">
+              Paiements PawaPay Intégrés
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 leading-tight">
+              Paiements Mobile Money & Double Devise CDF / USD
+            </h2>
+            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+              Acceptez les paiements par **Vodacom M-Pesa**, **Airtel Money**, **Orange Money** et **Afrimoney** en direct à la caisse et pour vos abonnements.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <div className="p-3 bg-white rounded-2xl border border-sky-100 shadow-sm">
+                <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                  <Coins className="w-4 h-4 text-amber-500" />
+                  <span>Francs & Dollars</span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Gestion séparée des espèces en CDF et en Dollars avec taux paramétrable.
+                </p>
+              </div>
+
+              <div className="p-3 bg-white rounded-2xl border border-sky-100 shadow-sm">
+                <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                  <Smartphone className="w-4 h-4 text-sky-600" />
+                  <span>Push USSD PawaPay</span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Débit direct et confirmation instantanée sur le téléphone du client.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <Link
+                href="/billing"
+                className="inline-flex items-center gap-2 py-3 px-5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-md shadow-sky-600/20 transition-all"
+              >
+                <span>Découvrir les forfaits Mobile Money</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Right Column : Realistic Image */}
+          <div className="lg:col-span-6">
+            <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 group">
+              <img
+                src="/images/mobile-money.jpg"
+                alt="Paiement Mobile Money M-Pesa au comptoir d'une boutique"
+                className="w-full h-[340px] sm:h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute top-4 left-4 bg-sky-600 text-white px-3 py-1 rounded-full text-xs font-black shadow-md flex items-center gap-1.5">
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>M-Pesa • Airtel • Orange</span>
+              </div>
+              <div className="absolute bottom-4 right-4 bg-slate-900/90 backdrop-blur-sm text-white p-3 rounded-2xl text-xs max-w-xs border border-white/10 text-left">
+                <p className="font-bold text-sky-300">Rapprochement de Caisse :</p>
+                <p className="text-[10px] text-slate-300 mt-0.5">
+                  Clôture journalière (Ticket Z) séparant le cash du tiroir et les soldes Mobile Money.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================= */}
+      {/* 6. TYPES D'ENTREPRISES SECTION (#types) */}
       {/* ========================================================= */}
       <section id="types" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-slate-50 border-y border-slate-200/80">
         <div className="max-w-7xl mx-auto">
@@ -426,235 +596,43 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================= */}
-      {/* 4. À PROPOS DE KUETTU (#about) */}
-      {/* ========================================================= */}
-      <section id="about" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
-          <div>
-            <span className="text-xs font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-3.5 py-1 rounded-full border border-blue-200">
-              À Propos de Kuettu SMART POS
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3 leading-tight">
-              Conçu en Afrique, pour surmonter les réalités du commerce local
-            </h2>
-            <p className="text-slate-600 text-sm sm:text-base mt-4 leading-relaxed">
-              La plupart des logiciels de caisse occidentaux exigent une connexion Internet permanente, des abonnements par carte bancaire internationale et des ordinateurs coûteux.
-            </p>
-            <p className="text-slate-600 text-sm sm:text-base mt-3 leading-relaxed">
-              <b>Kuettu SMART POS</b> a été pensé dès le premier jour pour l'Afrique :
-              résistance totale aux coupures d'électricité et de réseau, paiement des abonnements par <b>Mobile Money</b>, et simplicité extrême pour que tout employé ou caissier soit opérationnel en 2 minutes.
-            </p>
-
-            <div className="grid grid-cols-2 gap-4 mt-6">
-              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
-                <div className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
-                  <Flame className="w-4 h-4 text-amber-500" />
-                  <span>Zéro Coupure</span>
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Continuez à vendre même en cas de panne réseau ou électrique.
-                </p>
-              </div>
-
-              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
-                <div className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                  <span>Anti-Fraude</span>
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Les caissiers n'ont pas accès aux marges ni aux prix d'achat.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Visual Showcase Card */}
-          <div className="bg-gradient-to-br from-slate-900 to-blue-950 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-800 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/15 blur-3xl rounded-full" />
-            <div className="relative z-10 space-y-4">
-              <div className="flex items-center gap-2">
-                <Store className="w-6 h-6 text-blue-400" />
-                <span className="font-black text-lg">Kuettu Smart Architecture</span>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                <div className="p-3 bg-white/10 rounded-2xl border border-white/10 flex items-start gap-3">
-                  <span className="text-xl">⚡</span>
-                  <div>
-                    <div className="font-bold text-xs">Moteur Local-First (IndexedDB)</div>
-                    <div className="text-[11px] text-slate-300">Temps de réponse instantané & autonomie totale.</div>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-white/10 rounded-2xl border border-white/10 flex items-start gap-3">
-                  <span className="text-xl">🔄</span>
-                  <div>
-                    <div className="font-bold text-xs">Synchronisation Bidirectionnelle</div>
-                    <div className="text-[11px] text-slate-300">File d'attente intelligente dès la reconnexion.</div>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-white/10 rounded-2xl border border-white/10 flex items-start gap-3">
-                  <span className="text-xl">📱</span>
-                  <div>
-                    <div className="font-bold text-xs">Multi-Support Smartphone / PC</div>
-                    <div className="text-[11px] text-slate-300">Fonctionne sur n'importe quel écran tactile ou clavier.</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <Link
-                  href="/auth/register"
-                  className="w-full py-3 rounded-xl bg-blue-500 hover:bg-blue-400 text-white font-bold text-xs text-center flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <span>Créer mon compte maintenant</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========================================================= */}
-      {/* 5. PRICING SECTION (#pricing) */}
-      {/* ========================================================= */}
-      <section id="pricing" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-slate-50 border-t border-slate-200/80">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-xs font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-3.5 py-1 rounded-full border border-blue-200">
-              Forfaits & Tarifs Clairs
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3">
-              Des abonnements accessibles payables par Mobile Money
-            </h2>
-            <p className="text-slate-500 text-sm mt-2">
-              Sans carte bancaire • Sans engagement • Règlement direct par M-Pesa, Airtel, Orange ou Afrimoney
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Free */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
-              <div>
-                <h3 className="font-bold text-slate-900 text-base">Découverte</h3>
-                <div className="text-2xl font-black text-slate-900 my-3">0 FC <span className="text-xs font-normal text-slate-500">/ mois</span></div>
-                <p className="text-xs text-slate-500 mb-4">Pour tester et démarrer votre activité</p>
-                <ul className="space-y-2 text-xs text-slate-600">
-                  <li className="flex items-center gap-2">✓ 1 Caisse tactile ultra-rapide</li>
-                  <li className="flex items-center gap-2">✓ Jusqu'à 100 ventes par mois</li>
-                  <li className="flex items-center gap-2">✓ Carnet de dettes (jusqu'à 5 clients)</li>
-                  <li className="flex items-center gap-2">✓ 100% Fonctionnement Hors-ligne</li>
-                </ul>
-              </div>
-              <Link
-                href="/auth/register"
-                className="mt-6 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs text-center transition-all"
-              >
-                Commencer Gratuitement
-              </Link>
-            </div>
-
-            {/* Pro */}
-            <div className="bg-white rounded-3xl p-6 border-2 border-blue-500 shadow-xl flex flex-col justify-between relative">
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-black uppercase px-3 py-0.5 rounded-full shadow-xs">
-                Le Plus Choisi
-              </span>
-              <div>
-                <h3 className="font-bold text-slate-900 text-base">Commerçant Pro</h3>
-                <div className="text-2xl font-black text-slate-900 my-3">
-                  15 000 FC <span className="text-xs font-normal text-slate-500">/ mois (~5$)</span>
-                </div>
-                <p className="text-xs text-slate-500 mb-4">Pour les boutiques & demi-grossistes</p>
-                <ul className="space-y-2 text-xs text-slate-600">
-                  <li className="flex items-center gap-2">✓ Ventes & caisse illimitées sans quota</li>
-                  <li className="flex items-center gap-2">✓ Relances WhatsApp illimitées (3 modèles)</li>
-                  <li className="flex items-center gap-2">✓ Marges bénéficiaires en temps réel</li>
-                  <li className="flex items-center gap-2">✓ Clôture de Caisse & Ticket Z journalier</li>
-                  <li className="flex items-center gap-2">✓ Sauvegarde Cloud chiffrée continue</li>
-                </ul>
-              </div>
-              <Link
-                href="/billing"
-                className="mt-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs text-center shadow-md shadow-blue-600/25 transition-all"
-              >
-                Choisir Forfait Pro
-              </Link>
-            </div>
-
-            {/* Business */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
-              <div>
-                <h3 className="font-bold text-slate-900 text-base">Business Réseau</h3>
-                <div className="text-2xl font-black text-slate-900 my-3">
-                  45 000 FC <span className="text-xs font-normal text-slate-500">/ mois (~15$)</span>
-                </div>
-                <p className="text-xs text-slate-500 mb-4">Pour réseaux multi-magasins & dépôts</p>
-                <ul className="space-y-2 text-xs text-slate-600">
-                  <li className="flex items-center gap-2">✓ Multi-Boutiques & Dépôts isolés</li>
-                  <li className="flex items-center gap-2">✓ Gérants dédiés par boutique (PIN caisse)</li>
-                  <li className="flex items-center gap-2">✓ Transferts de stock inter-magasins</li>
-                  <li className="flex items-center gap-2">✓ Export comptable Excel (CSV) & PDF</li>
-                  <li className="flex items-center gap-2">✓ Support prioritaire WhatsApp 7j/7</li>
-                </ul>
-              </div>
-              <Link
-                href="/billing"
-                className="mt-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs text-center transition-all"
-              >
-                Découvrir Business
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========================================================= */}
-      {/* 6. FAQ SECTION (#faq) */}
+      {/* 7. FAQ ACCORDION SECTION (#faq) */}
       {/* ========================================================= */}
       <section id="faq" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <span className="text-xs font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3.5 py-1 rounded-full border border-indigo-200">
+        <div className="text-center mb-12">
+          <span className="text-xs font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-3.5 py-1 rounded-full border border-blue-200">
             Foire Aux Questions
           </span>
           <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3">
-            Questions Fréquemment Posées
+            Questions Fréquentes sur Kuettu SMART POS
           </h2>
-          <p className="text-slate-500 text-sm mt-2">
-            Tout ce que vous devez savoir pour démarrer sereinement avec Kuettu SMART POS.
+          <p className="text-slate-500 text-sm sm:text-base mt-2">
+            Tout ce que vous devez savoir pour démarrer sereinement votre commerce.
           </p>
         </div>
 
         <div className="space-y-3">
-          {faqs.map((faq, idx) => {
-            const isOpen = openFaqIndex === idx;
+          {faqs.map((faq, index) => {
+            const isOpen = openFaqIndex === index;
             return (
               <div
-                key={faq.question}
-                className={`rounded-2xl border transition-all ${
-                  isOpen
-                    ? "bg-white border-blue-300 shadow-md ring-1 ring-blue-500/10"
-                    : "bg-slate-50/80 hover:bg-white border-slate-200/80"
-                }`}
+                key={index}
+                className="border border-slate-200 rounded-2xl overflow-hidden transition-all bg-white shadow-sm"
               >
                 <button
                   type="button"
-                  onClick={() => toggleFaq(idx)}
-                  className="w-full p-4 sm:p-5 flex items-center justify-between text-left gap-4"
+                  onClick={() => toggleFaq(index)}
+                  className="w-full p-4 sm:p-5 text-left font-bold text-sm sm:text-base text-slate-900 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors"
                 >
-                  <span className="font-extrabold text-slate-900 text-sm sm:text-base">
-                    {faq.question}
-                  </span>
+                  <span>{faq.question}</span>
                   <ChevronDown
-                    className={`w-5 h-5 shrink-0 transition-transform duration-200 ${
-                      isOpen ? "rotate-180 text-blue-600" : "text-slate-400"
+                    className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-300 ${
+                      isOpen ? "rotate-180 text-blue-600" : ""
                     }`}
                   />
                 </button>
-
                 {isOpen && (
-                  <div className="px-4 sm:px-5 pb-5 pt-1 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100">
+                  <div className="px-4 pb-5 sm:px-5 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
                     {faq.answer}
                   </div>
                 )}
@@ -665,53 +643,40 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================= */}
-      {/* 7. FOOTER */}
+      {/* 8. BOTTOM FINAL CTA BANNER */}
       {/* ========================================================= */}
-      <footer className="bg-slate-950 text-white pt-14 pb-10 border-t border-slate-800">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pb-10 border-b border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold">
-                <Store className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-extrabold text-base">Kuettu SMART POS</h3>
-                <p className="text-xs text-slate-400">Commerce de détail & Caisse Offline-First</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Link
-                href="/auth/login"
-                className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition-all"
-              >
-                Connexion PIN
-              </Link>
-              <Link
-                href="/auth/register"
-                className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition-all"
-              >
-                Créer Boutique
-              </Link>
-            </div>
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white text-center">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-400/30">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Essai Gratuit 14 Jours Sans Engagement</span>
           </div>
 
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
-            <p>© {new Date().getFullYear()} Kuettu SMART POS. Tous droits réservés.</p>
-            <div className="flex flex-wrap items-center gap-4">
-              <Link href="/#features" className="hover:text-slate-300">Fonctionnalités</Link>
-              <Link href="/#types" className="hover:text-slate-300">Types d'entreprises</Link>
-              <Link href="/#pricing" className="hover:text-slate-300">Tarifs</Link>
-              <Link href="/#about" className="hover:text-slate-300">À propos</Link>
-              <Link href="/#faq" className="hover:text-slate-300">FAQ</Link>
-              <Link href="/admin/login" className="text-blue-400 font-bold hover:text-blue-300 flex items-center gap-1">
-                <span>Portail Admin</span>
-                <span>🔒</span>
-              </Link>
-            </div>
+          <h2 className="text-2xl sm:text-4xl font-black max-w-2xl mx-auto leading-tight">
+            Transformez la Gestion de Votre Commerce Dès Aujourd'hui
+          </h2>
+
+          <p className="text-slate-300 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
+            Rejoignez les commerçants, supermarchés, quincailleries et dépôts d'Afrique qui éliminent les pertes de caisse et récupèrent leurs dettes avec Kuettu SMART POS.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <Link
+              href="/auth/register"
+              className="w-full sm:w-auto py-3.5 px-8 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm shadow-xl shadow-blue-600/30 transition-all touch-press flex items-center justify-center gap-2"
+            >
+              <span>Créer ma Boutique en 30s</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              href="/auth/login"
+              className="w-full sm:w-auto py-3.5 px-6 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/20 transition-all touch-press"
+            >
+              <span>Se Connecter au Terminal</span>
+            </Link>
           </div>
         </div>
-      </footer>
+      </section>
     </div>
   );
 }
