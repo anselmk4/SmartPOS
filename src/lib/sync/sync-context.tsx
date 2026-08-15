@@ -116,6 +116,10 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   }, [authStore]);
 
   useEffect(() => {
+    syncEngine.setActiveStoreId(activeStoreId);
+  }, [activeStoreId]);
+
+  useEffect(() => {
     if (typeof window !== "undefined") {
       setIsOnline(navigator.onLine);
 
@@ -135,6 +139,8 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         await updatePendingCount();
         const lastTime = localStorage.getItem("micro_erp_last_synced_time");
         if (lastTime) setLastSyncedAt(lastTime);
+        // Check if > 10 minutes idle sync is needed on app load
+        syncEngine.checkAndTriggerIdleSync(activeStoreId);
       })();
 
       const unsubscribe = syncEngine.subscribe(() => {

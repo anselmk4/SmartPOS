@@ -3,15 +3,57 @@ import { getPendingSyncItems, removeSyncedItems, updateQueueItemStatus } from ".
 import type { SyncPushRequest, SyncPushResponse } from "../shared/types";
 
 const LAST_PULLED_KEY = "micro_erp_last_pulled_at";
+const MAX_IDLE_SYNC_MS = 10 * 60 * 1000; // 10 minutes maximum without syncing
 
 export class SyncEngine {
   private isSyncing = false;
   private syncTimer: any = null;
   private listeners: Array<() => void> = [];
+  private activeStoreId: string = DEFAULT_STORE_ID;
 
   constructor() {
     if (typeof window !== "undefined") {
-      window.addEventListener("online", () => this.triggerSync());
+      // 1. Auto-sync immediately when network connection is restored
+      window.addEventListener("online", () => {
+        console.log("[SyncEngine] 🌐 Connexion rétablie -> Déclenchement de la synchronisation automatique");
+        this.triggerSync(this.activeStoreId);
+      });
+
+      // 2. Auto-sync on window focus / visibility change if > 10 minutes elapsed
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          this.checkAndTriggerIdleSync(this.activeStoreId);
+        }
+      });
+
+      window.addEventListener("focus", () => {
+        this.checkAndTriggerIdleSync(this.activeStoreId);
+      });
+    }
+  }
+
+  public setActiveStoreId(storeId: string) {
+    this.activeStoreId = storeId;
+  }
+
+  /**
+   * Cron/Heartbeat check: checks if > 10 minutes elapsed or pending mutations exist
+   */
+  public checkAndTriggerIdleSync(storeId: string = this.activeStoreId) {
+    if (typeof window === "undefined" || !navigator.onLine || this.isSyncing) return;
+
+    const lastSyncedTimeStr = localStorage.getItem("micro_erp_last_synced_time");
+    if (!lastSyncedTimeStr) {
+      this.triggerSync(storeId);
+      return;
+    }
+
+    const lastSyncedTime = new Date(lastSyncedTimeStr).getTime();
+    const elapsed = Date.now() - lastSyncedTime;
+
+    if (elapsed >= MAX_IDLE_SYNC_MS) {
+      console.log(`[SyncEngine] ⏱️ Plus de 10 min sans synchronisation (${Math.round(elapsed / 60000)} min) -> Synchronisation automatique déclenchée`);
+      this.triggerSync(storeId);
     }
   }
 
@@ -29,9 +71,16 @@ export class SyncEngine {
   public startPeriodicSync(intervalMs = 30000) {
     if (this.syncTimer) clearInterval(this.syncTimer);
     if (typeof window !== "undefined") {
-      this.syncTimer = setInterval(() => {
+      // Cron loop running every 30 seconds:
+      // Checks for pending mutations OR > 10 min inactivity
+      this.syncTimer = setInterval(async () => {
         if (navigator.onLine && !this.isSyncing) {
-          this.triggerSync();
+          const pending = await getPendingSyncItems(this.activeStoreId, 1);
+          if (pending.length > 0) {
+            this.triggerSync(this.activeStoreId);
+          } else {
+            this.checkAndTriggerIdleSync(this.activeStoreId);
+          }
         }
       }, intervalMs);
     }
@@ -44,7 +93,7 @@ export class SyncEngine {
     }
   }
 
-  public async triggerSync(storeId: string = DEFAULT_STORE_ID): Promise<{ success: boolean; message: string }> {
+  public async triggerSync(storeId: string = this.activeStoreId): Promise<{ success: boolean; message: string }> {
     if (this.isSyncing) {
       return { success: false, message: "Synchronisation déjà en cours" };
     }

@@ -213,3 +213,32 @@ self.addEventListener("fetch", (event) => {
       })
   );
 });
+
+// Background Sync (Triggered by browser when connection is restored)
+self.addEventListener("sync", (event) => {
+  if (event.tag === "smartpos-sync" || event.tag === "sync-mutations") {
+    console.log("[SW] Background sync event triggered");
+    event.waitUntil(
+      self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: "TRIGGER_BACKGROUND_SYNC" });
+        });
+      })
+    );
+  }
+});
+
+// Periodic Background Sync (Triggered periodically by browser)
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag === "smartpos-periodic-sync") {
+    console.log("[SW] Periodic background sync event triggered");
+    event.waitUntil(
+      self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: "TRIGGER_BACKGROUND_SYNC" });
+        });
+      })
+    );
+  }
+});
+
