@@ -38,6 +38,8 @@ export interface AssignManagerParams {
 interface AuthContextType {
   user: User | null;
   tenant: Tenant | null;
+  terminalTenant: Tenant | null;
+  terminalUsers: User[];
   store: Store | null;
   stores: Store[];
   isAuthenticated: boolean;
@@ -54,6 +56,8 @@ interface AuthContextType {
   assignStoreManager: (params: AssignManagerParams) => Promise<void>;
   login: (identifier: string, pinOrPass: string) => Promise<{ success: boolean; message: string }>;
   loginWithPin: (pinCode: string) => Promise<{ success: boolean; message: string }>;
+  loginStaffWithPin: (userId: string, pinCode: string) => Promise<{ success: boolean; message: string }>;
+  unlinkTerminal: () => Promise<void>;
   registerMerchant: (data: {
     storeName: string;
     ownerName: string;
@@ -74,6 +78,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   tenant: null,
+  terminalTenant: null,
+  terminalUsers: [],
   store: null,
   stores: [],
   isAuthenticated: false,
@@ -90,6 +96,8 @@ const AuthContext = createContext<AuthContextType>({
   assignStoreManager: async () => {},
   login: async () => ({ success: false, message: "" }),
   loginWithPin: async () => ({ success: false, message: "" }),
+  loginStaffWithPin: async () => ({ success: false, message: "" }),
+  unlinkTerminal: async () => {},
   registerMerchant: async () => ({ success: false, message: "" }),
   logout: () => {},
   lockTerminal: () => {},
@@ -105,6 +113,8 @@ const AUTH_STORE_KEY = "micro_erp_auth_store_id";
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [terminalTenant, setTerminalTenant] = useState<Tenant | null>(null);
+  const [terminalUsers, setTerminalUsers] = useState<User[]>([]);
   const [store, setStore] = useState<Store | null>(null);
   const [stores, setStores] = useState<Store[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -118,6 +128,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const loadTerminalState = useCallback(async (tenantId?: string) => {
+    try {
+      const tid = tenantId || (typeof window !== "undefined" ? localStorage.getItem(AUTH_TENANT_KEY) : null);
+      if (!tid) {
+        setTerminalTenant(null);
+        setTerminalUsers([]);
+        return;
+      }
+      const t = await db.tenants.get(tid);
+      if (t) {
+        setTerminalTenant(t);
+        const users = await db.users.where("tenantId").equals(t.id).filter((u) => u.isActive).toArray();
+        setTerminalUsers(users);
+      } else {
+        setTerminalTenant(null);
+        setTerminalUsers([]);
+      }
+    } catch (e) {
+      console.warn("[Auth] Failed to load terminal state:", e);
+    }
+  }, []);
+
   // Initialize session on mount - checks if a user session was explicitly saved
   useEffect(() => {
     (async () => {
@@ -125,6 +157,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const savedUserId = typeof window !== "undefined" ? localStorage.getItem(AUTH_USER_KEY) : null;
         const savedTenantId = typeof window !== "undefined" ? localStorage.getItem(AUTH_TENANT_KEY) : null;
         const savedStoreId = typeof window !== "undefined" ? localStorage.getItem(AUTH_STORE_KEY) : null;
+
+        if (savedTenantId) {
+          await loadTerminalState(savedTenantId);
+        }
 
         if (savedUserId && savedTenantId) {
           const u = await db.users.get(savedUserId);
@@ -151,7 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
       }
     })();
-  }, [loadStores]);
+  }, [loadStores, loadTerminalState]);
 
   const bootstrapCloudDataIntoDexie = async (cloudData: any) => {
     try {
@@ -183,15 +219,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const loginWithPin = async (pinCode: string): Promise<{ success: boolean; message: string }> => {
-    try {
-      // 1. Try local Dexie first
-      let foundUser = await db.users.where("pinCode").equals(pinCode).first();
-      let foundTenant = foundUser ? await db.tenants.get(foundUser.tenantId) : null;
-      let foundStore = foundTenant ? await db.stores.where("tenantId").equals(foundTenant.id).first() : null;
+  const unlinkTerminal = async (): Promise<void> => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(AUTH_USER_KEY);
+      localStorage.removeItem(AUTH_TENANT_KEY);
+      localStorage.removeItem(AUTH_STORE_KEY);
+    }
+    setUser(null);
+    setTenant(null);
+    setTerminalTenant(null);
+    setTerminalUsers([]);
+    setStore(null);
+    setStores([]);
+  };
 
-      // 2. If not found locally and online, authenticate with Cloud API
-      if (!foundUser && typeof navigator !== "undefined" && navigator.onLine) {
+  const loginStaffWithPin = async (userId: string, pinCode: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const cleanPin = pinCode.trim();
+      let targetUser = await db.users.get(userId);
+
+      // Verify locally if available
+      if (targetUser && targetUser.pinCode === cleanPin) {
+        const t = await db.tenants.get(targetUser.tenantId);
+        const s = await db.stores.where("tenantId").equals(targetUser.tenantId).first();
+
+        setUser(targetUser);
+        if (t) {
+          setTenant(t);
+          setTerminalTenant(t);
+          await loadStores(t.id);
+          await loadTerminalState(t.id);
+        }
+        setStore(s || null);
+
+        if (typeof window !== "undefined") {
+          localStorage.setItem(AUTH_USER_KEY, targetUser.id);
+          if (t) localStorage.setItem(AUTH_TENANT_KEY, t.id);
+          if (s) localStorage.setItem(AUTH_STORE_KEY, s.id);
+        }
+
+        return { success: true, message: `Bienvenue, ${targetUser.name}` };
+      }
+
+      // If failed locally or not loaded, query Cloud
+      if (typeof navigator !== "undefined" && navigator.onLine) {
         try {
           const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
           const apiUrl = isNative
@@ -201,50 +272,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const res = await fetch(apiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pinCode, mode: "pin" }),
+            body: JSON.stringify({ userId, pinCode: cleanPin }),
           });
 
           const cloudData = await res.json();
           if (res.ok && cloudData.success && cloudData.user) {
             await bootstrapCloudDataIntoDexie(cloudData);
-            foundUser = cloudData.user;
-            foundTenant = cloudData.tenant;
-            foundStore = cloudData.stores?.[0] || null;
+            targetUser = cloudData.user;
+            const t = cloudData.tenant;
+            const s = cloudData.stores?.[0] || null;
+
+            setUser(targetUser || null);
+            if (t) {
+              setTenant(t);
+              setTerminalTenant(t);
+              await loadStores(t.id);
+              await loadTerminalState(t.id);
+            }
+            setStore(s);
+
+            if (typeof window !== "undefined" && targetUser) {
+              localStorage.setItem(AUTH_USER_KEY, targetUser.id);
+              if (t) localStorage.setItem(AUTH_TENANT_KEY, t.id);
+              if (s) localStorage.setItem(AUTH_STORE_KEY, s.id);
+            }
+
+            return { success: true, message: `Bienvenue, ${targetUser?.name || ""}` };
+          } else {
+            return { success: false, message: cloudData.error || "Code PIN incorrect" };
           }
         } catch (cloudErr) {
-          console.warn("[Auth] Cloud PIN login fallback:", cloudErr);
+          console.warn("[Auth] Cloud staff pin login fallback:", cloudErr);
         }
       }
 
-      if (!foundUser) {
-        return { success: false, message: "Code PIN incorrect" };
-      }
-      if (!foundUser.isActive) {
-        return { success: false, message: "Ce compte utilisateur est désactivé" };
-      }
-
-      if (!foundTenant) {
-        foundTenant = await db.tenants.get(foundUser.tenantId) || null;
-      }
-      if (!foundStore && foundTenant) {
-        foundStore = await db.stores.where("tenantId").equals(foundTenant.id).first() || null;
-      }
-
-      setUser(foundUser);
-      if (foundTenant) setTenant(foundTenant);
-      setStore(foundStore || null);
-      if (foundTenant) await loadStores(foundTenant.id);
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem(AUTH_USER_KEY, foundUser.id);
-        if (foundTenant) localStorage.setItem(AUTH_TENANT_KEY, foundTenant.id);
-        if (foundStore) localStorage.setItem(AUTH_STORE_KEY, foundStore.id);
-      }
-
-      return { success: true, message: `Bienvenue, ${foundUser.name}` };
+      return { success: false, message: "Code PIN incorrect pour ce compte" };
     } catch (e: any) {
       return { success: false, message: e.message || "Erreur de connexion" };
     }
+  };
+
+  const loginWithPin = async (pinCode: string): Promise<{ success: boolean; message: string }> => {
+    // If terminal has users, try first user or reject blind guessing
+    if (terminalUsers.length === 1) {
+      return loginStaffWithPin(terminalUsers[0].id, pinCode);
+    }
+    return {
+      success: false,
+      message: "Veuillez sélectionner votre nom de caissier ou vous connecter avec votre identifiant Gérant.",
+    };
   };
 
   const login = async (identifier: string, pinOrPass: string): Promise<{ success: boolean; message: string }> => {
@@ -310,9 +386,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setUser(foundUser);
-      if (foundTenant) setTenant(foundTenant);
+      if (foundTenant) {
+        setTenant(foundTenant);
+        setTerminalTenant(foundTenant);
+        await loadStores(foundTenant.id);
+        await loadTerminalState(foundTenant.id);
+      }
       setStore(foundStore || null);
-      if (foundTenant) await loadStores(foundTenant.id);
 
       if (typeof window !== "undefined") {
         localStorage.setItem(AUTH_USER_KEY, foundUser.id);
@@ -691,6 +771,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         tenant,
+        terminalTenant,
+        terminalUsers,
         store,
         stores,
         isAuthenticated,
@@ -707,6 +789,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         assignStoreManager,
         login,
         loginWithPin,
+        loginStaffWithPin,
+        unlinkTerminal,
         registerMerchant,
         logout,
         lockTerminal,
