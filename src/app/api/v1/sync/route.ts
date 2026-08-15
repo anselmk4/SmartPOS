@@ -163,10 +163,91 @@ export async function POST(req: NextRequest) {
             });
             syncedIds.push(id);
           } else if (entity === "sale" && action === "CREATE") {
+            // 1. Ensure customer exists if customerId is provided
+            let validCustomerId: string | null = null;
+            if (data.customerId) {
+              try {
+                const cust = await prisma.customer.upsert({
+                  where: { id: data.customerId },
+                  update: {},
+                  create: {
+                    id: data.customerId,
+                    tenantId: data.tenantId || tenantId,
+                    storeId: data.storeId || storeId,
+                    name: data.customerName || "Client",
+                    createdAt: new Date(data.createdAt || now),
+                    updatedAt: now,
+                  },
+                });
+                validCustomerId = cust.id;
+              } catch {
+                validCustomerId = null;
+              }
+            }
+
+            // 2. Ensure user exists if userId is provided
+            let validUserId: string | null = null;
+            if (data.userId) {
+              try {
+                const usr = await prisma.user.findUnique({ where: { id: data.userId } });
+                if (usr) validUserId = usr.id;
+              } catch {
+                validUserId = null;
+              }
+            }
+
+            // 3. Ensure products exist for all items to prevent foreign key errors
+            const validItems: any[] = [];
+            if (data.items && Array.isArray(data.items)) {
+              for (const it of data.items) {
+                const prodId = it.productId || it.product?.id || it.id;
+                if (prodId) {
+                  try {
+                    await prisma.product.upsert({
+                      where: { id: prodId },
+                      update: {},
+                      create: {
+                        id: prodId,
+                        tenantId: data.tenantId || tenantId,
+                        storeId: data.storeId || storeId,
+                        name: it.productName || it.product?.name || "Produit synchronisé",
+                        unitPrice: it.unitPrice || 0,
+                        costPrice: it.costPrice || 0,
+                        stockQuantity: 0,
+                        category: "Général",
+                        createdAt: new Date(it.createdAt || now),
+                        updatedAt: now,
+                      },
+                    });
+                    validItems.push({
+                      id: it.id || undefined,
+                      productId: prodId,
+                      quantity: it.quantity || 1,
+                      unitPrice: it.unitPrice || 0,
+                      costPrice: it.costPrice ?? 0,
+                      createdAt: new Date(it.createdAt || now),
+                    });
+                  } catch (itemErr) {
+                    console.warn("[Sync] Ensure item product failed:", itemErr);
+                  }
+                }
+              }
+            }
+
+            // 4. Validate paymentMethod
+            const validPaymentMethods = [
+              "CASH", "MPESA", "AIRTEL_MONEY", "ORANGE_MONEY", "AFRIMONEY",
+              "WAVE", "MTN_MOMO", "MOOV_MONEY", "CREDIT", "CARD", "MIXED"
+            ];
+            const paymentMethod = validPaymentMethods.includes(data.paymentMethod)
+              ? data.paymentMethod
+              : "CASH";
+
+            // 5. Upsert the sale
             await prisma.sale.upsert({
               where: { id: data.id },
               update: {
-                status: data.status,
+                status: data.status || "COMPLETED",
                 isSynced: true,
                 updatedAt: now,
               },
@@ -174,32 +255,48 @@ export async function POST(req: NextRequest) {
                 id: data.id,
                 tenantId: data.tenantId || tenantId,
                 storeId: data.storeId || storeId,
-                customerId: data.customerId || null,
-                userId: data.userId || null,
-                totalAmount: data.totalAmount,
-                amountPaid: data.amountPaid,
+                customerId: validCustomerId,
+                userId: validUserId,
+                totalAmount: data.totalAmount || 0,
+                amountPaid: data.amountPaid || 0,
                 debtAmount: data.debtAmount ?? 0,
-                paymentMethod: data.paymentMethod || "CASH",
+                paymentMethod,
                 status: data.status || "COMPLETED",
                 receiptNumber: data.receiptNumber,
                 notes: data.notes,
                 isSynced: true,
                 createdAt: new Date(data.createdAt || now),
                 updatedAt: now,
-                items: data.items && Array.isArray(data.items) ? {
-                  create: data.items.map((it: any) => ({
-                    id: it.id,
-                    productId: it.productId,
-                    quantity: it.quantity,
-                    unitPrice: it.unitPrice,
-                    costPrice: it.costPrice ?? 0,
-                    createdAt: new Date(it.createdAt || now),
-                  })),
+                items: validItems.length > 0 ? {
+                  create: validItems,
                 } : undefined,
               },
             });
             syncedIds.push(id);
           } else if (entity === "debt_payment" && action === "CREATE") {
+            if (data.customerId) {
+              await prisma.customer.upsert({
+                where: { id: data.customerId },
+                update: {},
+                create: {
+                  id: data.customerId,
+                  tenantId: data.tenantId || tenantId,
+                  storeId: data.storeId || storeId,
+                  name: data.customerName || "Client",
+                  createdAt: new Date(data.createdAt || now),
+                  updatedAt: now,
+                },
+              }).catch(() => {});
+            }
+
+            const validPaymentMethods = [
+              "CASH", "MPESA", "AIRTEL_MONEY", "ORANGE_MONEY", "AFRIMONEY",
+              "WAVE", "MTN_MOMO", "MOOV_MONEY", "CREDIT", "CARD", "MIXED"
+            ];
+            const paymentMethod = validPaymentMethods.includes(data.paymentMethod)
+              ? data.paymentMethod
+              : "CASH";
+
             await prisma.debtPayment.upsert({
               where: { id: data.id },
               update: {
@@ -212,7 +309,7 @@ export async function POST(req: NextRequest) {
                 storeId: data.storeId || storeId,
                 customerId: data.customerId,
                 amount: data.amount,
-                paymentMethod: data.paymentMethod || "CASH",
+                paymentMethod,
                 notes: data.notes,
                 isSynced: true,
                 createdAt: new Date(data.createdAt || now),

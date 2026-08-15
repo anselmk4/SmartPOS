@@ -214,6 +214,17 @@ export class SyncEngine {
 
       this.isSyncing = false;
       this.notify();
+
+      if (syncResult.failedIds && syncResult.failedIds.length > 0) {
+        const failedCount = syncResult.failedIds.length;
+        const syncedCount = syncResult.syncedIds?.length || 0;
+        const firstErr = syncResult.failedIds[0]?.error || "Erreur serveur";
+        return {
+          success: false,
+          message: `${syncedCount} synchronisé(s), ${failedCount} en échec : ${firstErr}`,
+        };
+      }
+
       return { success: true, message: "Synchronisation réussie" };
     } catch (err: any) {
       console.warn("[SyncEngine] Sync error (offline / network):", err.message);
