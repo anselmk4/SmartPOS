@@ -9,6 +9,7 @@ import { useSync, COUNTRIES } from "@/lib/sync/sync-context";
 import { useAuth } from "@/lib/auth/auth-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
 import type { Product, Customer } from "@/lib/shared/types";
+import { uploadMediaFile } from "@/lib/storage/media-storage";
 import {
   Settings as SettingsIcon,
   Store,
@@ -125,9 +126,20 @@ export default function SettingsPage() {
     e.preventDefault();
     if (!authStore && !tenant) return;
 
+    let finalLogoUrl = logoUrl || undefined;
+    if (finalLogoUrl && finalLogoUrl.startsWith("data:image")) {
+      const uploadRes = await uploadMediaFile(finalLogoUrl, {
+        folder: "branding",
+        fileName: `store-logo-${currentStoreId}.jpg`,
+      });
+      if (uploadRes.url) {
+        finalLogoUrl = uploadRes.url;
+      }
+    }
+
     await updateStoreBranding(currentStoreId, {
       name: storeName.trim(),
-      logoUrl: logoUrl || undefined,
+      logoUrl: finalLogoUrl,
       countryCode,
       currency,
       phone: phone.trim() || undefined,

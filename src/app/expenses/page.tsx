@@ -7,6 +7,7 @@ import { useSync } from "@/lib/sync/sync-context";
 import { useAuth } from "@/lib/auth/auth-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
 import { EXPENSE_CATEGORIES, type Expense, type PaymentMethod, type ExpenseCategory } from "@/lib/shared/types";
+import { uploadMediaFile } from "@/lib/storage/media-storage";
 import {
   Wallet,
   Plus,
@@ -136,6 +137,17 @@ export default function ExpensesPage() {
 
     setIsSubmitting(true);
     try {
+      let finalReceiptUrl = receiptUrl || undefined;
+      if (finalReceiptUrl && finalReceiptUrl.startsWith("data:image")) {
+        const uploadRes = await uploadMediaFile(finalReceiptUrl, {
+          folder: "expenses",
+          fileName: `receipt-${Date.now()}.jpg`,
+        });
+        if (uploadRes.url) {
+          finalReceiptUrl = uploadRes.url;
+        }
+      }
+
       await createExpense({
         tenantId: currentTenantId,
         storeId: currentStoreId,
@@ -145,7 +157,7 @@ export default function ExpensesPage() {
         paymentMethod,
         expenseDate,
         notes,
-        receiptUrl: receiptUrl || undefined,
+        receiptUrl: finalReceiptUrl,
       });
 
       setAmount("");

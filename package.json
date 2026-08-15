@@ -24,6 +24,7 @@
     "@capacitor/ios": "^8.5.0",
     "@capacitor/status-bar": "^8.0.3",
     "@prisma/client": "^5.22.0",
+    "@supabase/supabase-js": "^2.109.0",
     "clsx": "^2.1.1",
     "dexie": "^4.0.10",
     "dexie-react-hooks": "^1.1.7",

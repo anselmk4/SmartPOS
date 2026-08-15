@@ -9,6 +9,7 @@ import { PinLockScreen } from "@/components/auth/pin-lock-screen";
 import { UpgradePromptModal } from "@/components/plans/upgrade-prompt-modal";
 import ExportReportModal from "@/components/reports/export-report-modal";
 import type { Product, StockDeltaPayload } from "@/lib/shared/types";
+import { uploadMediaFile } from "@/lib/storage/media-storage";
 import {
   Package,
   Search,
@@ -165,9 +166,24 @@ export default function InventoryPage() {
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim() || formUnitPrice < 0) return;
+    if (!formName.trim()) {
+      alert("Veuillez saisir le nom du produit.");
+      return;
+    }
 
     const now = new Date().toISOString();
+
+    // Upload image to Supabase Storage if it's a new Base64 string
+    let finalImageUrl = formImageUrl.trim() || undefined;
+    if (finalImageUrl && finalImageUrl.startsWith("data:image")) {
+      const uploadRes = await uploadMediaFile(finalImageUrl, {
+        folder: "products",
+        fileName: `${formName.trim().toLowerCase().replace(/[^a-z0-9]/g, "_")}.jpg`,
+      });
+      if (uploadRes.url) {
+        finalImageUrl = uploadRes.url;
+      }
+    }
 
     if (selectedProductForEdit) {
       const updated: Product = {
@@ -179,7 +195,7 @@ export default function InventoryPage() {
         stockQuantity: formStockQty,
         minStockAlert: formMinAlert,
         barcode: formBarcode.trim() || undefined,
-        imageUrl: formImageUrl.trim() || undefined,
+        imageUrl: finalImageUrl,
         updatedAt: now,
         isSynced: false,
       };
@@ -205,7 +221,7 @@ export default function InventoryPage() {
         stockQuantity: formStockQty,
         minStockAlert: formMinAlert,
         barcode: formBarcode.trim() || undefined,
-        imageUrl: formImageUrl.trim() || undefined,
+        imageUrl: finalImageUrl,
         isSynced: false,
         createdAt: now,
         updatedAt: now,
