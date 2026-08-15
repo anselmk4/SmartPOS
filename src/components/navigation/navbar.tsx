@@ -146,10 +146,16 @@ export function Navbar() {
                     </div>
 
                     <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-                      <span>{store?.managerName || user?.name}</span>
+                      <span className="font-semibold text-slate-800">{user?.name || store?.name}</span>
                       <span>•</span>
                       <span className="font-semibold text-blue-700">
-                        {isOwner ? "Gérant" : isCashier ? "Caissier" : "Manager"}
+                        {user?.role === "OWNER"
+                          ? "Gérant"
+                          : user?.role === "MANAGER"
+                          ? "Manager"
+                          : user?.role === "CASHIER"
+                          ? "Caissier"
+                          : "Utilisateur"}
                       </span>
                     </div>
                   </div>
