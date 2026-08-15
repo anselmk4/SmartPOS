@@ -58,6 +58,7 @@ interface AuthContextType {
     storeName: string;
     ownerName: string;
     phone: string;
+    email?: string;
     countryCode?: string;
     currency?: string;
     pinCode?: string;
@@ -152,9 +153,69 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [loadStores]);
 
+  const bootstrapCloudDataIntoDexie = async (cloudData: any) => {
+    try {
+      if (cloudData.tenant) {
+        await db.tenants.put(cloudData.tenant);
+      }
+      if (cloudData.stores && Array.isArray(cloudData.stores)) {
+        for (const s of cloudData.stores) {
+          await db.stores.put(s);
+        }
+      }
+      if (cloudData.users && Array.isArray(cloudData.users)) {
+        for (const u of cloudData.users) {
+          await db.users.put(u);
+        }
+      }
+      if (cloudData.products && Array.isArray(cloudData.products)) {
+        for (const p of cloudData.products) {
+          await db.products.put({ ...p, isSynced: true });
+        }
+      }
+      if (cloudData.customers && Array.isArray(cloudData.customers)) {
+        for (const c of cloudData.customers) {
+          await db.customers.put({ ...c, isSynced: true });
+        }
+      }
+    } catch (hydrateErr) {
+      console.warn("[Auth] Bootstrap into Dexie warning:", hydrateErr);
+    }
+  };
+
   const loginWithPin = async (pinCode: string): Promise<{ success: boolean; message: string }> => {
     try {
-      const foundUser = await db.users.where("pinCode").equals(pinCode).first();
+      // 1. Try local Dexie first
+      let foundUser = await db.users.where("pinCode").equals(pinCode).first();
+      let foundTenant = foundUser ? await db.tenants.get(foundUser.tenantId) : null;
+      let foundStore = foundTenant ? await db.stores.where("tenantId").equals(foundTenant.id).first() : null;
+
+      // 2. If not found locally and online, authenticate with Cloud API
+      if (!foundUser && typeof navigator !== "undefined" && navigator.onLine) {
+        try {
+          const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
+          const apiUrl = isNative
+            ? "https://smart-pos-azure-pi.vercel.app/api/v1/auth/login"
+            : "/api/v1/auth/login";
+
+          const res = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pinCode, mode: "pin" }),
+          });
+
+          const cloudData = await res.json();
+          if (res.ok && cloudData.success && cloudData.user) {
+            await bootstrapCloudDataIntoDexie(cloudData);
+            foundUser = cloudData.user;
+            foundTenant = cloudData.tenant;
+            foundStore = cloudData.stores?.[0] || null;
+          }
+        } catch (cloudErr) {
+          console.warn("[Auth] Cloud PIN login fallback:", cloudErr);
+        }
+      }
+
       if (!foundUser) {
         return { success: false, message: "Code PIN incorrect" };
       }
@@ -162,21 +223,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, message: "Ce compte utilisateur est désactivé" };
       }
 
-      const foundTenant = await db.tenants.get(foundUser.tenantId);
       if (!foundTenant) {
-        return { success: false, message: "Organisation introuvable" };
+        foundTenant = await db.tenants.get(foundUser.tenantId) || null;
+      }
+      if (!foundStore && foundTenant) {
+        foundStore = await db.stores.where("tenantId").equals(foundTenant.id).first() || null;
       }
 
-      const foundStore = await db.stores.where("tenantId").equals(foundTenant.id).first();
-
       setUser(foundUser);
-      setTenant(foundTenant);
+      if (foundTenant) setTenant(foundTenant);
       setStore(foundStore || null);
-      await loadStores(foundTenant.id);
+      if (foundTenant) await loadStores(foundTenant.id);
 
       if (typeof window !== "undefined") {
         localStorage.setItem(AUTH_USER_KEY, foundUser.id);
-        localStorage.setItem(AUTH_TENANT_KEY, foundTenant.id);
+        if (foundTenant) localStorage.setItem(AUTH_TENANT_KEY, foundTenant.id);
         if (foundStore) localStorage.setItem(AUTH_STORE_KEY, foundStore.id);
       }
 
@@ -189,25 +250,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (identifier: string, pinOrPass: string): Promise<{ success: boolean; message: string }> => {
     try {
       const trimmed = identifier.trim();
-      const foundUser = await db.users
+
+      // 1. Check local Dexie first
+      let foundUser = await db.users
         .filter(
           (u) =>
             u.phone === trimmed ||
+            u.phone?.replace(/\D/g, "") === trimmed.replace(/\D/g, "") ||
             u.email?.toLowerCase() === trimmed.toLowerCase() ||
             u.name.toLowerCase().includes(trimmed.toLowerCase())
         )
         .first();
 
+      let foundTenant = foundUser ? await db.tenants.get(foundUser.tenantId) : null;
+      let foundStore = foundTenant ? await db.stores.where("tenantId").equals(foundTenant.id).first() : null;
+
+      // 2. If not found locally, authenticate against Cloud API (Supabase)
+      if ((!foundUser || (foundUser && foundUser.pinCode !== pinOrPass)) && typeof navigator !== "undefined" && navigator.onLine) {
+        try {
+          const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
+          const apiUrl = isNative
+            ? "https://smart-pos-azure-pi.vercel.app/api/v1/auth/login"
+            : "/api/v1/auth/login";
+
+          const res = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ identifier: trimmed, pinCode: pinOrPass }),
+          });
+
+          const cloudData = await res.json();
+          if (res.ok && cloudData.success && cloudData.user) {
+            await bootstrapCloudDataIntoDexie(cloudData);
+            foundUser = cloudData.user;
+            foundTenant = cloudData.tenant;
+            foundStore = cloudData.stores?.[0] || null;
+          }
+        } catch (cloudErr) {
+          console.warn("[Auth] Cloud login check:", cloudErr);
+        }
+      }
+
       if (!foundUser) {
-        return loginWithPin(pinOrPass);
+        return {
+          success: false,
+          message: "Aucun compte trouvé avec ce numéro ou email. Vérifiez vos identifiants.",
+        };
       }
 
       if (foundUser.pinCode && foundUser.pinCode !== pinOrPass) {
-        return { success: false, message: "Code PIN ou mot de passe invalide" };
+        return { success: false, message: "Code PIN incorrect" };
       }
 
-      const foundTenant = await db.tenants.get(foundUser.tenantId);
-      const foundStore = foundTenant ? await db.stores.where("tenantId").equals(foundTenant.id).first() : null;
+      if (!foundTenant) {
+        foundTenant = await db.tenants.get(foundUser.tenantId) || null;
+      }
+      if (!foundStore && foundTenant) {
+        foundStore = await db.stores.where("tenantId").equals(foundTenant.id).first() || null;
+      }
 
       setUser(foundUser);
       if (foundTenant) setTenant(foundTenant);
@@ -230,6 +330,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     storeName: string;
     ownerName: string;
     phone: string;
+    email?: string;
     countryCode?: string;
     currency?: string;
     pinCode?: string;
@@ -271,6 +372,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         tenantId,
         name: data.ownerName.trim(),
         phone: data.phone.trim(),
+        email: data.email ? data.email.trim().toLowerCase() : undefined,
         pinCode: data.pinCode || "1234",
         role: "OWNER",
         isActive: true,
@@ -278,6 +380,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updatedAt: now,
       };
 
+      // 1. Add locally to Dexie
       await db.tenants.add(newTenant);
       await db.stores.add(newStore);
       await db.users.add(newUser);
@@ -293,6 +396,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updatedAt: now,
       };
       await db.users.add(cashierUser);
+
+      // 2. Direct Cloud Registration API call (so the account is immediately active across all devices)
+      if (typeof navigator !== "undefined" && navigator.onLine) {
+        try {
+          const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
+          const apiUrl = isNative
+            ? "https://smart-pos-azure-pi.vercel.app/api/v1/auth/register"
+            : "/api/v1/auth/register";
+
+          await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              tenantId,
+              storeId,
+              userId,
+              storeName: data.storeName,
+              ownerName: data.ownerName,
+              phone: data.phone,
+              email: data.email,
+              countryCode: data.countryCode,
+              currency: data.currency,
+              pinCode: data.pinCode,
+              plan: data.plan,
+            }),
+          });
+        } catch (cloudRegErr) {
+          console.warn("[Auth] Cloud register background fallback:", cloudRegErr);
+        }
+      }
 
       await enqueueSync({
         tenantId,

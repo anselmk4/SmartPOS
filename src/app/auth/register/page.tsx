@@ -15,6 +15,7 @@ import {
   Globe,
   ArrowRight,
   ShieldCheck,
+  Mail,
 } from "lucide-react";
 
 export default function RegisterPage() {
@@ -24,6 +25,7 @@ export default function RegisterPage() {
   const [storeName, setStoreName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [phone, setPhone] = useState("+243 ");
+  const [email, setEmail] = useState("");
   const [countryCode, setCountryCode] = useState("CD");
   const [currency, setCurrency] = useState("CDF");
   const [pinCode, setPinCode] = useState("1234");
@@ -65,6 +67,7 @@ export default function RegisterPage() {
       storeName,
       ownerName,
       phone,
+      email: email.trim() || undefined,
       countryCode,
       currency,
       pinCode,
@@ -173,6 +176,23 @@ export default function RegisterPage() {
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Email Address */}
+          <div>
+            <label className="text-xs font-semibold text-slate-600 block mb-1">
+              Adresse Email (Optionnelle pour connexion multi-appareils)
+            </label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="email"
+                placeholder="ex: contact@maboutique.cd"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
             </div>
           </div>
 

@@ -107,7 +107,7 @@ export default function LoginPage() {
               mode === "phone" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"
             }`}
           >
-            Gérant (Téléphone)
+            Téléphone / Email
           </button>
         </div>
 
