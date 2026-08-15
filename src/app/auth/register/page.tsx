@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
+import { BUSINESS_ACTIVITIES } from "@/lib/constants/business-activities";
 import type { SubscriptionPlan } from "@/lib/shared/types";
 import {
   Store,
@@ -16,6 +17,9 @@ import {
   ArrowRight,
   ShieldCheck,
   Mail,
+  MapPin,
+  Briefcase,
+  ChevronDown,
 } from "lucide-react";
 
 export default function RegisterPage() {
@@ -24,8 +28,11 @@ export default function RegisterPage() {
 
   const [storeName, setStoreName] = useState("");
   const [ownerName, setOwnerName] = useState("");
+  const [businessActivityId, setBusinessActivityId] = useState("retail_grocery");
+  const [customActivity, setCustomActivity] = useState("");
   const [phone, setPhone] = useState("+243 ");
   const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
   const [countryCode, setCountryCode] = useState("CD");
   const [currency, setCurrency] = useState("CDF");
   const [pinCode, setPinCode] = useState("1234");
@@ -55,22 +62,35 @@ export default function RegisterPage() {
     }
   };
 
+  const selectedActivityObj = BUSINESS_ACTIVITIES.find((a) => a.id === businessActivityId);
+  const resolvedBusinessType =
+    businessActivityId === "other_activity"
+      ? customActivity.trim() || "Autre Commerce"
+      : selectedActivityObj?.name || "Commerce Général";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!storeName.trim() || !ownerName.trim() || !phone.trim()) {
-      setErrorMsg("Veuillez remplir tous les champs obligatoires");
+      setErrorMsg("Veuillez remplir tous les champs obligatoires (Boutique, Nom et Téléphone)");
+      return;
+    }
+
+    if (pinCode.length < 4) {
+      setErrorMsg("Le code PIN doit comporter au moins 4 chiffres");
       return;
     }
 
     setIsLoading(true);
     const res = await registerMerchant({
-      storeName,
-      ownerName,
-      phone,
+      storeName: storeName.trim(),
+      ownerName: ownerName.trim(),
+      businessType: resolvedBusinessType,
+      phone: phone.trim(),
       email: email.trim() || undefined,
+      address: address.trim() || undefined,
       countryCode,
       currency,
-      pinCode,
+      pinCode: pinCode.trim(),
       plan: selectedPlan,
     });
     setIsLoading(false);
@@ -84,7 +104,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-[calc(100vh-61px)] flex flex-col items-center justify-center p-4 bg-gradient-to-b from-slate-50 to-slate-100">
-      <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xl my-4">
+      <div className="w-full max-w-xl bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xl my-4">
         {/* Header */}
         <div className="text-center mb-6">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white mx-auto mb-3 shadow-lg shadow-blue-500/25">
@@ -99,8 +119,9 @@ export default function RegisterPage() {
         </div>
 
         {errorMsg && (
-          <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-xl text-xs font-semibold mb-4">
-            {errorMsg}
+          <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-2xl text-xs font-semibold mb-4 flex items-start gap-2">
+            <span className="text-base">⚠️</span>
+            <span>{errorMsg}</span>
           </div>
         )}
 
@@ -116,7 +137,7 @@ export default function RegisterPage() {
                 <input
                   type="text"
                   required
-                  placeholder="ex: Alimentation Victoire"
+                  placeholder="ex: GENESIS SHOP"
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -133,13 +154,49 @@ export default function RegisterPage() {
                 <input
                   type="text"
                   required
-                  placeholder="ex: Dieudonné Kasongo"
+                  placeholder="ex: Junior makomo"
                   value={ownerName}
                   onChange={(e) => setOwnerName(e.target.value)}
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
               </div>
             </div>
+          </div>
+
+          {/* Type d'activité (25+ Catégories) */}
+          <div>
+            <label className="text-xs font-semibold text-slate-600 block mb-1">
+              Type d'Activité Commerciale *
+            </label>
+            <div className="relative">
+              <Briefcase className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <select
+                value={businessActivityId}
+                onChange={(e) => setBusinessActivityId(e.target.value)}
+                className="w-full pl-9 pr-8 py-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium text-slate-800 appearance-none cursor-pointer"
+              >
+                {BUSINESS_ACTIVITIES.map((act) => (
+                  <option key={act.id} value={act.id}>
+                    {act.icon} {act.name} ({act.category})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* Custom activity field if "other" is selected */}
+            {businessActivityId === "other_activity" && (
+              <div className="mt-2 animate-in fade-in">
+                <input
+                  type="text"
+                  required
+                  placeholder="Précisez votre secteur d'activité (ex: Pisciculture, Débit de tabac...)"
+                  value={customActivity}
+                  onChange={(e) => setCustomActivity(e.target.value)}
+                  className="w-full px-3 py-2 bg-blue-50/50 rounded-xl text-xs border border-blue-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+            )}
           </div>
 
           {/* Country & Phone */}
@@ -163,14 +220,14 @@ export default function RegisterPage() {
 
             <div>
               <label className="text-xs font-semibold text-slate-600 block mb-1">
-                Téléphone WhatsApp *
+                Téléphone WhatsApp du Gérant *
               </label>
               <div className="relative">
                 <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="tel"
                   required
-                  placeholder="+243 81 000 11 22"
+                  placeholder="+243 992036994"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -179,27 +236,45 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Email Address */}
-          <div>
-            <label className="text-xs font-semibold text-slate-600 block mb-1">
-              Adresse Email (Optionnelle pour connexion multi-appareils)
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="email"
-                placeholder="ex: contact@maboutique.cd"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
+          {/* Email & Address */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-600 block mb-1">
+                Adresse Email (Reçus & Connexion)
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="email"
+                  placeholder="contact@genesisshop.cd"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-600 block mb-1">
+                Adresse / Emplacement Physique
+              </label>
+              <div className="relative">
+                <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Av. du Commerce n°14, Kinshasa"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
             </div>
           </div>
 
           {/* PIN code */}
           <div>
             <label className="text-xs font-semibold text-slate-600 block mb-1">
-              Code PIN pour déverrouiller la Caisse (4 chiffres)
+              Code PIN Gérant (4 chiffres pour déverrouiller la caisse) *
             </label>
             <div className="relative">
               <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -207,7 +282,7 @@ export default function RegisterPage() {
                 type="password"
                 maxLength={4}
                 required
-                placeholder="1234"
+                placeholder="2201"
                 value={pinCode}
                 onChange={(e) => setPinCode(e.target.value)}
                 className="w-full pl-9 pr-3 py-2.5 bg-slate-50 rounded-xl text-sm font-mono font-bold tracking-widest border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -231,7 +306,7 @@ export default function RegisterPage() {
                   onClick={() => setSelectedPlan(p.id as SubscriptionPlan)}
                   className={`p-2.5 rounded-2xl border cursor-pointer transition-all text-center ${
                     selectedPlan === p.id
-                      ? "border-blue-500 bg-blue-50/50 ring-2 ring-blue-500/20"
+                      ? "border-blue-500 bg-blue-50/50 ring-2 ring-blue-500/20 shadow-sm"
                       : "border-slate-200 hover:bg-slate-50"
                   }`}
                 >
@@ -249,7 +324,7 @@ export default function RegisterPage() {
             className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 touch-press"
           >
             {isLoading ? (
-              <span>Création de votre boutique...</span>
+              <span>Création de votre boutique en cours...</span>
             ) : (
               <>
                 <span>Créer ma Boutique & Ouvrir la Caisse</span>

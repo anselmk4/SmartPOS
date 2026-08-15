@@ -687,10 +687,12 @@ export async function updateStoreBranding(
   storeId: string,
   data: {
     name?: string;
+    businessType?: string;
     logoUrl?: string;
     countryCode?: string;
     currency?: string;
     phone?: string;
+    email?: string;
     address?: string;
     ownerName?: string;
   }
@@ -702,10 +704,12 @@ export async function updateStoreBranding(
   const updatedStore: Store = {
     ...store,
     name: data.name !== undefined ? data.name.trim() : store.name,
+    businessType: data.businessType !== undefined ? data.businessType.trim() : store.businessType,
     logoUrl: data.logoUrl !== undefined ? data.logoUrl : store.logoUrl,
     countryCode: data.countryCode !== undefined ? data.countryCode : store.countryCode,
     currency: data.currency !== undefined ? data.currency : store.currency,
     phone: data.phone !== undefined ? data.phone.trim() : store.phone,
+    email: data.email !== undefined ? data.email.trim().toLowerCase() : store.email,
     address: data.address !== undefined ? data.address.trim() : store.address,
     ownerName: data.ownerName !== undefined ? data.ownerName.trim() : store.ownerName,
     updatedAt: now,
@@ -720,7 +724,11 @@ export async function updateStoreBranding(
       const updatedTenant: Tenant = {
         ...tenant,
         name: updatedStore.name,
+        businessType: updatedStore.businessType,
         logoUrl: updatedStore.logoUrl,
+        phone: updatedStore.phone,
+        email: updatedStore.email,
+        address: updatedStore.address,
         countryCode: updatedStore.countryCode || tenant.countryCode,
         currency: updatedStore.currency || tenant.currency,
         updatedAt: now,

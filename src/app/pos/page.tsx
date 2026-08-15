@@ -275,25 +275,39 @@ export default function POSPage() {
 
   const getWhatsAppReceiptUrl = (sale: Sale, items: SaleItem[]) => {
     const cust = customers.find((c) => c.id === sale.customerId);
-    const storeName = authStore?.name || tenant?.name || "Smart POS";
+    const storeName = authStore?.name || tenant?.name || "Kuettu Shop";
+    const activity = authStore?.businessType || tenant?.businessType;
+    const address = authStore?.address || tenant?.address;
+    const storePhone = authStore?.phone || tenant?.phone;
+    const storeEmail = authStore?.email || tenant?.email;
 
-    let text = `🧾 *TICKET DE CAISSE - ${storeName}*\n`;
-    text += `N° Reçu: ${sale.receiptNumber}\n`;
+    let text = `🧾 *FACTURE / TICKET DE CAISSE*\n`;
+    text += `🏬 *${storeName.toUpperCase()}*\n`;
+    if (activity) text += `📌 ${activity}\n`;
+    if (address) text += `📍 ${address}\n`;
+    if (storePhone) text += `📞 ${storePhone}\n`;
+    if (storeEmail) text += `✉️ ${storeEmail}\n`;
+    text += `--------------------------------\n`;
+    text += `N° Facture: ${sale.receiptNumber}\n`;
     text += `Date: ${new Date(sale.createdAt).toLocaleDateString("fr-FR")} à ${new Date(sale.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}\n`;
+    text += `Caissier: ${user?.name || "Caisse"}\n`;
     if (cust) text += `Client: ${cust.name}\n`;
-    text += `--------------------------\n`;
+    text += `--------------------------------\n`;
 
     items.forEach((it) => {
       text += `• ${it.productName || "Article"} x${it.quantity} = ${formatMoney(it.quantity * it.unitPrice)}\n`;
     });
 
-    text += `--------------------------\n`;
-    text += `*TOTAL : ${formatMoney(sale.totalAmount)}*\n`;
-    text += `Payé : ${formatMoney(sale.amountPaid)} (${sale.paymentMethod})\n`;
+    text += `--------------------------------\n`;
+    text += `*TOTAL TTC : ${formatMoney(sale.totalAmount)}*\n`;
+    text += `Mode de paiement : ${sale.paymentMethod}\n`;
+    text += `Montant Payé : ${formatMoney(sale.amountPaid)}\n`;
     if (sale.debtAmount > 0) {
       text += `⚠️ *Reste à payer (Dette) : ${formatMoney(sale.debtAmount)}*\n`;
     }
-    text += `\nMerci pour votre confiance ! À bientôt.`;
+    text += `--------------------------------\n`;
+    text += `Merci pour votre confiance !\n`;
+    text += `_kuettu Smart Pro • Système de Caisse & Gestion_`;
 
     const phone = cust?.phone ? cust.phone.replace(/[^0-9]/g, "") : "";
     return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
@@ -844,7 +858,7 @@ export default function POSPage() {
       {/* RECEIPT MODAL */}
       {completedSale && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in zoom-in-95">
-          <div className="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl border border-slate-100 text-center">
+          <div className="bg-white w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-3xl p-5 shadow-2xl border border-slate-100 text-center">
             {authStore?.logoUrl ? (
               <img
                 src={authStore.logoUrl}
@@ -857,29 +871,70 @@ export default function POSPage() {
               </div>
             )}
 
-            <div className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-0.5">
+            {/* Store Header Info */}
+            <div className="font-black text-slate-900 text-sm uppercase tracking-wide">
               {authStore?.name || tenant?.name || "Kuettu SMART POS"}
             </div>
-            <h3 className="font-extrabold text-slate-900 text-lg mb-1">Vente Enregistrée !</h3>
-            <p className="text-xs text-slate-500 mb-3">
-              N° Reçu : <span className="font-semibold text-slate-700">{completedSale.sale.receiptNumber}</span>
-            </p>
-
-            <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 text-left text-xs mb-4 space-y-1.5 font-mono">
-              <div className="flex justify-between font-bold text-slate-800 pb-1 border-b border-slate-200">
-                <span>Total :</span>
-                <span>{formatMoney(completedSale.sale.totalAmount)}</span>
+            {(authStore?.businessType || tenant?.businessType) && (
+              <div className="text-[10px] text-blue-600 font-semibold mt-0.5">
+                {authStore?.businessType || tenant?.businessType}
               </div>
-              <div className="flex justify-between text-slate-600">
+            )}
+            {(authStore?.address || tenant?.address) && (
+              <div className="text-[10px] text-slate-500 mt-0.5">
+                📍 {authStore?.address || tenant?.address}
+              </div>
+            )}
+            <div className="text-[10px] text-slate-500 flex items-center justify-center gap-2 mt-0.5">
+              {(authStore?.phone || tenant?.phone) && (
+                <span>📞 {authStore?.phone || tenant?.phone}</span>
+              )}
+              {(authStore?.email || tenant?.email) && (
+                <span>✉️ {authStore?.email || tenant?.email}</span>
+              )}
+            </div>
+
+            <div className="my-2 border-t border-dashed border-slate-200" />
+
+            <h3 className="font-extrabold text-slate-900 text-base mb-0.5">Facture de Vente</h3>
+            <div className="text-[11px] text-slate-500 mb-2.5 flex items-center justify-between px-1">
+              <span>N° {completedSale.sale.receiptNumber}</span>
+              <span>{new Date(completedSale.sale.createdAt).toLocaleDateString("fr-FR")} {new Date(completedSale.sale.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+            </div>
+
+            {/* Line Items */}
+            <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 text-left text-xs mb-3 space-y-1.5 font-mono">
+              <div className="space-y-1 pb-1.5 border-b border-slate-200">
+                {completedSale.items.map((it, idx) => (
+                  <div key={idx} className="flex justify-between text-slate-700 text-[11px]">
+                    <span className="truncate max-w-[150px]">{it.productName || "Article"} (x{it.quantity})</span>
+                    <span className="font-semibold">{formatMoney(it.quantity * it.unitPrice)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-between font-bold text-slate-900 pt-1">
+                <span>TOTAL TTC :</span>
+                <span className="text-blue-700">{formatMoney(completedSale.sale.totalAmount)}</span>
+              </div>
+              <div className="flex justify-between text-slate-600 text-[11px]">
                 <span>Payé ({completedSale.sale.paymentMethod}) :</span>
                 <span>{formatMoney(completedSale.sale.amountPaid)}</span>
               </div>
               {completedSale.sale.debtAmount > 0 && (
                 <div className="flex justify-between font-bold text-rose-600 pt-1 border-t border-rose-200">
-                  <span>Dette client :</span>
+                  <span>Reste Dû (Dette) :</span>
                   <span>{formatMoney(completedSale.sale.debtAmount)}</span>
                 </div>
               )}
+            </div>
+
+            {/* Footer platform brand */}
+            <div className="mb-3 text-[10px] text-slate-400 font-medium">
+              Merci pour votre confiance !
+              <div className="font-black text-slate-600 tracking-wider uppercase text-[9px] mt-0.5">
+                kuettu Smart Pro
+              </div>
             </div>
 
             <div className="space-y-2">

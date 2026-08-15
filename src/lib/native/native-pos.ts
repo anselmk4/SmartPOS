@@ -7,10 +7,13 @@
 
 export interface ThermalReceiptData {
   storeName: string;
+  businessType?: string;
   storePhone?: string;
+  storeEmail?: string;
   storeAddress?: string;
   receiptNumber: string;
   cashierName?: string;
+  customerName?: string;
   date: string;
   items: Array<{ name: string; quantity: number; unitPrice: number; total: number }>;
   totalAmount: number;
@@ -61,12 +64,15 @@ export class NativePOSBridge {
     let receipt = "";
 
     receipt += `\n     ${data.storeName.toUpperCase()}\n`;
+    if (data.businessType) receipt += `  ${data.businessType}\n`;
     if (data.storeAddress) receipt += `  ${data.storeAddress}\n`;
     if (data.storePhone) receipt += `  Tel: ${data.storePhone}\n`;
+    if (data.storeEmail) receipt += `  Email: ${data.storeEmail}\n`;
     receipt += `${separator}\n`;
     receipt += `Ticket N°: ${data.receiptNumber}\n`;
     receipt += `Date: ${data.date}\n`;
     if (data.cashierName) receipt += `Caissier: ${data.cashierName}\n`;
+    if (data.customerName) receipt += `Client: ${data.customerName}\n`;
     receipt += `${separator}\n`;
     receipt += `${pad("ARTICLE", 16)} ${pad("QTE", 4, true)} ${pad("TOTAL", 10, true)}\n`;
     receipt += `${separator}\n`;
@@ -88,7 +94,7 @@ export class NativePOSBridge {
     }
     receipt += `${separator}\n`;
     receipt += `  ${data.footerMessage || "Merci pour votre confiance !"}\n`;
-    receipt += `   Kuettu SMART POS • Offline\n\n\n\n`;
+    receipt += `       kuettu Smart Pro\n\n\n\n`;
 
     return receipt;
   }

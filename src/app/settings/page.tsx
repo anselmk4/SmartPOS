@@ -36,6 +36,8 @@ import {
   Trash2,
 } from "lucide-react";
 
+import { BUSINESS_ACTIVITIES } from "@/lib/constants/business-activities";
+
 export default function SettingsPage() {
   const router = useRouter();
   const { user, tenant, store: authStore, isAuthenticated, isLoading, isOwner, lockTerminal, logout } = useAuth();
@@ -62,10 +64,12 @@ export default function SettingsPage() {
 
   // Store form state
   const [storeName, setStoreName] = useState("");
+  const [businessType, setBusinessType] = useState("Alimentation Générale & Supérette");
   const [logoUrl, setLogoUrl] = useState("");
   const [countryCode, setCountryCode] = useState("CD");
   const [currency, setCurrency] = useState("CDF");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [isSaved, setIsSaved] = useState(false);
@@ -74,11 +78,13 @@ export default function SettingsPage() {
   useEffect(() => {
     if (authStore || tenant) {
       setStoreName(authStore?.name || tenant?.name || "");
+      setBusinessType(authStore?.businessType || tenant?.businessType || "Alimentation Générale & Supérette");
       setLogoUrl(authStore?.logoUrl || tenant?.logoUrl || "");
       setCountryCode(authStore?.countryCode || tenant?.countryCode || "CD");
       setCurrency(authStore?.currency || tenant?.currency || "CDF");
       setPhone(authStore?.phone || tenant?.phone || "");
-      setAddress(authStore?.address || "");
+      setEmail(authStore?.email || tenant?.email || user?.email || "");
+      setAddress(authStore?.address || tenant?.address || "");
       setOwnerName(authStore?.ownerName || user?.name || "");
     }
   }, [authStore, tenant, user]);
@@ -139,10 +145,12 @@ export default function SettingsPage() {
 
     await updateStoreBranding(currentStoreId, {
       name: storeName.trim(),
+      businessType: businessType.trim(),
       logoUrl: finalLogoUrl,
       countryCode,
       currency,
       phone: phone.trim() || undefined,
+      email: email.trim() || undefined,
       address: address.trim() || undefined,
       ownerName: ownerName.trim() || undefined,
     });
@@ -329,6 +337,24 @@ export default function SettingsPage() {
                 </div>
               </div>
 
+              {/* Business Type Selector (25+ Activities) */}
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">
+                  Type d'Activité Commerciale (25+ secteurs)
+                </label>
+                <select
+                  value={businessType}
+                  onChange={(e) => setBusinessType(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium text-slate-800"
+                >
+                  {BUSINESS_ACTIVITIES.map((act) => (
+                    <option key={act.id} value={act.name}>
+                      {act.icon} {act.name} ({act.category})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Currency & Phone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -367,20 +393,20 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-600 block mb-1">
-                    Nom du Propriétaire / Gérant
+                    Adresse Email Officielle (Reçus & Contact)
                   </label>
                   <input
-                    type="text"
-                    value={ownerName}
-                    onChange={(e) => setOwnerName(e.target.value)}
-                    placeholder="Dieudonné Kasongo"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="contact@maboutique.cd"
                     className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
 
                 <div>
                   <label className="text-xs font-semibold text-slate-600 block mb-1">
-                    Adresse / Commune
+                    Adresse Physique / Commune
                   </label>
                   <input
                     type="text"

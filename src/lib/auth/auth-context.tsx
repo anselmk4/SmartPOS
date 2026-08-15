@@ -63,6 +63,8 @@ interface AuthContextType {
     ownerName: string;
     phone: string;
     email?: string;
+    businessType?: string;
+    address?: string;
     countryCode?: string;
     currency?: string;
     pinCode?: string;
@@ -342,6 +344,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let foundStore = foundTenant ? await db.stores.where("tenantId").equals(foundTenant.id).first() : null;
 
       // 2. If not found locally, authenticate against Cloud API (Supabase)
+      let cloudErrorMsg: string | null = null;
       if ((!foundUser || (foundUser && foundUser.pinCode !== pinOrPass)) && typeof navigator !== "undefined" && navigator.onLine) {
         try {
           const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
@@ -361,6 +364,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             foundUser = cloudData.user;
             foundTenant = cloudData.tenant;
             foundStore = cloudData.stores?.[0] || null;
+          } else {
+            cloudErrorMsg = cloudData.error || "Identifiants incorrects";
           }
         } catch (cloudErr) {
           console.warn("[Auth] Cloud login check:", cloudErr);
@@ -370,7 +375,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!foundUser) {
         return {
           success: false,
-          message: "Aucun compte trouvé avec ce numéro ou email. Vérifiez vos identifiants.",
+          message: cloudErrorMsg || "Aucun compte trouvé avec ce numéro ou email. Vérifiez vos identifiants.",
         };
       }
 
@@ -411,6 +416,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ownerName: string;
     phone: string;
     email?: string;
+    businessType?: string;
+    address?: string;
     countryCode?: string;
     currency?: string;
     pinCode?: string;
@@ -426,7 +433,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: tenantId,
         name: data.storeName.trim(),
         slug: data.storeName.toLowerCase().replace(/[^a-z0-9]/g, "-"),
+        businessType: data.businessType?.trim(),
         phone: data.phone.trim(),
+        email: data.email?.trim().toLowerCase(),
+        address: data.address?.trim(),
         countryCode: data.countryCode || "CD",
         currency: data.currency || "CDF",
         plan: data.plan || "PRO",
@@ -440,8 +450,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: storeId,
         tenantId,
         name: data.storeName.trim(),
+        businessType: data.businessType?.trim(),
         currency: data.currency || "CDF",
         phone: data.phone.trim(),
+        email: data.email?.trim().toLowerCase(),
+        address: data.address?.trim(),
         ownerName: data.ownerName.trim(),
         createdAt: now,
         updatedAt: now,
@@ -496,6 +509,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               ownerName: data.ownerName,
               phone: data.phone,
               email: data.email,
+              businessType: data.businessType,
+              address: data.address,
               countryCode: data.countryCode,
               currency: data.currency,
               pinCode: data.pinCode,

@@ -27,8 +27,11 @@ export interface Tenant {
   id: string;
   name: string;
   slug: string;
+  businessType?: string;
   logoUrl?: string;
   phone?: string;
+  email?: string;
+  address?: string;
   countryCode: string;
   currency: string; // CDF, USD, XOF, XAF, GNF, RWF, EUR, etc.
   plan: SubscriptionPlan;
@@ -72,10 +75,12 @@ export interface Store {
   id: string;
   tenantId?: string;
   name: string;
+  businessType?: string;
   currency: string;
   countryCode?: string;
   logoUrl?: string;
   phone?: string;
+  email?: string;
   address?: string;
   ownerName?: string;
   managerId?: string;
