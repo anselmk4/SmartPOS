@@ -23,7 +23,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { tenantId = "00000000-0000-4000-8000-000000000000", storeId, lastPulledAt, mutations } = parseResult.data;
+    const rawData = parseResult.data;
+    const tenantId: string = rawData.tenantId || "00000000-0000-4000-8000-000000000000";
+    const storeId: string = rawData.storeId;
+    const lastPulledAt = rawData.lastPulledAt || undefined;
+    const mutations = rawData.mutations;
     const syncedIds: string[] = [];
     const failedIds: Array<{ id: string; error: string }> = [];
     const now = new Date();
