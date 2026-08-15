@@ -36,8 +36,8 @@ export function Sidebar() {
   const [isCashClosingOpen, setIsCashClosingOpen] = useState(false);
   const [isExportReportOpen, setIsExportReportOpen] = useState(false);
 
-  // If not authenticated or on admin pages, do not show the dashboard sidebar
-  if (!isAuthenticated || pathname?.startsWith("/admin")) {
+  // If not authenticated, on landing page (/), or on admin/auth pages, do not show the dashboard sidebar
+  if (!isAuthenticated || pathname === "/" || pathname?.startsWith("/admin") || pathname?.startsWith("/auth")) {
     return null;
   }
 

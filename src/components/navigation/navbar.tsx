@@ -71,6 +71,10 @@ export function Navbar() {
     return null;
   }
 
+  const isLandingPage = pathname === "/" || pathname === "";
+  const isAuthPage = pathname?.startsWith("/auth");
+  const isDashboardView = isAuthenticated && !isLandingPage && !isAuthPage;
+
   return (
     <>
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs px-3 sm:px-5 py-2.5">
@@ -79,7 +83,7 @@ export function Navbar() {
           {/* LEFT SECTION */}
           {/* ========================================================= */}
           <div className="flex items-center gap-2.5 sm:gap-3">
-            {isAuthenticated ? (
+            {isDashboardView ? (
               <>
                 {/* Mobile Drawer Trigger */}
                 <button
@@ -190,9 +194,9 @@ export function Navbar() {
           </div>
 
           {/* ========================================================= */}
-          {/* CENTER SECTION: Public Landing Links (When not connected) */}
+          {/* CENTER SECTION: Public Landing Links (When on landing page) */}
           {/* ========================================================= */}
-          {!isAuthenticated && (
+          {isLandingPage && (
             <nav className="hidden lg:flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl border border-slate-200/80">
               {publicNavItems.map((item) => (
                 <Link
@@ -207,11 +211,11 @@ export function Navbar() {
           )}
 
           {/* ========================================================= */}
-          {/* RIGHT SECTION: Online, Synchro, Verrouiller, Déconnexion */}
+          {/* RIGHT SECTION */}
           {/* ========================================================= */}
           <div className="flex items-center gap-2 sm:gap-2.5">
-            {/* Quick Actions for authenticated users on wide screens */}
-            {isAuthenticated && canAccess("canPerformCashClosing") && (
+            {/* Quick Actions for authenticated users on wide screens in dashboard */}
+            {isDashboardView && canAccess("canPerformCashClosing") && (
               <button
                 onClick={() => setIsCashClosingOpen(true)}
                 className="hidden 2xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition-all"
@@ -238,7 +242,7 @@ export function Navbar() {
               <span className="hidden sm:inline">{isOnline ? "En ligne" : "Hors-ligne"}</span>
             </div>
 
-            {isAuthenticated ? (
+            {isDashboardView ? (
               <>
                 {/* Synchro Button */}
                 <button
@@ -277,6 +281,26 @@ export function Navbar() {
                   title="Fermer la session"
                 >
                   <LogOut className="w-3.5 h-3.5 text-rose-600" />
+                  <span className="hidden sm:inline">Déconnexion</span>
+                </button>
+              </>
+            ) : isLandingPage && isAuthenticated ? (
+              /* Landing Page with Active Session */
+              <>
+                <Link
+                  href="/pos"
+                  className="py-2 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/25 transition-all flex items-center gap-1.5 touch-press"
+                >
+                  <StoreIcon className="w-3.5 h-3.5" />
+                  <span>Accéder à ma Caisse</span>
+                </Link>
+
+                <button
+                  onClick={handleLogoutClick}
+                  className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-slate-200 transition-all text-xs font-bold flex items-center gap-1.5"
+                  title="Fermer la session"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Déconnexion</span>
                 </button>
               </>
