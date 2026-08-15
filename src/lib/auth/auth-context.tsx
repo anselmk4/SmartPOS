@@ -67,6 +67,7 @@ interface AuthContextType {
   lockTerminal: () => void;
   switchRole: (role: UserRole) => Promise<void>;
   updateTenantPlan: (plan: SubscriptionPlan) => Promise<void>;
+  cancelSubscription: () => Promise<{ success: boolean; message: string }>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -93,6 +94,7 @@ const AuthContext = createContext<AuthContextType>({
   lockTerminal: () => {},
   switchRole: async () => {},
   updateTenantPlan: async () => {},
+  cancelSubscription: async () => ({ success: false, message: "" }),
 });
 
 const AUTH_USER_KEY = "micro_erp_auth_user_id";
@@ -504,6 +506,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const cancelSubscription = async (): Promise<{ success: boolean; message: string }> => {
+    if (!tenant) return { success: false, message: "Organisation introuvable" };
+    try {
+      const now = new Date().toISOString();
+      const updated = {
+        ...tenant,
+        planStatus: "CANCELLED" as any,
+        updatedAt: now,
+      };
+      await db.tenants.put(updated);
+      setTenant(updated);
+
+      // Call PawaPay cancel API
+      await fetch("/api/v1/payments/pawapay/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenantId: tenant.id }),
+      }).catch(() => {});
+
+      await enqueueSync({
+        tenantId: tenant.id,
+        storeId: store?.id || DEFAULT_STORE_ID,
+        entity: "tenant",
+        action: "UPDATE",
+        payload: JSON.stringify(updated),
+      });
+
+      return { success: true, message: "Abonnement résilié avec succès." };
+    } catch (e: any) {
+      return { success: false, message: e.message || "Erreur lors de l'annulation de l'abonnement" };
+    }
+  };
+
   const isAuthenticated = !!user;
   const role = user?.role || "CASHIER";
   const isOwner = role === "OWNER";
@@ -544,6 +579,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         lockTerminal,
         switchRole,
         updateTenantPlan,
+        cancelSubscription,
       }}
     >
       {children}

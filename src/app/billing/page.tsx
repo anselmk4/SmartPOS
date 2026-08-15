@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
-import type { SubscriptionPlan, PaymentMethod } from "@/lib/shared/types";
+import { PawaPayModal } from "@/components/billing/pawapay-modal";
+import type { SubscriptionPlan } from "@/lib/shared/types";
 import {
   CreditCard,
   CheckCircle2,
@@ -22,19 +23,24 @@ import {
   FileSpreadsheet,
   ArrowRightLeft,
   Lock,
+  AlertTriangle,
+  Calendar,
+  RefreshCw,
 } from "lucide-react";
 
 export default function BillingPage() {
-  const { tenant, updateTenantPlan } = useAuth();
+  const { tenant, updateTenantPlan, cancelSubscription } = useAuth();
   const { formatMoney } = useSync();
 
   const [selectedPlanToBuy, setSelectedPlanToBuy] = useState<SubscriptionPlan | null>(null);
-  const [paymentOperator, setPaymentOperator] = useState<PaymentMethod>("MPESA");
-  const [phoneNumber, setPhoneNumber] = useState(tenant?.phone || "");
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   const currentPlan = tenant?.plan || "FREE";
+  const planStatus = tenant?.planStatus || "ACTIVE";
+  const isPaidPlan = currentPlan === "PRO" || currentPlan === "BUSINESS";
+  const isCancelled = planStatus === "CANCELLED";
 
   const plans = [
     {
@@ -57,7 +63,7 @@ export default function BillingPage() {
     {
       id: "PRO" as SubscriptionPlan,
       name: "Commerçant Pro",
-      price: 15000,
+      price: 40000,
       period: "/ mois (15$)",
       badge: "Le plus populaire",
       popular: true,
@@ -76,7 +82,7 @@ export default function BillingPage() {
     {
       id: "BUSINESS" as SubscriptionPlan,
       name: "Business Multi-Magasins",
-      price: 45000,
+      price: 120000,
       period: "/ mois (45$)",
       badge: "Réseaux & Dépôts",
       features: [
@@ -109,7 +115,7 @@ export default function BillingPage() {
   ];
 
   const handleOpenPayment = (plan: SubscriptionPlan) => {
-    if (plan === currentPlan) return;
+    if (plan === currentPlan && !isCancelled) return;
     if (plan === "FREE") {
       updateTenantPlan("FREE");
       setSuccessToast("Passage au forfait Gratuit effectué !");
@@ -119,19 +125,17 @@ export default function BillingPage() {
     setSelectedPlanToBuy(plan);
   };
 
-  const handleConfirmPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPlanToBuy || isProcessing) return;
-
-    setIsProcessing(true);
-    // Simulate Mobile Money USSD push / API processing
-    setTimeout(async () => {
-      await updateTenantPlan(selectedPlanToBuy);
-      setIsProcessing(false);
-      setSelectedPlanToBuy(null);
-      setSuccessToast(`Abonnement ${selectedPlanToBuy} activé avec succès via ${paymentOperator} !`);
+  const handleConfirmCancel = async () => {
+    setIsCancelling(true);
+    const res = await cancelSubscription();
+    setIsCancelling(false);
+    setIsCancelModalOpen(false);
+    if (res.success) {
+      setSuccessToast(res.message);
       setTimeout(() => setSuccessToast(null), 4000);
-    }, 1500);
+    } else {
+      alert(res.message);
+    }
   };
 
   return (
@@ -140,27 +144,89 @@ export default function BillingPage() {
       <div className="text-center max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold mb-2">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Abonnement SaaS Kuettu SMART POS</span>
+          <span>Abonnement SaaS SmartPOS</span>
         </div>
         <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
-          Tarifs Clairs & Fonctionnalités Différenciées
+          Tarifs Clairs & Paiements Mobile Money PawaPay
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Payez facilement chaque mois par M-Pesa, Airtel Money, Orange Money ou Afrimoney sans carte bancaire obligatoire.
+          Payez facilement chaque mois par M-Pesa, Airtel Money, Orange Money, Wave ou Afrimoney sans carte bancaire obligatoire.
         </p>
       </div>
 
       {successToast && (
-        <div className="max-w-md mx-auto w-full bg-blue-600 text-white p-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 animate-bounce">
+        <div className="max-w-md mx-auto w-full bg-emerald-600 text-white p-3.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 animate-bounce">
           <CheckCircle2 className="w-5 h-5" />
           <span>{successToast}</span>
+        </div>
+      )}
+
+      {/* Current Subscription Status Banner */}
+      {isPaidPlan && (
+        <div
+          className={`p-5 rounded-3xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm ${
+            isCancelled
+              ? "bg-amber-50/70 border-amber-200 text-amber-900"
+              : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 text-blue-950"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold shadow-sm ${
+                isCancelled ? "bg-amber-100 text-amber-700" : "bg-blue-600 text-white"
+              }`}
+            >
+              <Crown className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-base sm:text-lg">
+                  Forfait Actuel : {currentPlan === "PRO" ? "Commerçant Pro" : "Business Multi-Magasins"}
+                </h3>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider ${
+                    isCancelled
+                      ? "bg-amber-200 text-amber-800"
+                      : "bg-emerald-100 text-emerald-800"
+                  }`}
+                >
+                  {isCancelled ? "Résiliation programmée" : "Actif"}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-0.5">
+                {isCancelled
+                  ? "Vous conservez tous vos accès Pro/Business jusqu'à la fin de la période en cours."
+                  : "Votre abonnement est actif avec sauvegarde Cloud continue et fonctionnalités débloquées."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            {!isCancelled ? (
+              <button
+                onClick={() => setIsCancelModalOpen(true)}
+                className="py-2.5 px-4 rounded-xl bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 font-bold text-xs shadow-sm transition-all touch-press flex items-center gap-1.5"
+              >
+                <X className="w-4 h-4" />
+                <span>Résilier l'abonnement</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => handleOpenPayment(currentPlan)}
+                className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all touch-press flex items-center gap-1.5"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Réactiver le forfait</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
       {/* Pricing Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {plans.map((p) => {
-          const isCurrent = currentPlan === p.id;
+          const isCurrent = currentPlan === p.id && !isCancelled;
           return (
             <div
               key={p.id}
@@ -214,7 +280,7 @@ export default function BillingPage() {
                   <span>Forfait Actif</span>
                 ) : (
                   <>
-                    <span>Basculer vers {p.name}</span>
+                    <span>Souscrire via Mobile Money</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -239,8 +305,8 @@ export default function BillingPage() {
               <tr className="border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[10px]">
                 <th className="py-3 font-bold">Fonctionnalité</th>
                 <th className="py-3 font-bold text-center">Découverte (Gratuit)</th>
-                <th className="py-3 font-bold text-center text-blue-700">Commerçant Pro (15 000 FC)</th>
-                <th className="py-3 font-bold text-center text-indigo-700">Business (45 000 FC)</th>
+                <th className="py-3 font-bold text-center text-blue-700">Commerçant Pro (40 000 FC / 15$)</th>
+                <th className="py-3 font-bold text-center text-indigo-700">Business (120 000 FC / 45$)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -293,99 +359,53 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* MODAL: Mobile Money Subscription Payment */}
+      {/* PawaPay Mobile Money Payment Modal */}
       {selectedPlanToBuy && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <form
-            onSubmit={handleConfirmPayment}
-            className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-100"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <div>
-                <h3 className="font-bold text-slate-900 text-base">
-                  Règlement de l'Abonnement SaaS
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Forfait : <b className="text-blue-600">{selectedPlanToBuy}</b> (
-                  {selectedPlanToBuy === "PRO" ? formatMoney(15000) : formatMoney(45000)}/mois)
-                </p>
-              </div>
+        <PawaPayModal
+          isOpen={true}
+          plan={selectedPlanToBuy}
+          onClose={() => setSelectedPlanToBuy(null)}
+          onSuccess={(activatedPlan) => {
+            setSelectedPlanToBuy(null);
+            setSuccessToast(`Félicitations ! Votre forfait ${activatedPlan} est actif.`);
+            setTimeout(() => setSuccessToast(null), 4000);
+          }}
+        />
+      )}
+
+      {/* Cancel Subscription Confirmation Modal */}
+      {isCancelModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-200">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-lg font-black text-slate-900 mb-2">
+              Confirmer la résiliation de l'abonnement ?
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-600 mb-6">
+              Votre forfait restera actif jusqu'à la fin du mois en cours. Après cette date, votre compte basculera automatiquement sur le forfait gratuit Découverte.
+            </p>
+
+            <div className="flex items-center justify-end gap-3">
               <button
                 type="button"
-                onClick={() => setSelectedPlanToBuy(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center"
+                onClick={() => setIsCancelModalOpen(false)}
+                className="py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"
               >
-                <X className="w-4 h-4" />
+                Conserver mon forfait
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCancel}
+                disabled={isCancelling}
+                className="py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 flex items-center gap-1.5"
+              >
+                {isCancelling ? <span>Résiliation...</span> : <span>Oui, résilier</span>}
               </button>
             </div>
-
-            {/* Operator selection */}
-            <div className="mb-4">
-              <label className="text-xs font-semibold text-slate-600 block mb-2">
-                Choisissez votre Moyen de Paiement Mobile Money
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { id: "MPESA", name: "M-Pesa (Vodacom)", color: "border-red-500 bg-red-50 text-red-800" },
-                  { id: "AIRTEL_MONEY", name: "Airtel Money", color: "border-rose-600 bg-rose-50 text-rose-800" },
-                  { id: "ORANGE_MONEY", name: "Orange Money", color: "border-orange-500 bg-orange-50 text-orange-800" },
-                  { id: "AFRIMONEY", name: "Afrimoney", color: "border-purple-600 bg-purple-50 text-purple-800" },
-                ].map((op) => (
-                  <button
-                    key={op.id}
-                    type="button"
-                    onClick={() => setPaymentOperator(op.id as PaymentMethod)}
-                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all text-center touch-press ${
-                      paymentOperator === op.id
-                        ? `${op.color} ring-2 ring-offset-1 font-black`
-                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    {op.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Phone input */}
-            <div className="mb-5">
-              <label className="text-xs font-semibold text-slate-600 block mb-1">
-                Numéro Mobile Money RDC pour le débit
-              </label>
-              <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="tel"
-                  required
-                  placeholder="+243 81 000 11 22"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold text-slate-900"
-                />
-              </div>
-              <p className="text-[11px] text-slate-400 mt-1">
-                Une notification push de confirmation USSD sera envoyée sur votre téléphone.
-              </p>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isProcessing}
-              className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 touch-press"
-            >
-              {isProcessing ? (
-                <span>Validation du transfert Mobile Money...</span>
-              ) : (
-                <>
-                  <Coins className="w-4 h-4" />
-                  <span>
-                    Valider le paiement (
-                    {selectedPlanToBuy === "PRO" ? formatMoney(15000) : formatMoney(45000)})
-                  </span>
-                </>
-              )}
-            </button>
-          </form>
+          </div>
         </div>
       )}
     </div>
