@@ -11,7 +11,27 @@ export function PWARegister() {
 
   useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      // 1. Register the Service Worker immediately
+      const isLocalhost =
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1" ||
+        window.location.hostname.endsWith(".local");
+
+      // In local dev mode, unregister SW to avoid dev CSS and HMR caching conflicts
+      if (isLocalhost && process.env.NODE_ENV !== "production") {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const reg of registrations) {
+            reg.unregister();
+          }
+        });
+        if (window.caches) {
+          caches.keys().then((keys) => {
+            keys.forEach((key) => caches.delete(key));
+          });
+        }
+        return;
+      }
+
+      // In production / PWA mode, register the Service Worker
       navigator.serviceWorker
         .register("/sw.js", { scope: "/" })
         .then((registration) => {
@@ -30,7 +50,7 @@ export function PWARegister() {
             }
           });
 
-          // 2. Preload & warm cache for all critical POS routes
+          // Preload & warm cache for all critical POS routes
           const routesToPreload = [
             "/pos",
             "/debts",

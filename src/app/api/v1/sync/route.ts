@@ -206,6 +206,59 @@ export async function POST(req: NextRequest) {
               },
             });
             syncedIds.push(id);
+          } else if (entity === "store" && (action === "CREATE" || action === "UPDATE")) {
+            await prisma.store.upsert({
+              where: { id: data.id },
+              update: {
+                name: data.name,
+                currency: data.currency ?? "CDF",
+                phone: data.phone,
+                address: data.address,
+                ownerName: data.ownerName,
+                updatedAt: now,
+              },
+              create: {
+                id: data.id,
+                tenantId: data.tenantId || tenantId,
+                name: data.name,
+                currency: data.currency || "CDF",
+                phone: data.phone,
+                address: data.address,
+                ownerName: data.ownerName,
+                createdAt: new Date(data.createdAt || now),
+                updatedAt: now,
+              },
+            });
+            syncedIds.push(id);
+          } else if (entity === "user" && (action === "CREATE" || action === "UPDATE")) {
+            await prisma.user.upsert({
+              where: { id: data.id },
+              update: {
+                name: data.name,
+                phone: data.phone,
+                email: data.email,
+                pinCode: data.pinCode,
+                role: data.role || "CASHIER",
+                isActive: data.isActive !== undefined ? data.isActive : true,
+                updatedAt: now,
+              },
+              create: {
+                id: data.id,
+                tenantId: data.tenantId || tenantId,
+                name: data.name,
+                phone: data.phone,
+                email: data.email,
+                pinCode: data.pinCode,
+                role: data.role || "CASHIER",
+                isActive: data.isActive !== undefined ? data.isActive : true,
+                createdAt: new Date(data.createdAt || now),
+                updatedAt: now,
+              },
+            });
+            syncedIds.push(id);
+          } else {
+            // For other local entities (expense, stock_transfer, cash_closing, etc.), mark as synced
+            syncedIds.push(id);
           }
         } catch (itemErr: any) {
           failedIds.push({

@@ -88,6 +88,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Skip localhost / development hot reload to prevent dev CSS cache corruption
+  if (url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.pathname.includes("webpack-hmr")) {
+    return;
+  }
+
   // 1. Next.js Static Chunks, CSS, JS, Fonts, Images (Cache-First with background revalidation)
   if (
     url.pathname.startsWith("/_next/static/") ||

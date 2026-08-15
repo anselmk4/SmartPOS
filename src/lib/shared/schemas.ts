@@ -148,25 +148,38 @@ export const DebtPaymentSchema = z.object({
 });
 
 export const StockDeltaSchema = z.object({
-  productId: z.string().uuid(),
-  storeId: z.string().uuid(),
-  tenantId: z.string().uuid().optional(),
+  productId: z.string().min(1),
+  storeId: z.string().min(1),
+  tenantId: z.string().nullish(),
   deltaQuantity: z.number(),
-  reason: z.enum(["SALE", "RESTOCK", "INVENTORY_CORRECTION"]),
-  referenceId: z.string().optional(),
+  reason: z.enum(["SALE", "RESTOCK", "INVENTORY_CORRECTION", "TRANSFER_IN", "TRANSFER_OUT"]),
+  referenceId: z.string().optional().nullable(),
 });
 
 export const SyncMutationSchema = z.object({
-  id: z.string().uuid(),
-  entity: z.enum(["tenant", "user", "store", "product", "customer", "sale", "debt_payment", "subscription"]),
+  id: z.string().min(1),
+  entity: z.enum([
+    "tenant",
+    "user",
+    "store",
+    "product",
+    "customer",
+    "sale",
+    "debt_payment",
+    "expense",
+    "subscription",
+    "stock_transfer",
+    "cash_closing",
+  ]),
   action: z.enum(["CREATE", "UPDATE", "DELETE", "STOCK_DELTA"]),
   data: z.any(),
-  clientTimestamp: z.string(),
+  clientTimestamp: z.string().optional().nullable(),
 });
 
 export const SyncPushRequestSchema = z.object({
-  tenantId: z.string().uuid().optional(),
-  storeId: z.string().uuid(),
-  lastPulledAt: z.string().optional(),
+  tenantId: z.string().nullish(),
+  storeId: z.string().min(1),
+  lastPulledAt: z.string().nullish(),
   mutations: z.array(SyncMutationSchema),
 });
+

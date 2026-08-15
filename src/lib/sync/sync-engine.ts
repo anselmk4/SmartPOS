@@ -61,29 +61,52 @@ export class SyncEngine {
       const pendingItems = await getPendingSyncItems(storeId, 100);
       const lastPulledAt = typeof window !== "undefined" ? localStorage.getItem(LAST_PULLED_KEY) || undefined : undefined;
 
-      const mutations = pendingItems.map((item) => ({
-        id: item.id,
-        entity: item.entity,
-        action: item.action,
-        data: JSON.parse(item.payload),
-        clientTimestamp: item.createdAt,
-      }));
+      const mutations = pendingItems.map((item) => {
+        let parsedData: any = {};
+        try {
+          parsedData = typeof item.payload === "string" ? JSON.parse(item.payload) : item.payload;
+        } catch {
+          parsedData = item.payload;
+        }
+        return {
+          id: item.id,
+          entity: item.entity,
+          action: item.action,
+          data: parsedData,
+          clientTimestamp: item.createdAt,
+        };
+      });
+
+      const tenantId = pendingItems[0]?.tenantId || undefined;
 
       const syncRequest: SyncPushRequest = {
+        tenantId,
         storeId,
         lastPulledAt,
         mutations,
       };
 
-      // 2. Call /api/v1/sync
-      const response = await fetch("/api/v1/sync", {
+      // 2. Call /api/v1/sync (resolves cloud server URL when running in native APK)
+      const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
+      const apiUrl = isNative ? "https://smart-pos-azure-pi.vercel.app/api/v1/sync" : "/api/v1/sync";
+
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(syncRequest),
       });
 
       if (!response.ok) {
-        throw new Error(`Erreur serveur (${response.status})`);
+        let errorDetail = `Erreur serveur (${response.status})`;
+        try {
+          const errBody = await response.json();
+          if (errBody?.error) {
+            errorDetail = `${errBody.error} (${response.status})`;
+          }
+        } catch {
+          // ignore
+        }
+        throw new Error(errorDetail);
       }
 
       const syncResult: SyncPushResponse = await response.json();
