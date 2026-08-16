@@ -1,17 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, resetRateLimit } from "@/lib/security/rate-limiter";
+import { createSessionToken } from "@/lib/security/jwt";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
     const body = await req.json();
     const { identifier, pinCode, tenantId: targetTenantId, userId: targetUserId } = body;
 
     const cleanInput = (identifier || "").trim();
     const cleanDigits = cleanInput.replace(/\D/g, "");
     const cleanPin = (pinCode || "").trim();
+
+    // Rate Limiting identifier: combine IP + target (phone/user)
+    const rateLimitKey = `login:${ip}:${targetUserId || cleanDigits || "anon"}`;
+    const rateLimit = checkRateLimit(rateLimitKey, {
+      limit: 6,
+      windowMs: 2 * 60 * 1000,
+      blockDurationMs: 15 * 60 * 1000,
+    });
+
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { success: false, error: rateLimit.message },
+        { status: 429 }
+      );
+    }
 
     if (!cleanInput && !cleanPin && !targetUserId) {
       return NextResponse.json(
@@ -32,7 +50,11 @@ export async function POST(req: NextRequest) {
       if (candidate && candidate.isActive) {
         if (candidate.pinCode && candidate.pinCode !== cleanPin) {
           return NextResponse.json(
-            { success: false, error: "Code PIN incorrect" },
+            {
+              success: false,
+              error: "Code PIN incorrect",
+              remainingAttempts: rateLimit.remaining,
+            },
             { status: 401 }
           );
         }
@@ -149,8 +171,21 @@ export async function POST(req: NextRequest) {
       }),
     ]);
 
-    return NextResponse.json({
+    // Reset rate limiter on success
+    resetRateLimit(rateLimitKey);
+
+    // Generate signed JWT session token
+    const sessionToken = createSessionToken({
+      userId: user.id,
+      tenantId: user.tenantId,
+      role: user.role,
+      phone: user.phone || undefined,
+      storeId: user.storeId || undefined,
+    });
+
+    const response = NextResponse.json({
       success: true,
+      token: sessionToken,
       user: {
         id: user.id,
         tenantId: user.tenantId,
@@ -171,6 +206,16 @@ export async function POST(req: NextRequest) {
       debtPayments,
       message: `Connexion réussie ! Bienvenue sur ${user.tenant?.name || user.name}`,
     });
+
+    response.cookies.set("kuettu_session_token", sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 30 * 24 * 60 * 60,
+      path: "/",
+    });
+
+    return response;
   } catch (error: any) {
     console.error("[Auth Login API Error]:", error);
     return NextResponse.json(

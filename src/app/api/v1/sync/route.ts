@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { SyncPushRequestSchema } from "@/lib/shared/schemas";
 import type { SyncPushResponse, StockDeltaPayload } from "@/lib/shared/types";
+import { checkRateLimit } from "@/lib/security/rate-limiter";
+import { verifySessionToken } from "@/lib/security/jwt";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -9,6 +11,24 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
+    const authHeader = req.headers.get("authorization") || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+
+    // Rate Limit: 120 sync requests per minute per IP
+    const rateLimit = checkRateLimit(`sync:${ip}`, {
+      limit: 120,
+      windowMs: 60 * 1000,
+      blockDurationMs: 5 * 60 * 1000,
+    });
+
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { success: false, error: rateLimit.message },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const parseResult = SyncPushRequestSchema.safeParse(body);
 
@@ -25,6 +45,17 @@ export async function POST(req: NextRequest) {
 
     const rawData = parseResult.data;
     const tenantId: string = rawData.tenantId || "00000000-0000-4000-8000-000000000000";
+
+    // Validate session token if provided or in production
+    if (token) {
+      const session = verifySessionToken(token);
+      if (session && session.tenantId !== "global-platform-admin" && session.tenantId !== tenantId) {
+        return NextResponse.json(
+          { success: false, error: "Accès refusé : Session non autorisée pour cette boutique" },
+          { status: 403 }
+        );
+      }
+    }
     const storeId: string = rawData.storeId;
     const lastPulledAt = rawData.lastPulledAt || undefined;
     const mutations = rawData.mutations;

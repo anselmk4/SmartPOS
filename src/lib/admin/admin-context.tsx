@@ -21,8 +21,6 @@ interface AdminAuthContextType {
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
 const ADMIN_STORAGE_KEY = "kuettu_superadmin_session_v1";
-export const SUPER_ADMIN_EMAIL = "info@kuettu.com";
-export const SUPER_ADMIN_PASS = "Password1!";
 
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const router = useRouter();
@@ -35,7 +33,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const stored = localStorage.getItem(ADMIN_STORAGE_KEY);
       if (stored) {
         const parsed: SuperAdminSession = JSON.parse(stored);
-        if (parsed.email === SUPER_ADMIN_EMAIL && parsed.role === "SUPER_ADMIN") {
+        if (parsed.role === "SUPER_ADMIN") {
           setAdmin(parsed);
         } else {
           localStorage.removeItem(ADMIN_STORAGE_KEY);
@@ -50,32 +48,41 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const loginAdmin = async (email: string, pass: string): Promise<{ success: boolean; message?: string }> => {
     setIsLoading(true);
-    // Standard delay to simulate authentication
-    await new Promise((r) => setTimeout(r, 400));
+    try {
+      const res = await fetch("/api/v1/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password: pass }),
+      });
 
-    if (email.trim().toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() && pass === SUPER_ADMIN_PASS) {
-      const session: SuperAdminSession = {
-        email: SUPER_ADMIN_EMAIL,
-        name: "Super Administrateur Kuettu",
-        role: "SUPER_ADMIN",
-        loginAt: new Date().toISOString(),
-      };
-      localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(session));
-      setAdmin(session);
+      const data = await res.json();
       setIsLoading(false);
-      return { success: true };
-    }
 
-    setIsLoading(false);
-    return {
-      success: false,
-      message: "Identifiant ou mot de passe Administrateur incorrect.",
-    };
+      if (!res.ok || !data.success) {
+        return { success: false, message: data.error || "Identifiants incorrects" };
+      }
+
+      setAdmin(data.admin);
+      if (typeof window !== "undefined") {
+        localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(data.admin));
+        if (data.token) {
+          localStorage.setItem("kuettu_admin_token", data.token);
+        }
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      setIsLoading(false);
+      return { success: false, message: err.message || "Erreur de connexion au serveur" };
+    }
   };
 
   const logoutAdmin = () => {
-    localStorage.removeItem(ADMIN_STORAGE_KEY);
     setAdmin(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(ADMIN_STORAGE_KEY);
+      localStorage.removeItem("kuettu_admin_token");
+    }
     router.push("/admin/login");
   };
 

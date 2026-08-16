@@ -176,9 +176,15 @@ export class SyncEngine {
       const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
       const apiUrl = isNative ? "https://smart-pos-azure-pi.vercel.app/api/v1/sync" : "/api/v1/sync";
 
+      const token = typeof window !== "undefined" ? localStorage.getItem("kuettu_session_token") || localStorage.getItem("kuettu_admin_token") : null;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch(apiUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(syncRequest),
       });
 

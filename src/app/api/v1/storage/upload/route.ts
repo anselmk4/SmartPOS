@@ -45,8 +45,29 @@ export async function POST(req: NextRequest) {
       pureBase64 = matches[2];
     }
 
+    // Enforce 3MB max file size limit
     const buffer = Buffer.from(pureBase64, "base64");
-    const ext = mimeType.split("/")[1] || "jpg";
+    if (buffer.length > 3 * 1024 * 1024) {
+      return NextResponse.json(
+        { success: false, error: "Fichier trop volumineux (Taille maximale autorisée : 3 Mo)" },
+        { status: 400 }
+      );
+    }
+
+    // Validate real image magic bytes (JPEG: FF D8 FF, PNG: 89 50 4E 47, WEBP: 52 49 46 46, SVG: <svg)
+    const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+    const isPng = buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47;
+    const isWebp = buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46;
+    const isSvg = buffer.slice(0, 100).toString().includes("<svg");
+
+    if (!isJpeg && !isPng && !isWebp && !isSvg) {
+      return NextResponse.json(
+        { success: false, error: "Type de fichier non autorisé. Seules les images réelles (JPG, PNG, WEBP, SVG) sont acceptées." },
+        { status: 400 }
+      );
+    }
+
+    const ext = isPng ? "png" : isWebp ? "webp" : isSvg ? "svg" : "jpg";
     const safeFileName = fileName
       ? `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, "_")}`
       : `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${ext}`;
@@ -57,7 +78,7 @@ export async function POST(req: NextRequest) {
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
       .upload(filePath, buffer, {
-        contentType: mimeType,
+        contentType: isPng ? "image/png" : isWebp ? "image/webp" : isSvg ? "image/svg+xml" : "image/jpeg",
         upsert: true,
       });
 

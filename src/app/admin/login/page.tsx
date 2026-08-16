@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAdminAuth, SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASS } from "@/lib/admin/admin-context";
+import { useAdminAuth } from "@/lib/admin/admin-context";
 import {
   ShieldAlert,
   Lock,
@@ -48,12 +48,6 @@ export default function AdminLoginPage() {
     } else {
       setErrorMsg(res.message || "Accès refusé.");
     }
-  };
-
-  const handleFillDefaultCredentials = () => {
-    setEmail(SUPER_ADMIN_EMAIL);
-    setPassword(SUPER_ADMIN_PASS);
-    setErrorMsg(null);
   };
 
   return (
@@ -163,29 +157,6 @@ export default function AdminLoginPage() {
               )}
             </button>
           </form>
-
-          {/* Quick Demo Credentials Helper */}
-          <div className="mt-6 pt-5 border-t border-slate-800/80">
-            <div className="bg-blue-950/40 border border-blue-900/50 rounded-2xl p-3.5 text-xs text-slate-300 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-blue-400 flex items-center gap-1.5">
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span>Compte Administrateur par défaut</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={handleFillDefaultCredentials}
-                  className="text-[10px] font-bold text-blue-400 hover:text-blue-300 bg-blue-500/20 px-2 py-0.5 rounded-lg border border-blue-500/30 transition-colors"
-                >
-                  Remplir 1-clic
-                </button>
-              </div>
-              <div className="font-mono text-[11px] space-y-0.5 text-slate-400">
-                <div>Email : <b className="text-white">{SUPER_ADMIN_EMAIL}</b></div>
-                <div>Mot de passe : <b className="text-white">{SUPER_ADMIN_PASS}</b></div>
-              </div>
-            </div>
-          </div>
         </div>
       </main>
 

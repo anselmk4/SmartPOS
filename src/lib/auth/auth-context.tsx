@@ -385,6 +385,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             foundUser = cloudData.user;
             foundTenant = cloudData.tenant;
             foundStore = cloudData.stores?.[0] || null;
+            if (cloudData.token && typeof window !== "undefined") {
+              localStorage.setItem("kuettu_session_token", cloudData.token);
+            }
           } else {
             cloudErrorMsg = cloudData.error || "Identifiants incorrects";
           }
@@ -405,10 +408,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!foundTenant) {
-        foundTenant = await db.tenants.get(foundUser.tenantId) || null;
+        foundTenant = (await db.tenants.get(foundUser.tenantId)) || null;
       }
       if (!foundStore && foundTenant) {
-        foundStore = await db.stores.where("tenantId").equals(foundTenant.id).first() || null;
+        foundStore = (await db.stores.where("tenantId").equals(foundTenant.id).first()) || null;
       }
 
       setUser(foundUser);
