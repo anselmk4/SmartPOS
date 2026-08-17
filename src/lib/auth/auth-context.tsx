@@ -762,8 +762,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!tenant) return { success: false, message: "Organisation introuvable" };
     try {
       const now = new Date().toISOString();
-      const updated = {
+      const updated: Tenant = {
         ...tenant,
+        plan: "FREE",
         planStatus: "CANCELLED" as any,
         updatedAt: now,
       };

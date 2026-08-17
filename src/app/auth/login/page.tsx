@@ -335,6 +335,16 @@ export default function LoginPage() {
                     <Delete className="w-5 h-5" />
                   </button>
                 </div>
+
+                {/* Forgot PIN link for PIN Mode */}
+                <div className="text-center mt-2 mb-3">
+                  <Link
+                    href="/auth/forgot-pin"
+                    className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline"
+                  >
+                    Code PIN ou mot de passe oublié ?
+                  </Link>
+                </div>
               </div>
             )}
           </div>
@@ -370,9 +380,17 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">
-                Code PIN ou Mot de passe *
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-slate-700 block">
+                  Code PIN ou Mot de passe *
+                </label>
+                <Link
+                  href="/auth/forgot-pin"
+                  className="text-[11px] font-bold text-blue-600 hover:underline"
+                >
+                  Code oublié ?
+                </Link>
+              </div>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input

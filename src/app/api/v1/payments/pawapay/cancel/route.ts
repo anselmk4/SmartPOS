@@ -18,10 +18,11 @@ export async function POST(req: NextRequest) {
 
     const now = new Date();
 
-    // 1. Update Tenant in PostgreSQL
+    // 1. Update Tenant in PostgreSQL to FREE plan with CANCELLED status
     await prisma.tenant.update({
       where: { id: tenantId },
       data: {
+        plan: "FREE",
         planStatus: "CANCELLED",
         updatedAt: now,
       },
