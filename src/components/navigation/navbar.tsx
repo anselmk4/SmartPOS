@@ -137,11 +137,13 @@ export function Navbar() {
                             ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
                             : plan === "PRO"
                             ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                            : plan === "BASIC"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
                             : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
                         }`}
                         title="Changer de forfait"
                       >
-                        {plan === "BUSINESS" ? "Business" : plan === "PRO" ? "Pro" : "Gratuit"}
+                        {plan === "BUSINESS" ? "Business" : plan === "PRO" ? "Pro" : plan === "BASIC" ? "Basic" : "Gratuit"}
                       </Link>
                     </div>
 

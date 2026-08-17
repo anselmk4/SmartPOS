@@ -156,7 +156,7 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black text-white">
-            Souscription Forfait {plan === "PRO" ? "Commerçant Pro" : "Business Multi-Magasins"}
+            Souscription Forfait {plan === "BASIC" ? "Commerçant Basic" : plan === "PRO" ? "Commerçant Pro" : "Business Multi-Magasins"}
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 mt-1">
             Activation instantanée via PawaPay • Sans engagement

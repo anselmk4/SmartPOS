@@ -51,7 +51,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
 
   // Step 4: Sécurité & Forfait
-  const [pinCode, setPinCode] = useState("1234");
+  const [pinCode, setPinCode] = useState("");
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>("BASIC");
 
   const [isLoading, setIsLoading] = useState(false);
@@ -85,7 +85,8 @@ export default function RegisterPage() {
       : selectedActivityObj?.name || "Commerce Général";
 
   // Step Validation
-  const handleNextStep = () => {
+  const handleNextStep = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setErrorMsg(null);
 
     if (currentStep === 1) {
@@ -121,15 +122,17 @@ export default function RegisterPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (currentStep < 4) {
+  const handleFinalSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setErrorMsg(null);
+
+    if (currentStep !== 4) {
       handleNextStep();
       return;
     }
 
-    if (pinCode.length < 4) {
-      setErrorMsg("Le code PIN doit comporter au moins 4 chiffres");
+    if (!pinCode || pinCode.trim().length < 4) {
+      setErrorMsg("Veuillez saisir un code PIN secret à 4 chiffres (ex: 1234)");
       return;
     }
 
@@ -152,6 +155,17 @@ export default function RegisterPage() {
       router.push("/pos");
     } else {
       setErrorMsg(res.message);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (currentStep < 4) {
+        handleNextStep();
+      } else {
+        handleFinalSubmit();
+      }
     }
   };
 
@@ -227,7 +241,18 @@ export default function RegisterPage() {
         )}
 
         {/* Multi-Step Wizard Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (currentStep < 4) {
+              handleNextStep(e);
+            } else {
+              handleFinalSubmit(e);
+            }
+          }}
+          onKeyDown={handleKeyDown}
+          className="space-y-4"
+        >
           {/* STEP 1: Commerce & Activité (2 Champs) */}
           {currentStep === 1 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-200">
