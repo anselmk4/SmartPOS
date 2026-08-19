@@ -46,10 +46,24 @@ export async function POST(req: NextRequest) {
     const rawData = parseResult.data;
     const tenantId: string = rawData.tenantId || "00000000-0000-4000-8000-000000000000";
 
-    // Validate session token if provided or in production
+    // Mandatory JWT session token validation in production
+    if (process.env.NODE_ENV === "production" && !token) {
+      return NextResponse.json(
+        { success: false, error: "Authentification requise : Token de session manquant (401 Unauthorized)" },
+        { status: 401 }
+      );
+    }
+
     if (token) {
       const session = verifySessionToken(token);
-      if (session && session.tenantId !== "global-platform-admin" && session.tenantId !== tenantId) {
+      if (!session) {
+        return NextResponse.json(
+          { success: false, error: "Session expirée ou invalide. Veuillez vous reconnecter." },
+          { status: 401 }
+        );
+      }
+
+      if (session.tenantId !== "global-platform-admin" && session.tenantId !== tenantId) {
         return NextResponse.json(
           { success: false, error: "Accès refusé : Session non autorisée pour cette boutique" },
           { status: 403 }

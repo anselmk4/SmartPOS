@@ -1,6 +1,21 @@
 import crypto from "crypto";
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "kuettu_smartpos_secure_salt_key_2026_x7a9";
+/**
+ * Retrieves the JWT signing secret.
+ * Requires a cryptographically strong environment variable in production.
+ */
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "[Security Critical] La variable d'environnement JWT_SECRET est obligatoire en environnement de production."
+      );
+    }
+    return "kuettu_globalpos_secure_dev_salt_key_2026_x7a9";
+  }
+  return secret;
+}
 
 export interface SessionPayload {
   userId: string;
@@ -16,6 +31,7 @@ export interface SessionPayload {
  * Creates a signed JWT session token (HS256) valid for 30 days
  */
 export function createSessionToken(payload: SessionPayload): string {
+  const secret = getJwtSecret();
   const header = { alg: "HS256", typ: "JWT" };
   const iat = Math.floor(Date.now() / 1000);
   const exp = iat + 30 * 24 * 60 * 60; // 30 days
@@ -26,7 +42,7 @@ export function createSessionToken(payload: SessionPayload): string {
   const encodedPayload = Buffer.from(JSON.stringify(fullPayload)).toString("base64url");
 
   const signature = crypto
-    .createHmac("sha256", JWT_SECRET)
+    .createHmac("sha256", secret)
     .update(`${encodedHeader}.${encodedPayload}`)
     .digest("base64url");
 
@@ -34,7 +50,8 @@ export function createSessionToken(payload: SessionPayload): string {
 }
 
 /**
- * Verifies a signed JWT session token and returns the payload, or null if invalid/expired
+ * Verifies a signed JWT session token and returns the payload, or null if invalid/expired.
+ * Uses timing-safe cryptographic comparison.
  */
 export function verifySessionToken(token: string): SessionPayload | null {
   try {
@@ -44,13 +61,17 @@ export function verifySessionToken(token: string): SessionPayload | null {
     if (parts.length !== 3) return null;
 
     const [encodedHeader, encodedPayload, signature] = parts;
+    const secret = getJwtSecret();
 
     const expectedSignature = crypto
-      .createHmac("sha256", JWT_SECRET)
+      .createHmac("sha256", secret)
       .update(`${encodedHeader}.${encodedPayload}`)
       .digest("base64url");
 
-    if (signature !== expectedSignature) {
+    const sigBuffer = Buffer.from(signature);
+    const expectedSigBuffer = Buffer.from(expectedSignature);
+
+    if (sigBuffer.length !== expectedSigBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedSigBuffer)) {
       return null;
     }
 

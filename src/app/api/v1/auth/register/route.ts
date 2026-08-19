@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { SubscriptionPlan } from "@/lib/shared/types";
+import { hashPinCode } from "@/lib/security/password";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -88,14 +89,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 3. Create or upsert Owner User
+    // 3. Create or upsert Owner User with hashed PIN
+    const hashedPin = pinCode ? hashPinCode(pinCode.trim()) : hashPinCode("1234");
     const user = await prisma.user.upsert({
       where: { id: userId },
       update: {
         name: ownerName.trim(),
         phone: phone.trim(),
         email: email ? email.trim().toLowerCase() : undefined,
-        pinCode: pinCode.trim(),
+        pinCode: hashedPin,
         role: "OWNER",
         isActive: true,
         updatedAt: now,
@@ -106,7 +108,7 @@ export async function POST(req: NextRequest) {
         name: ownerName.trim(),
         phone: phone.trim(),
         email: email ? email.trim().toLowerCase() : null,
-        pinCode: pinCode.trim(),
+        pinCode: hashedPin,
         role: "OWNER",
         isActive: true,
         createdAt: now,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, resetRateLimit } from "@/lib/security/rate-limiter";
 import { createSessionToken } from "@/lib/security/jwt";
+import { verifyPinCode } from "@/lib/security/password";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
       });
 
       if (candidate && candidate.isActive) {
-        if (candidate.pinCode && candidate.pinCode !== cleanPin) {
+        if (candidate.pinCode && !verifyPinCode(cleanPin, candidate.pinCode)) {
           return NextResponse.json(
             {
               success: false,
@@ -120,13 +121,12 @@ export async function POST(req: NextRequest) {
       // 3. Match candidate users with provided PIN
       if (candidateUsers.length > 0) {
         if (cleanPin) {
-          const pinMatched = candidateUsers.find((u) => u.pinCode === cleanPin);
+          const pinMatched = candidateUsers.find((u) => verifyPinCode(cleanPin, u.pinCode));
           if (pinMatched) {
             user = pinMatched;
           } else {
-            // Check if any candidate has empty or default PIN
             user = candidateUsers[0];
-            if (user.pinCode && user.pinCode !== cleanPin) {
+            if (user.pinCode && !verifyPinCode(cleanPin, user.pinCode)) {
               return NextResponse.json(
                 { success: false, error: `Code PIN incorrect pour le compte de ${user.name}` },
                 { status: 401 }

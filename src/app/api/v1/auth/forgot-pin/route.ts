@@ -1,20 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, resetRateLimit } from "@/lib/security/rate-limiter";
+import { sendTwilioSMS } from "@/lib/sms/twilio-client";
+import { hashPinCode, verifyPinCode } from "@/lib/security/password";
+import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-// In-Memory store for OTP verification codes
-interface ResetRecord {
-  code: string;
-  userId: string;
-  tenantId: string;
-  identifier: string;
-  expiresAt: number;
-}
-
-const resetCodeStore = new Map<string, ResetRecord>();
 
 export async function POST(req: NextRequest) {
   try {
@@ -95,18 +87,46 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Generate 6-digit random verification code
-      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = Date.now() + 15 * 60 * 1000; // 15 minutes validity
+      // Generate cryptographically secure 6-digit verification code
+      const randomInt = crypto.randomInt(100000, 1000000);
+      const otpCode = randomInt.toString();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes validity
+      const normalizedIdentifier = (user.phone || user.email || cleanDigits).toLowerCase().trim();
 
-      const normalizedKey = (user.phone || user.email || cleanDigits).toLowerCase();
-      resetCodeStore.set(normalizedKey, {
-        code: otpCode,
-        userId: user.id,
-        tenantId: user.tenantId,
-        identifier: cleanInput,
-        expiresAt,
+      // Invalidate previous unconsumed OTPs for this identifier
+      await prisma.otpVerification.updateMany({
+        where: {
+          identifier: normalizedIdentifier,
+          consumed: false,
+        },
+        data: {
+          consumed: true,
+        },
       });
+
+      // Save hashed OTP in database
+      const codeHash = hashPinCode(otpCode);
+      await prisma.otpVerification.create({
+        data: {
+          identifier: normalizedIdentifier,
+          codeHash,
+          userId: user.id,
+          tenantId: user.tenantId,
+          expiresAt,
+          consumed: false,
+        },
+      });
+
+      // Deliver OTP code via Twilio SMS
+      const destinationPhone = user.phone || (cleanDigits.length >= 8 ? cleanInput : null);
+      let smsResult: any = { success: false, isSimulated: false };
+
+      if (destinationPhone) {
+        smsResult = await sendTwilioSMS({
+          to: destinationPhone,
+          body: `[Kuettu Global POS] Votre code de réinitialisation sécurisé est : ${otpCode} (Valide pendant 15 minutes). Ne le partagez jamais.`,
+        });
+      }
 
       const maskedPhone = user.phone
         ? user.phone.replace(/(\d{3})\d{4}(\d{3})/, "$1****$2")
@@ -114,12 +134,14 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `Code de sécurité à 6 chiffres généré avec succès pour ${user.name}.`,
+        message: destinationPhone
+          ? `Code de sécurité envoyé par SMS au numéro ${maskedPhone}.`
+          : `Code de sécurité à 6 chiffres généré avec succès pour ${user.name}.`,
         maskedIdentifier: maskedPhone,
         userName: user.name,
         tenantName: user.tenant?.name,
-        // In local/test environment or demo mode, codePreview allows instant testing
-        codePreview: otpCode,
+        smsDelivered: smsResult.success,
+        isSimulatedSms: smsResult.isSimulated || false,
       });
     }
 
@@ -144,8 +166,8 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Rate limit verification attempts
-      const verifyLimit = checkRateLimit(`forgot-pin-verify:${ip}:${cleanDigits}`, {
+      // Rate limit verification attempts: max 5 attempts per 5 minutes
+      const verifyLimit = checkRateLimit(`forgot-pin-verify:${ip}:${cleanDigits || "anon"}`, {
         limit: 5,
         windowMs: 5 * 60 * 1000,
         blockDurationMs: 15 * 60 * 1000,
@@ -155,73 +177,67 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: verifyLimit.message }, { status: 429 });
       }
 
-      // Find matching OTP record
-      let matchedRecord: any = null;
-      let matchedKey: any = null;
+      const now = new Date();
 
-      resetCodeStore.forEach((rec, k) => {
-        if (
-          !matchedRecord &&
-          (rec.identifier.includes(cleanInput) ||
-            cleanInput.includes(rec.identifier) ||
-            k.includes(cleanDigits) ||
-            (cleanDigits.length >= 6 && k.includes(cleanDigits.slice(-6))))
-        ) {
-          matchedRecord = rec;
-          matchedKey = k;
-        }
+      // Find unconsumed, unexpired OTP records for this identifier (or phone search)
+      const possibleOtps = await prisma.otpVerification.findMany({
+        where: {
+          consumed: false,
+          expiresAt: { gt: now },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 10,
       });
 
-      if (!matchedRecord) {
-        return NextResponse.json(
-          { success: false, error: "Aucune demande de réinitialisation en cours pour ce compte." },
-          { status: 400 }
-        );
-      }
+      const matchedOtp = possibleOtps.find((record) => {
+        const idLower = record.identifier.toLowerCase();
+        const inputLower = cleanInput.toLowerCase();
+        const matchesIdentifier =
+          idLower === inputLower ||
+          idLower.includes(cleanDigits) ||
+          inputLower.includes(record.identifier);
 
-      if (Date.now() > matchedRecord.expiresAt) {
-        if (matchedKey) resetCodeStore.delete(matchedKey);
-        return NextResponse.json(
-          { success: false, error: "Le code de vérification a expiré. Veuillez demander un nouveau code." },
-          { status: 400 }
-        );
-      }
+        if (!matchesIdentifier) return false;
+        return verifyPinCode(cleanCode, record.codeHash);
+      });
 
-      if (matchedRecord.code !== cleanCode) {
+      if (!matchedOtp) {
         return NextResponse.json(
           {
             success: false,
-            error: "Code de vérification incorrect. Veuillez vérifier les 6 chiffres saisis.",
+            error: "Code de vérification incorrect ou expiré. Veuillez vérifier les 6 chiffres ou redemander un nouveau code.",
             remainingAttempts: verifyLimit.remaining,
           },
           { status: 401 }
         );
       }
 
-      // Valid OTP! Update PIN in database
-      const now = new Date();
+      // Mark OTP as consumed to prevent reuse (anti-replay)
+      await prisma.otpVerification.update({
+        where: { id: matchedOtp.id },
+        data: { consumed: true },
+      });
+
+      // Securely hash the new PIN code using PBKDF2 before storing
+      const hashedPin = hashPinCode(cleanNewPin);
       const updatedUser = await prisma.user.update({
-        where: { id: matchedRecord.userId },
+        where: { id: matchedOtp.userId },
         data: {
-          pinCode: cleanNewPin,
+          pinCode: hashedPin,
           updatedAt: now,
         },
       });
 
-      // Clear OTP record
-      if (matchedKey) resetCodeStore.delete(matchedKey);
-
       // Reset login rate limiter for this user/IP
-      resetRateLimit(`login:${ip}:${matchedRecord.userId}`);
+      resetRateLimit(`login:${ip}:${matchedOtp.userId}`);
 
       return NextResponse.json({
         success: true,
-        message: `Votre code PIN a été mis à jour avec succès ! Vous pouvez maintenant vous connecter avec votre nouveau code ${cleanNewPin}.`,
+        message: `Votre code PIN a été mis à jour avec succès ! Vous pouvez maintenant vous connecter avec votre nouveau code.`,
         user: {
           id: updatedUser.id,
           name: updatedUser.name,
           phone: updatedUser.phone,
-          pinCode: updatedUser.pinCode,
         },
       });
     }

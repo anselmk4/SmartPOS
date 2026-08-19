@@ -287,3 +287,18 @@ model SyncLog {
   @@index([processedAt])
   @@map("sync_logs")
 }
+
+model OtpVerification {
+  id         String   @id @default(uuid())
+  identifier String   @map("identifier") // Phone or Email normalized
+  codeHash   String   @map("code_hash")
+  userId     String   @map("user_id")
+  tenantId   String   @map("tenant_id")
+  expiresAt  DateTime @map("expires_at")
+  consumed   Boolean  @default(false)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([identifier])
+  @@index([expiresAt])
+  @@map("otp_verifications")
+}

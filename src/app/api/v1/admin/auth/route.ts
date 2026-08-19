@@ -1,12 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, resetRateLimit } from "@/lib/security/rate-limiter";
 import { createSessionToken } from "@/lib/security/jwt";
+import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const SUPER_ADMIN_EMAIL = process.env.ADMIN_EMAIL || "info@kuettu.com";
-const SUPER_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Password1!";
+function getSuperAdminCredentials() {
+  const email = process.env.ADMIN_EMAIL;
+  const password = process.env.ADMIN_PASSWORD;
+
+  if (!email || !password) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "[Security Critical] Les variables ADMIN_EMAIL et ADMIN_PASSWORD doivent être configurées en production."
+      );
+    }
+    return {
+      email: email || "info@kuettu.com",
+      password: password || "Password1!",
+    };
+  }
+
+  return { email, password };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,10 +31,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, password } = body;
 
-    // Rate Limit: 5 attempts per 10 minutes per IP
+    // Strict Rate Limit: 5 attempts per 15 minutes per IP
     const rateLimit = checkRateLimit(`admin-login:${ip}`, {
       limit: 5,
-      windowMs: 10 * 60 * 1000,
+      windowMs: 15 * 60 * 1000,
       blockDurationMs: 30 * 60 * 1000,
     });
 
@@ -35,11 +52,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isMatch =
-      email.trim().toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() &&
-      password === SUPER_ADMIN_PASSWORD;
+    const { email: superAdminEmail, password: superAdminPassword } = getSuperAdminCredentials();
 
-    if (!isMatch) {
+    const cleanInputEmail = email.trim().toLowerCase();
+    const cleanSuperEmail = superAdminEmail.trim().toLowerCase();
+
+    const emailMatch = cleanInputEmail === cleanSuperEmail;
+
+    // Timing safe comparison for password
+    const inputPassBuffer = Buffer.from(String(password));
+    const superPassBuffer = Buffer.from(String(superAdminPassword));
+
+    const passwordMatch =
+      inputPassBuffer.length === superPassBuffer.length &&
+      crypto.timingSafeEqual(inputPassBuffer, superPassBuffer);
+
+    if (!emailMatch || !passwordMatch) {
       return NextResponse.json(
         {
           success: false,
@@ -63,8 +91,8 @@ export async function POST(req: NextRequest) {
       success: true,
       token,
       admin: {
-        email: SUPER_ADMIN_EMAIL,
-        name: "Super Administrateur Kuettu",
+        email: cleanSuperEmail,
+        name: "Super Administrateur Kuettu Global POS",
         role: "SUPER_ADMIN",
         loginAt: new Date().toISOString(),
       },
