@@ -29,7 +29,8 @@ export async function uploadMediaFile(
   // 2. If online, upload to Supabase Storage via /api/v1/storage/upload
   try {
     const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
-    const apiUrl = isNative ? "https://smart-pos-azure-pi.vercel.app/api/v1/storage/upload" : "/api/v1/storage/upload";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
+    const apiUrl = isNative ? `${baseUrl}/api/v1/storage/upload` : "/api/v1/storage/upload";
 
     const response = await fetch(apiUrl, {
       method: "POST",

@@ -288,8 +288,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (typeof navigator !== "undefined" && navigator.onLine) {
         try {
           const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
           const apiUrl = isNative
-            ? "https://smart-pos-azure-pi.vercel.app/api/v1/auth/login"
+            ? `${baseUrl}/api/v1/auth/login`
             : "/api/v1/auth/login";
 
           const res = await fetch(apiUrl, {
@@ -369,8 +370,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if ((!foundUser || (foundUser && foundUser.pinCode !== pinOrPass)) && typeof navigator !== "undefined" && navigator.onLine) {
         try {
           const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
           const apiUrl = isNative
-            ? "https://smart-pos-azure-pi.vercel.app/api/v1/auth/login"
+            ? `${baseUrl}/api/v1/auth/login`
             : "/api/v1/auth/login";
 
           const res = await fetch(apiUrl, {
@@ -518,8 +520,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (typeof navigator !== "undefined" && navigator.onLine) {
         try {
           const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
           const apiUrl = isNative
-            ? "https://smart-pos-azure-pi.vercel.app/api/v1/auth/register"
+            ? `${baseUrl}/api/v1/auth/register`
             : "/api/v1/auth/register";
 
           await fetch(apiUrl, {

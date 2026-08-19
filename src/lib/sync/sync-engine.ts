@@ -203,10 +203,15 @@ export class SyncEngine {
         throw new Error(errorDetail);
       }
 
-      const syncResult: SyncPushResponse = await response.json();
+      const syncResult: SyncPushResponse & { refreshedToken?: string } = await response.json();
 
       if (!syncResult.success) {
         throw new Error("Échec du traitement de synchronisation par le serveur");
+      }
+
+      // Auto-update refreshed session token in localStorage
+      if (syncResult.refreshedToken && typeof window !== "undefined") {
+        localStorage.setItem("kuettu_session_token", syncResult.refreshedToken);
       }
 
       // 4. Mark pushed mutations as synced & clean queue

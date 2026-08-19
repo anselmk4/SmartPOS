@@ -91,8 +91,9 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
 
     try {
       const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
       const apiUrl = isNative
-        ? "https://smart-pos-azure-pi.vercel.app/api/v1/payments/pawapay/initiate"
+        ? `${baseUrl}/api/v1/payments/pawapay/initiate`
         : "/api/v1/payments/pawapay/initiate";
 
       const res = await fetch(apiUrl, {
