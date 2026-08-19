@@ -132,25 +132,16 @@ export function Sidebar() {
         <div className="flex items-center justify-between">
           <Link
             href="/pos"
-            className={`flex items-center gap-2.5 overflow-hidden transition-all ${
-              isCollapsed ? "justify-center w-full" : ""
+            className={`flex items-center overflow-hidden transition-all ${
+              isCollapsed ? "justify-center w-full" : "gap-2"
             }`}
             title="Kuettu Global POS"
           >
-            <div className="w-10 h-10 rounded-2xl bg-white border border-slate-200/90 flex items-center justify-center p-1 shadow-xs shrink-0">
-              <img src="/images/logo.png" alt="Global POS" className="h-6 w-auto object-contain" />
-            </div>
-
-            {!isCollapsed && (
-              <div className="min-w-0 flex-1">
-                <img src="/images/logo.png" alt="Kuettu Global POS" className="h-6 w-auto object-contain" />
-                <div className="flex items-center gap-1 mt-0.5">
-                  <span className="text-[10px] font-bold text-slate-400">
-                    Offline-First SaaS
-                  </span>
-                </div>
-              </div>
-            )}
+            <img
+              src="/images/logo.png"
+              alt="Kuettu Global POS"
+              className={isCollapsed ? "h-6 w-auto object-contain" : "h-7 sm:h-8 w-auto object-contain"}
+            />
           </Link>
 
           {/* Close button for Mobile Drawer */}

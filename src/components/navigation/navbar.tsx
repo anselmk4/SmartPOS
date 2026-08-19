@@ -103,19 +103,6 @@ export function Navbar() {
                   <PanelLeft className="w-5 h-5" />
                 </button>
 
-                {/* Global POS Platform Brand Logo (Connected Mode) */}
-                <Link
-                  href="/pos"
-                  className="hidden sm:flex items-center pr-3 border-r border-slate-200 hover:opacity-90 transition-opacity shrink-0"
-                  title="Kuettu Global POS"
-                >
-                  <img
-                    src="/images/logo.png"
-                    alt="Kuettu Global POS"
-                    className="h-7 sm:h-8 w-auto object-contain"
-                  />
-                </Link>
-
                 {/* Store Identity, Custom Logo & Country */}
                 <div className="flex items-center gap-2.5">
                   {store?.logoUrl ? (
@@ -125,12 +112,8 @@ export function Navbar() {
                       className="w-9 h-9 rounded-xl object-cover border border-slate-200 shadow-xs shrink-0"
                     />
                   ) : (
-                    <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center p-1 shadow-xs shrink-0">
-                      <img
-                        src="/images/logo.png"
-                        alt="Global POS"
-                        className="h-6 w-auto object-contain"
-                      />
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm shadow-blue-500/20 shrink-0">
+                      <StoreIcon className="w-4 h-4" />
                     </div>
                   )}
 
@@ -200,20 +183,12 @@ export function Navbar() {
               </>
             ) : (
               /* Public Brand Logo */
-              <Link href="/" className="flex items-center gap-3">
+              <Link href="/" className="flex items-center gap-2.5">
                 <img
                   src="/images/logo.png"
                   alt="Kuettu Global POS"
-                  className="h-8 sm:h-10 w-auto object-contain"
+                  className="h-8 sm:h-9 w-auto object-contain"
                 />
-                <div className="hidden sm:block pl-3 border-l border-slate-200">
-                  <p className="text-[11px] text-slate-500 font-semibold leading-tight">
-                    Offline-First SaaS
-                  </p>
-                  <p className="text-[10px] text-blue-600 font-bold">
-                    Caisse, Dettes & Mobile Money
-                  </p>
-                </div>
               </Link>
             )}
           </div>
