@@ -144,7 +144,7 @@ export default function LoginPage() {
           </div>
 
           <h2 className="text-xl font-black text-slate-900 leading-tight">
-            {activeTenant ? activeTenant.name : "Kuettu SMART POS"}
+            {activeTenant ? activeTenant.name : "Kuettu Global POS"}
           </h2>
 
           <p className="text-xs text-slate-500 mt-0.5">

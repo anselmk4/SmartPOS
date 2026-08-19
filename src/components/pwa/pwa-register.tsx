@@ -95,7 +95,7 @@ export function PWARegister() {
         setIsInstalled(true);
         setShowInstallBanner(false);
         setDeferredPrompt(null);
-        console.log("[PWA] Kuettu SMART POS installed as desktop/mobile app!");
+        console.log("[PWA] Kuettu Global POS installed as desktop/mobile app!");
       });
 
       return () => {
@@ -136,7 +136,7 @@ export function PWARegister() {
           </div>
           <div>
             <h4 className="font-extrabold text-sm text-white leading-tight">
-              Installer Kuettu SMART POS
+              Installer Kuettu Global POS
             </h4>
             <span className="text-[10px] text-blue-400 font-semibold flex items-center gap-1 mt-0.5">
               <CheckCircle2 className="w-3 h-3" />

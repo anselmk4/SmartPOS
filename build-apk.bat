@@ -1,8 +1,8 @@
 @echo off
-title Kuettu SMART POS - Compilateur APK Android
+title Kuettu Global POS - Compilateur APK Android
 
 echo ============================================================
-echo   KUETTU SMART POS - GENERATION DU FICHIER APK ANDROID
+echo   KUETTU GLOBAL POS - GENERATION DU FICHIER APK ANDROID
 echo ============================================================
 echo.
 

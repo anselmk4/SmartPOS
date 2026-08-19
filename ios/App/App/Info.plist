@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Kuettu SMART POS</string>
+        <string>Kuettu Global POS</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -46,10 +46,10 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Kuettu SMART POS utilise la caméra pour scanner les codes-barres des articles lors des ventes et inventaires.</string>
+	<string>Kuettu Global POS utilise la caméra pour scanner les codes-barres des articles lors des ventes et inventaires.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Kuettu SMART POS utilise le Bluetooth pour imprimer des tickets sur les imprimantes thermiques de caisse.</string>
+	<string>Kuettu Global POS utilise le Bluetooth pour imprimer des tickets sur les imprimantes thermiques de caisse.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Kuettu SMART POS utilise le Bluetooth pour imprimer des tickets de caisse.</string>
+	<string>Kuettu Global POS utilise le Bluetooth pour imprimer des tickets de caisse.</string>
 </dict>
 </plist>

@@ -190,7 +190,7 @@ export function Navbar() {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <span className="font-black text-slate-900 text-base sm:text-lg tracking-tight">
-                      Kuettu <span className="text-blue-600">SMART POS</span>
+                      Kuettu <span className="text-blue-600">Global POS</span>
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 hidden sm:block">

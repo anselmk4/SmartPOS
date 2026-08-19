@@ -169,7 +169,7 @@ export default function BillingPage() {
       <div className="text-center max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold mb-2">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Abonnement SaaS kuettu Smart Pro</span>
+          <span>Abonnement SaaS Kuettu Global POS</span>
         </div>
         <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
           Forfaits Clairs & Paiements Mobile Money PawaPay

@@ -120,7 +120,7 @@ export default function POSPage() {
       <div className="flex-1 flex items-center justify-center bg-slate-100">
         <div className="text-center text-slate-400">
           <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-          <p className="text-xs">Chargement de la caisse Smart POS...</p>
+          <p className="text-xs">Chargement de la caisse Kuettu Global POS...</p>
         </div>
       </div>
     );
@@ -307,7 +307,7 @@ export default function POSPage() {
     }
     text += `--------------------------------\n`;
     text += `Merci pour votre confiance !\n`;
-    text += `_kuettu Smart Pro • Système de Caisse & Gestion_`;
+    text += `_Kuettu Global POS • Système de Caisse & Gestion_`;
 
     const phone = cust?.phone ? cust.phone.replace(/[^0-9]/g, "") : "";
     return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
@@ -873,7 +873,7 @@ export default function POSPage() {
 
             {/* Store Header Info */}
             <div className="font-black text-slate-900 text-sm uppercase tracking-wide">
-              {authStore?.name || tenant?.name || "Kuettu SMART POS"}
+              {authStore?.name || tenant?.name || "Kuettu Global POS"}
             </div>
             {(authStore?.businessType || tenant?.businessType) && (
               <div className="text-[10px] text-blue-600 font-semibold mt-0.5">
@@ -933,7 +933,7 @@ export default function POSPage() {
             <div className="mb-3 text-[10px] text-slate-400 font-medium">
               Merci pour votre confiance !
               <div className="font-black text-slate-600 tracking-wider uppercase text-[9px] mt-0.5">
-                kuettu Smart Pro
+                Kuettu Global POS
               </div>
             </div>
 

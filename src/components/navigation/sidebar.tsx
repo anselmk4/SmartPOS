@@ -135,7 +135,7 @@ export function Sidebar() {
             className={`flex items-center gap-2.5 overflow-hidden transition-all ${
               isCollapsed ? "justify-center w-full" : ""
             }`}
-            title="Kuettu SMART POS"
+            title="Kuettu Global POS"
           >
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700 flex items-center justify-center text-white shadow-md shadow-blue-500/25 shrink-0">
               <StoreIcon className="w-5 h-5" />
@@ -145,7 +145,7 @@ export function Sidebar() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <span className="font-black text-slate-900 text-sm tracking-tight">
-                    Kuettu <span className="text-blue-600">SMART POS</span>
+                    Kuettu <span className="text-blue-600">Global POS</span>
                   </span>
                 </div>
                 <div className="flex items-center gap-1 mt-0.5">

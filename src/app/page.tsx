@@ -58,12 +58,12 @@ export default function LandingPage() {
     {
       question: "Est-ce que l'application fonctionne vraiment sans connexion Internet ?",
       answer:
-        "Oui, à 100% ! Kuettu SMART POS est conçu avec une architecture Offline-First (IndexedDB). Vous pouvez encaisser des ventes, enregistrer des nouveaux clients, ajouter des produits et tenir votre carnet de dettes toute la journée sans aucun réseau Internet ni électricité continue. Aucune coupure réseau ne bloque votre caisse.",
+        "Oui, à 100% ! Kuettu Global POS est conçu avec une architecture Offline-First (IndexedDB). Vous pouvez encaisser des ventes, enregistrer des nouveaux clients, ajouter des produits et tenir votre carnet de dettes toute la journée sans aucun réseau Internet ni électricité continue. Aucune coupure réseau ne bloque votre caisse.",
     },
     {
       question: "Que se passe-t-il lorsque la connexion Internet revient ?",
       answer:
-        "Dès que votre téléphone, tablette ou ordinateur capte la 3G/4G ou le Wi-Fi, Kuettu SMART POS synchronise automatiquement toutes les transactions enregistrées en local vers notre Cloud Supabase sécurisé. Vos données sont sauvegardées et consultables à distance par le propriétaire sans intervention manuelle.",
+        "Dès que votre téléphone, tablette ou ordinateur capte la 3G/4G ou le Wi-Fi, Kuettu Global POS synchronise automatiquement toutes les transactions enregistrées en local vers notre Cloud Supabase sécurisé. Vos données sont sauvegardées et consultables à distance par le propriétaire sans intervention manuelle.",
     },
     {
       question: "Comment fonctionne la relance WhatsApp des clients endettés ?",
@@ -88,7 +88,7 @@ export default function LandingPage() {
     {
       question: "Quels moyens de paiement Mobile Money sont supportés ?",
       answer:
-        "Kuettu SMART POS prend en charge tous les opérateurs majeurs de Mobile Money en RDC : M-Pesa (Vodacom), Airtel Money, Orange Money et Afrimoney via la passerelle PawaPay. Les encaissements en Francs Congolais (CDF) et en Dollars ($) sont comptabilisés séparément des espèces.",
+        "Kuettu Global POS prend en charge tous les opérateurs majeurs de Mobile Money en RDC : M-Pesa (Vodacom), Airtel Money, Orange Money et Afrimoney via la passerelle PawaPay. Les encaissements en Francs Congolais (CDF) et en Dollars ($) sont comptabilisés séparément des espèces.",
     },
     {
       question: "Quels matériels (imprimantes, lecteurs code-barre) sont compatibles ?",
@@ -181,7 +181,7 @@ export default function LandingPage() {
 
               {/* Subtitle */}
               <p className="text-slate-300 text-sm sm:text-base max-w-2xl leading-relaxed">
-                <b>Kuettu SMART POS</b> est la solution tout-en-un conçue pour les commerces d'Afrique :
+                <b>Kuettu Global POS</b> est la solution tout-en-un conçue pour les commerces d'Afrique :
                 caisse tactile <b>0ms sans latence</b>, carnet de dettes avec <b>relance WhatsApp en 1 clic</b>,
                 supervision <b>multi-magasins</b> et encaissement <b>Mobile Money PawaPay (M-Pesa, Airtel, Orange, Afrimoney)</b>.
               </p>
@@ -238,7 +238,7 @@ export default function LandingPage() {
               <div className="relative rounded-3xl overflow-hidden shadow-2xl border-2 border-white/20 group">
                 <img
                   src="/images/hero-smartpos.jpg"
-                  alt="Boutique moderne en RDC équipée de Kuettu SMART POS"
+                  alt="Boutique moderne en RDC équipée de Kuettu Global POS"
                   className="w-full h-[380px] sm:h-[450px] object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
@@ -302,7 +302,7 @@ export default function LandingPage() {
             </h2>
             <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
               En Afrique, les pannes d'électricité et les coupures 3G/4G ne doivent plus jamais paralyser votre caisse.
-              <b> Kuettu SMART POS</b> stocke 100% des articles, clients et ventes dans la mémoire locale de votre appareil (**IndexedDB**).
+              <b> Kuettu Global POS</b> stocke 100% des articles, clients et ventes dans la mémoire locale de votre appareil (**IndexedDB**).
             </p>
 
             <div className="space-y-2.5 pt-2">
@@ -604,7 +604,7 @@ export default function LandingPage() {
             Foire Aux Questions
           </span>
           <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3">
-            Questions Fréquentes sur Kuettu SMART POS
+            Questions Fréquentes sur Kuettu Global POS
           </h2>
           <p className="text-slate-500 text-sm sm:text-base mt-2">
             Tout ce que vous devez savoir pour démarrer sereinement votre commerce.
@@ -657,7 +657,7 @@ export default function LandingPage() {
           </h2>
 
           <p className="text-slate-300 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
-            Rejoignez les commerçants, supermarchés, quincailleries et dépôts d'Afrique qui éliminent les pertes de caisse et récupèrent leurs dettes avec Kuettu SMART POS.
+            Rejoignez les commerçants, supermarchés, quincailleries et dépôts d'Afrique qui éliminent les pertes de caisse et récupèrent leurs dettes avec Kuettu Global POS.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">

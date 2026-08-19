@@ -40,7 +40,7 @@ export async function initiatePawaPayDeposit(
     country,
     correspondent,
     phoneNumber,
-    statementDescription = "Abonnement SmartPOS Pro",
+    statementDescription = "Abonnement Kuettu Global POS",
     metadata,
   } = params;
 

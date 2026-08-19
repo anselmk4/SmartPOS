@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       country: countryConfig.pawapayCountry,
       correspondent: selectedOp.correspondent,
       phoneNumber: msisdn,
-      statementDescription: `SmartPOS Forfait ${planKey}`,
+      statementDescription: `Kuettu Global POS Forfait ${planKey}`,
       metadata: {
         tenantId,
         plan: planKey,

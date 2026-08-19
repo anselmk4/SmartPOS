@@ -453,7 +453,7 @@ export default function InventoryPage() {
             <Package className="w-12 h-12 stroke-1 text-slate-300 mx-auto mb-2" />
             <p className="text-base font-bold text-slate-700">Votre stock est actuellement vide</p>
             <p className="text-xs text-slate-400 mt-1">
-              Ajoutez vos propres articles avec photos pour démarrer l'inventaire Kuettu SMART POS.
+              Ajoutez vos propres articles avec photos pour démarrer l'inventaire Kuettu Global POS.
             </p>
             <button
               onClick={handleOpenAdd}

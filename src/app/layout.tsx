@@ -10,13 +10,21 @@ import { PWARegister } from "@/components/pwa/pwa-register";
 import { PlanMotivationCapsule } from "@/components/plans/plan-motivation-capsule";
 
 export const metadata: Metadata = {
-  title: "Kuettu SMART POS | Caisse Tactile Offline-First, Dettes WhatsApp & Mobile Money",
-  description: "Kuettu SMART POS - Solution SaaS de caisse tactile 100% hors-ligne, carnet de dettes WhatsApp, stocks et encaissement Mobile Money pour le commerce de détail.",
+  metadataBase: new URL("https://globalpos.app"),
+  title: "Kuettu Global POS | Caisse Tactile Offline-First, Dettes WhatsApp & Mobile Money",
+  description: "Kuettu Global POS - Solution SaaS de caisse tactile 100% hors-ligne, carnet de dettes WhatsApp, stocks et encaissement Mobile Money pour le commerce de détail.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "SMART POS",
+    title: "Kuettu Global POS",
+  },
+  openGraph: {
+    title: "Kuettu Global POS | Caisse Tactile Offline-First",
+    description: "Solution SaaS de caisse tactile 100% hors-ligne, carnet de dettes WhatsApp, stocks et encaissement Mobile Money pour le commerce en Afrique.",
+    url: "https://globalpos.app",
+    siteName: "Kuettu Global POS",
+    type: "website",
   },
   icons: {
     icon: "/icon-192.svg",
@@ -44,7 +52,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="SMART POS" />
+        <meta name="apple-mobile-web-app-title" content="Kuettu Global POS" />
       </head>
       <body className="h-full bg-slate-50 text-slate-900 antialiased">
         <AdminAuthProvider>

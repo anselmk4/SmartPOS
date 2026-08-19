@@ -1,6 +1,6 @@
 {
-  "name": "Kuettu SMART POS - Caisse Tactile Offline-First",
-  "short_name": "SMART POS",
+  "name": "Kuettu Global POS - Caisse Tactile Offline-First",
+  "short_name": "Global POS",
   "description": "Caisse tactile, gestion des stocks, carnet de dettes WhatsApp et suivi des dépenses 100% hors-ligne pour le commerce en Afrique.",
   "start_url": "/pos",
   "scope": "/",

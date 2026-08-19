@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Universal Native POS Bridge for Kuettu SMART POS (Web + Native Android / iOS)
+ * Universal Native POS Bridge for Kuettu Global POS (Web + Native Android / iOS)
  * Handles ESC/POS Bluetooth Thermal Receipt Printing, Barcode Scanning, and Haptics.
  */
 
@@ -94,7 +94,7 @@ export class NativePOSBridge {
     }
     receipt += `${separator}\n`;
     receipt += `  ${data.footerMessage || "Merci pour votre confiance !"}\n`;
-    receipt += `       kuettu Smart Pro\n\n\n\n`;
+    receipt += `       Kuettu Global POS\n\n\n\n`;
 
     return receipt;
   }

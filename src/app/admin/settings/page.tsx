@@ -47,7 +47,7 @@ export default function AdminSettingsPage() {
     const exportData = {
       timestamp: new Date().toISOString(),
       version: 3,
-      platform: "Kuettu SMART POS Master",
+      platform: "Kuettu Global POS Master",
       tenants: await db.tenants.toArray(),
       stores: await db.stores.toArray(),
       users: await db.users.toArray(),

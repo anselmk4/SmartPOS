@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.kuettu.smartpos",
-  appName: "Kuettu SMART POS",
+  appName: "Kuettu Global POS",
   webDir: "out",
   server: {
     androidScheme: "https",

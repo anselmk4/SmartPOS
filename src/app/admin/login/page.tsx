@@ -64,7 +64,7 @@ export default function AdminLoginPage() {
           </div>
           <div>
             <h1 className="font-extrabold text-white text-base tracking-wide">
-              Kuettu <span className="text-blue-400">SMART POS</span>
+              Kuettu <span className="text-blue-400">Global POS</span>
             </h1>
             <p className="text-[10px] text-slate-400 font-mono">Portail Super Administrateur</p>
           </div>
@@ -89,7 +89,7 @@ export default function AdminLoginPage() {
               Espace Administration
             </h2>
             <p className="text-xs text-slate-400 mt-1">
-              Accès réservé à la supervision globale de la plateforme SaaS Kuettu.
+              Accès réservé à la supervision globale de la plateforme SaaS Kuettu Global POS.
             </p>
           </div>
 
@@ -162,7 +162,7 @@ export default function AdminLoginPage() {
 
       {/* Footer */}
       <footer className="relative z-10 p-6 text-center text-xs text-slate-500">
-        <p>© {new Date().getFullYear()} Kuettu SMART POS • Console de Contrôle Centralisée</p>
+        <p>© {new Date().getFullYear()} Kuettu Global POS • Console de Contrôle Centralisée</p>
       </footer>
     </div>
   );
