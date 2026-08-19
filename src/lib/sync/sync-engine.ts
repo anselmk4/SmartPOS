@@ -174,7 +174,9 @@ export class SyncEngine {
 
       // 3. Call /api/v1/sync (resolves cloud server URL when running in native APK)
       const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
-      const apiUrl = isNative ? "https://smart-pos-azure-pi.vercel.app/api/v1/sync" : "/api/v1/sync";
+      const apiUrl = isNative
+        ? (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/v1/sync` : "https://globalpos.app/api/v1/sync")
+        : "/api/v1/sync";
 
       const token = typeof window !== "undefined" ? localStorage.getItem("kuettu_session_token") || localStorage.getItem("kuettu_admin_token") : null;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
