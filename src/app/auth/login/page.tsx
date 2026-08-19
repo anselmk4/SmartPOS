@@ -139,8 +139,12 @@ export default function LoginPage() {
       <div className="w-full max-w-sm sm:max-w-md bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-xl">
         {/* Header */}
         <div className="text-center mb-5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white mx-auto mb-2.5 shadow-lg shadow-blue-500/25">
-            <Store className="w-6 h-6" />
+          <div className="flex justify-center mb-3">
+            <img
+              src="/images/logo.png"
+              alt="Kuettu Global POS"
+              className="h-10 sm:h-11 w-auto object-contain"
+            />
           </div>
 
           <h2 className="text-xl font-black text-slate-900 leading-tight">

@@ -75,14 +75,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div>
           {/* Brand & Badge */}
           <div className="pb-5 mb-5 border-b border-slate-800 flex items-center justify-between">
-            <Link href="/admin" className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/25">
-                <Store className="w-5 h-5" />
+            <Link href="/admin" className="flex items-center gap-3">
+              <div className="bg-white px-2 py-1 rounded-2xl border border-slate-700 shadow-md">
+                <img src="/images/logo.png" alt="Global POS" className="h-6 w-auto object-contain" />
               </div>
               <div>
-                <h1 className="font-black text-sm tracking-wide text-white leading-tight">
-                  Kuettu <span className="text-blue-400">ADMIN</span>
-                </h1>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">

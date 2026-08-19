@@ -58,15 +58,16 @@ export default function AdminLoginPage() {
 
       {/* Top Navbar Brand */}
       <header className="relative z-10 p-6 max-w-7xl mx-auto w-full flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-transform">
-            <Store className="w-5 h-5" />
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="bg-white/95 backdrop-blur px-2.5 py-1.5 rounded-2xl border border-white/20 shadow-md group-hover:scale-105 transition-transform">
+            <img
+              src="/images/logo.png"
+              alt="Kuettu Global POS"
+              className="h-7 sm:h-8 w-auto object-contain"
+            />
           </div>
           <div>
-            <h1 className="font-extrabold text-white text-base tracking-wide">
-              Kuettu <span className="text-blue-400">Global POS</span>
-            </h1>
-            <p className="text-[10px] text-slate-400 font-mono">Portail Super Administrateur</p>
+            <p className="text-[10px] text-blue-400 font-mono font-bold uppercase tracking-wider">Super Administrateur</p>
           </div>
         </Link>
 

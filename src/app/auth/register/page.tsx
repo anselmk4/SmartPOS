@@ -181,8 +181,12 @@ export default function RegisterPage() {
       <div className="w-full max-w-xl bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xl my-4">
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white mx-auto mb-3 shadow-lg shadow-blue-500/25">
-            <Sparkles className="w-6 h-6" />
+          <div className="flex justify-center mb-3">
+            <img
+              src="/images/logo.png"
+              alt="Kuettu Global POS"
+              className="h-10 sm:h-12 w-auto object-contain"
+            />
           </div>
           <h2 className="text-2xl font-black text-slate-900">
             Créer votre Boutique SaaS
