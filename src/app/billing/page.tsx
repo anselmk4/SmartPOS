@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
 import { PawaPayModal } from "@/components/billing/pawapay-modal";
+import { getPlanPriceInfo } from "@/lib/constants/plans";
 import type { SubscriptionPlan } from "@/lib/shared/types";
 import {
   CreditCard,
@@ -39,6 +40,9 @@ export default function BillingPage() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
+  const { rawCurrency } = useSync();
+  const [displayCurrency, setDisplayCurrency] = useState<string>(rawCurrency || "CDF");
+
   const currentPlan = tenant?.plan || "FREE";
   const planStatus = tenant?.planStatus || "ACTIVE";
   const isPaidPlan = currentPlan === "BASIC" || currentPlan === "PRO" || currentPlan === "BUSINESS";
@@ -48,10 +52,8 @@ export default function BillingPage() {
     {
       id: "FREE" as SubscriptionPlan,
       name: "Découverte",
-      priceCDF: 0,
-      priceUSD: 0,
-      period: "Gratuit à vie",
-      badge: "Pour tester",
+      priceInfo: getPlanPriceInfo("FREE", displayCurrency),
+      badge: "Pour démarrer",
       features: [
         "1 Caisse tactile locale",
         "100 ventes par mois",
@@ -65,9 +67,7 @@ export default function BillingPage() {
     {
       id: "BASIC" as SubscriptionPlan,
       name: "Commerçant Basic",
-      priceCDF: 15000,
-      priceUSD: 6,
-      period: "/ mois",
+      priceInfo: getPlanPriceInfo("BASIC", displayCurrency),
       badge: "Accessible & Efficace",
       popular: false,
       features: [
@@ -85,9 +85,7 @@ export default function BillingPage() {
     {
       id: "PRO" as SubscriptionPlan,
       name: "Commerçant Pro",
-      priceCDF: 30000,
-      priceUSD: 12,
-      period: "/ mois",
+      priceInfo: getPlanPriceInfo("PRO", displayCurrency),
       badge: "Le plus populaire",
       popular: true,
       features: [
@@ -106,13 +104,11 @@ export default function BillingPage() {
     {
       id: "BUSINESS" as SubscriptionPlan,
       name: "Business Multi-Magasins",
-      priceCDF: 60000,
-      priceUSD: 25,
-      period: "/ mois",
+      priceInfo: getPlanPriceInfo("BUSINESS", displayCurrency),
       badge: "Réseaux & Dépôts",
       features: [
         "Tout le forfait Pro inclus",
-        "Multi-Boutiques & Dépôts (jusqu'à 10)",
+        "Multi-Commerces & Dépôts (jusqu'à 10)",
         "Transferts de stocks inter-magasins traçables",
         "Gérants de boutiques dédiés avec PIN",
         "Export comptable complet Excel (CSV) & PDF",
@@ -133,7 +129,7 @@ export default function BillingPage() {
     { title: "Clôture de caisse journalière (Ticket Z)", free: false, basic: true, pro: true, biz: true },
     { title: "Calcul des marges & bénéfice net en direct", free: false, basic: false, pro: true, biz: true },
     { title: "Supervision Gérant sur smartphone", free: false, basic: false, pro: true, biz: true },
-    { title: "Multi-Boutiques & Dépôts connectés", free: "1 seule", basic: "1 seule", pro: "1 seule", biz: "Jusqu'à 10 points" },
+    { title: "Multi-Commerces & Dépôts connectés", free: "1 seul", basic: "1 seul", pro: "1 seul", biz: "Jusqu'à 10 points" },
     { title: "Transferts de stock inter-magasins", free: false, basic: false, pro: false, biz: true },
     { title: "Export comptable Excel (CSV) & PDF", free: false, basic: true, pro: true, biz: true },
     { title: "Support prioritaire WhatsApp", free: "Communautaire", basic: "Standard", pro: "Prioritaire", biz: "Dédié VIP" },
@@ -175,8 +171,32 @@ export default function BillingPage() {
           Forfaits Clairs & Paiements Mobile Money PawaPay
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Payez instantanément par <b>M-Pesa</b>, <b>Airtel Money</b>, <b>Orange Money</b> ou <b>Afrimoney</b> en Francs Congolais (CDF) ou Dollars (USD).
+          Payez instantanément par <b>M-Pesa</b>, <b>Airtel Money</b>, <b>Orange Money</b>, <b>MTN MoMo</b> ou <b>Wave</b> selon votre devise locale.
         </p>
+
+        {/* Currency Switcher */}
+        <div className="flex flex-wrap items-center justify-center gap-1.5 p-1 bg-slate-100 rounded-2xl text-xs font-bold w-fit mx-auto mt-4">
+          {[
+            { code: "CDF", label: "🇨🇩 Franc Congolais (FC)" },
+            { code: "USD", label: "🇺🇸 Dollar US ($)" },
+            { code: "XOF", label: "🇸🇳/🇨🇮 Franc CFA (XOF)" },
+            { code: "XAF", label: "🇨🇲/🇬🇦 Franc CFA (XAF)" },
+            { code: "GNF", label: "🇬🇳 Franc Guinéen (FG)" },
+          ].map((c) => (
+            <button
+              key={c.code}
+              type="button"
+              onClick={() => setDisplayCurrency(c.code)}
+              className={`px-3 py-1.5 rounded-xl transition-all ${
+                displayCurrency === c.code
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Success Notification */}
@@ -199,7 +219,7 @@ export default function BillingPage() {
             <Crown className="w-6 h-6 text-blue-600" />
           </div>
           <div>
-            <div className="text-xs text-slate-500 font-semibold">Forfait Actif de votre Boutique</div>
+            <div className="text-xs text-slate-500 font-semibold">Forfait Actif de votre Commerce</div>
             <div className="text-base font-black text-slate-900 flex items-center gap-2">
               <span>{plans.find((p) => p.id === currentPlan)?.name || currentPlan}</span>
               <span
@@ -266,10 +286,10 @@ export default function BillingPage() {
 
                 <div className="mt-3 mb-4">
                   <div className="text-2xl font-black text-slate-900">
-                    {p.priceCDF === 0 ? "Gratuit" : `${p.priceCDF.toLocaleString("fr-FR")} FC`}
+                    {p.priceInfo.formatted}
                   </div>
                   <div className="text-xs text-slate-500 font-medium">
-                    {p.priceUSD === 0 ? "Sans engagement" : `soit ${p.priceUSD}$ ${p.period}`}
+                    {p.priceInfo.period}
                   </div>
                 </div>
 
@@ -317,9 +337,15 @@ export default function BillingPage() {
               <tr className="border-b border-slate-200 text-slate-500 uppercase text-[10px] font-black">
                 <th className="py-2.5 px-3">Fonctionnalité</th>
                 <th className="py-2.5 px-3 text-center">Gratuit</th>
-                <th className="py-2.5 px-3 text-center text-emerald-700 bg-emerald-50/40">Basic (15k FC)</th>
-                <th className="py-2.5 px-3 text-center text-blue-700 bg-blue-50/40">Pro (30k FC)</th>
-                <th className="py-2.5 px-3 text-center text-indigo-700 bg-indigo-50/40">Business (60k FC)</th>
+                <th className="py-2.5 px-3 text-center text-emerald-700 bg-emerald-50/40">
+                  Basic ({getPlanPriceInfo("BASIC", displayCurrency).formatted})
+                </th>
+                <th className="py-2.5 px-3 text-center text-blue-700 bg-blue-50/40">
+                  Pro ({getPlanPriceInfo("PRO", displayCurrency).formatted})
+                </th>
+                <th className="py-2.5 px-3 text-center text-indigo-700 bg-indigo-50/40">
+                  Business ({getPlanPriceInfo("BUSINESS", displayCurrency).formatted})
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium text-slate-700">

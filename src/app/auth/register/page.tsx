@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { BUSINESS_ACTIVITIES } from "@/lib/constants/business-activities";
+import { getPlanPriceInfo } from "@/lib/constants/plans";
 import { PLAN_CONFIGS, type SubscriptionPlan } from "@/lib/shared/types";
 import {
   Store,
@@ -476,16 +477,17 @@ export default function RegisterPage() {
               {/* Field 2: Choix du Forfait */}
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                  Sélectionnez votre Forfait de démarrage
+                  Sélectionnez votre Forfait de démarrage ({currency})
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
-                    { id: "FREE" as SubscriptionPlan, name: "Gratuit", price: "0 FC" },
-                    { id: "BASIC" as SubscriptionPlan, name: "Basic", price: "15.000 FC (6$)", popular: false },
-                    { id: "PRO" as SubscriptionPlan, name: "Pro", price: "30.000 FC (12$)", popular: true },
-                    { id: "BUSINESS" as SubscriptionPlan, name: "Business", price: "60.000 FC (25$)" },
+                    { id: "FREE" as SubscriptionPlan, name: "Gratuit" },
+                    { id: "BASIC" as SubscriptionPlan, name: "Basic", popular: false },
+                    { id: "PRO" as SubscriptionPlan, name: "Pro", popular: true },
+                    { id: "BUSINESS" as SubscriptionPlan, name: "Business" },
                   ].map((p) => {
                     const isSelected = selectedPlan === p.id;
+                    const priceInfo = getPlanPriceInfo(p.id, currency);
                     return (
                       <button
                         type="button"
@@ -503,7 +505,9 @@ export default function RegisterPage() {
                           </span>
                         )}
                         <span className="block text-xs font-black">{p.name}</span>
-                        <span className="block text-[10px] text-slate-500 font-medium mt-0.5">{p.price}</span>
+                        <span className="block text-[10px] text-slate-500 font-bold mt-0.5">
+                          {priceInfo.formatted}
+                        </span>
                       </button>
                     );
                   })}

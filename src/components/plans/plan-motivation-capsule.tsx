@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/dexie-db";
+import { useSync } from "@/lib/sync/sync-context";
+import { getPlanPriceInfo } from "@/lib/constants/plans";
 import { PLAN_CONFIGS } from "@/lib/shared/types";
 import {
   Sparkles,
@@ -22,6 +24,7 @@ import {
 export function PlanMotivationCapsule() {
   const pathname = usePathname();
   const { tenant, plan, isOwner, isAuthenticated } = useAuth();
+  const { rawCurrency } = useSync();
   const [isDismissed, setIsDismissed] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -52,6 +55,7 @@ export function PlanMotivationCapsule() {
   if (!nextPlan) return null; // Already on top business plan
 
   const nextConfig = PLAN_CONFIGS[nextPlan];
+  const nextPriceInfo = getPlanPriceInfo(nextPlan, rawCurrency);
 
   return (
     <div className="fixed bottom-4 right-4 z-40 animate-in slide-in-from-bottom duration-300 font-sans">
@@ -120,9 +124,9 @@ export function PlanMotivationCapsule() {
           <div className="p-2 bg-white/5 rounded-xl border border-white/10 text-[11px] text-slate-300 flex items-center gap-2">
             <Zap className="w-4 h-4 text-amber-400 shrink-0" />
             <span>
-              {nextPlan === "BASIC" && "Passez au Basic (15.000 FC) : 1 000 ventes & 10 caissiers."}
-              {nextPlan === "PRO" && "Passez au Pro (30.000 FC) : Ventes illimitées & WhatsApp auto."}
-              {nextPlan === "BUSINESS" && "Passez au Business (60.000 FC) : Multi-Boutiques & Dépôts."}
+              {nextPlan === "BASIC" && `Passez au Basic (${nextPriceInfo.formatted}) : 1 000 ventes & 10 caissiers.`}
+              {nextPlan === "PRO" && `Passez au Pro (${nextPriceInfo.formatted}) : Ventes illimitées & WhatsApp auto.`}
+              {nextPlan === "BUSINESS" && `Passez au Business (${nextPriceInfo.formatted}) : Multi-Commerces & Dépôts.`}
             </span>
           </div>
 

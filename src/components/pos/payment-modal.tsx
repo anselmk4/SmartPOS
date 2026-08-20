@@ -158,8 +158,17 @@ export function PaymentModal({
             <h3 className="font-extrabold text-slate-900 text-base sm:text-lg">
               Règlement de la Vente
             </h3>
-            <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500">
+            <div className="flex items-center flex-wrap gap-2 mt-0.5 text-xs text-slate-500">
               <span>Total : <b className="text-blue-600 font-bold">{formatMoney(totalAmount)}</b></span>
+              {currency === "FC" || currency === "CDF" ? (
+                <span className="text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg font-bold text-[10px]">
+                  ≈ ${(totalAmount / 2850).toFixed(2)} USD (Taux: 2.850 FC)
+                </span>
+              ) : currency === "$" || currency === "USD" ? (
+                <span className="text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg font-bold text-[10px]">
+                  ≈ {(totalAmount * 2850).toLocaleString("fr-FR")} FC (Taux: 2.850 FC)
+                </span>
+              ) : null}
               {discountAmount > 0 && (
                 <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-semibold text-[10px]">
                   Remise: -{formatMoney(discountAmount)}

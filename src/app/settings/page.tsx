@@ -38,6 +38,8 @@ import {
 
 import { BUSINESS_ACTIVITIES } from "@/lib/constants/business-activities";
 
+import { convertCurrency, EXCHANGE_RATES } from "@/lib/constants/plans";
+
 export default function SettingsPage() {
   const router = useRouter();
   const { user, tenant, store: authStore, isAuthenticated, isLoading, isOwner, lockTerminal, logout } = useAuth();
@@ -131,6 +133,70 @@ export default function SettingsPage() {
   const handleSaveStore = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!authStore && !tenant) return;
+
+    const previousCurrency = authStore?.currency || tenant?.currency || "CDF";
+
+    // Detect currency change with existing stock or customer debts
+    if (previousCurrency !== currency && (productsCount > 0 || customersCount > 0)) {
+      const confirmConvert = confirm(
+        `Vous modifiez la devise principale du commerce de "${previousCurrency}" vers "${currency}".\n\nSouhaitez-vous convertir automatiquement les prix de vos articles en stock et les soldes de dettes clients selon le taux de change réel du marché ?\n\n(Ex: 28 500 FC -> 10.00 $ ou 10.00 $ -> 28 500 FC)\n\n• Cliquez sur [OK] pour convertir automatiquement les valeurs.\n• Cliquez sur [Annuler] pour changer seulement le symbole sans modifier les montants numériques.`
+      );
+
+      if (confirmConvert) {
+        // Convert all products
+        const allProducts = await db.products
+          .filter((p) => p.storeId === currentStoreId || !p.storeId)
+          .toArray();
+
+        for (const prod of allProducts) {
+          const newUnitPrice = convertCurrency(prod.unitPrice, previousCurrency, currency);
+          const newCostPrice = prod.costPrice
+            ? convertCurrency(prod.costPrice, previousCurrency, currency)
+            : undefined;
+
+          const updatedProd = {
+            ...prod,
+            unitPrice: newUnitPrice,
+            costPrice: newCostPrice,
+            updatedAt: new Date().toISOString(),
+          };
+
+          await db.products.update(prod.id, updatedProd);
+
+          await enqueueSync({
+            storeId: currentStoreId,
+            tenantId: currentTenantId,
+            entity: "product",
+            action: "UPDATE",
+            payload: JSON.stringify(updatedProd),
+          });
+        }
+
+        // Convert all customer debt balances
+        const allCustomers = await db.customers
+          .filter((c) => c.storeId === currentStoreId || !c.storeId)
+          .toArray();
+
+        for (const cust of allCustomers) {
+          const newDebt = convertCurrency(cust.currentDebtBalance, previousCurrency, currency);
+          const updatedCust = {
+            ...cust,
+            currentDebtBalance: newDebt,
+            updatedAt: new Date().toISOString(),
+          };
+
+          await db.customers.update(cust.id, updatedCust);
+
+          await enqueueSync({
+            storeId: currentStoreId,
+            tenantId: currentTenantId,
+            entity: "customer",
+            action: "UPDATE",
+            payload: JSON.stringify(updatedCust),
+          });
+        }
+      }
+    }
 
     let finalLogoUrl = logoUrl || undefined;
     if (finalLogoUrl && finalLogoUrl.startsWith("data:image")) {

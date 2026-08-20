@@ -37,6 +37,9 @@ export const COUNTRIES: CountryOption[] = [
   { code: "FR", name: "France / Zone Euro (€)", flag: "🇪🇺", currency: "EUR", currencySymbol: "€", callingCode: "+33" },
 ];
 
+import { convertCurrency, EXCHANGE_RATES, getPlanPriceInfo } from "../constants/plans";
+export { convertCurrency, EXCHANGE_RATES, getPlanPriceInfo };
+
 export const CURRENCY_SYMBOLS: Record<string, string> = {
   CDF: "FC",
   USD: "$",
@@ -61,6 +64,7 @@ interface SyncContextType {
   rawCurrency: string;
   countryCode: string;
   formatMoney: (amount: number, overrideCurrency?: string) => string;
+  convertAmount: (amount: number, fromCurrency?: string, toCurrency?: string) => number;
   syncNow: () => Promise<{ success: boolean; message: string }>;
   refreshStore: () => Promise<void>;
 }
@@ -75,6 +79,7 @@ const SyncContext = createContext<SyncContextType>({
   rawCurrency: "CDF",
   countryCode: "CD",
   formatMoney: (amt) => `${Math.round(amt || 0).toLocaleString("fr-FR")} FC`,
+  convertAmount: (amt) => amt || 0,
   syncNow: async () => ({ success: false, message: "" }),
   refreshStore: async () => {},
 });
@@ -199,6 +204,15 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     [rawCurrency]
   );
 
+  const convertAmount = useCallback(
+    (amount: number, fromCurrency?: string, toCurrency?: string): number => {
+      const from = fromCurrency || rawCurrency;
+      const to = toCurrency || rawCurrency;
+      return convertCurrency(amount, from, to);
+    },
+    [rawCurrency]
+  );
+
   return (
     <SyncContext.Provider
       value={{
@@ -211,6 +225,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         rawCurrency,
         countryCode,
         formatMoney,
+        convertAmount,
         syncNow,
         refreshStore,
       }}
