@@ -314,6 +314,8 @@ export async function processLocalSale(params: {
           action: "UPDATE",
           payload: JSON.stringify({
             id: customerId,
+            name: cust.name,
+            phone: cust.phone,
             currentDebtBalance: newBalance,
             updatedAt: now,
           }),
@@ -398,6 +400,8 @@ export async function processDebtRepayment(params: {
       action: "UPDATE",
       payload: JSON.stringify({
         id: customerId,
+        name: cust.name,
+        phone: cust.phone,
         currentDebtBalance: newBalance,
         updatedAt: now,
       }),
