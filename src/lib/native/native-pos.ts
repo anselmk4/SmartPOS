@@ -108,7 +108,6 @@ export class NativePOSBridge {
     if (this.isCapacitor()) {
       // In native Android/iOS app
       console.log("[Native POS] Printing ESC/POS via Bluetooth");
-      // Fallback or Native plugin call
       window.print();
       return { success: true, message: "Ticket envoyé à l'imprimante Bluetooth" };
     } else {
@@ -118,3 +117,20 @@ export class NativePOSBridge {
     }
   }
 }
+
+/**
+ * Direct helper function for thermal receipt printing
+ */
+export async function printThermalReceipt(lines: string[]): Promise<boolean> {
+  if (typeof window !== "undefined") {
+    try {
+      await NativePOSBridge.triggerHaptic("success");
+      window.print();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+

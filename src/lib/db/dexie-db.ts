@@ -15,6 +15,8 @@ import type {
   SyncQueueItem,
   PaymentMethod,
   StockDeltaPayload,
+  PaymentSplit,
+  HeldOrder,
 } from "@/lib/shared/types";
 
 export class MicroERPDatabase extends Dexie {
@@ -31,10 +33,11 @@ export class MicroERPDatabase extends Dexie {
   stockTransfers!: Table<StockTransfer, string>;
   cashClosings!: Table<CashClosing, string>;
   syncQueue!: Table<SyncQueueItem, string>;
+  heldOrders!: Table<HeldOrder, string>;
 
   constructor() {
     super("MicroERPDb");
-    this.version(5).stores({
+    this.version(6).stores({
       tenants: "id, slug, plan, planStatus, countryCode, currency, updatedAt",
       users: "id, tenantId, storeId, phone, email, role, pinCode, updatedAt",
       subscriptions: "id, tenantId, plan, paymentStatus, createdAt",
@@ -48,6 +51,7 @@ export class MicroERPDatabase extends Dexie {
       stockTransfers: "id, tenantId, fromStoreId, toStoreId, productId, createdAt",
       cashClosings: "id, tenantId, storeId, userId, createdAt",
       syncQueue: "id, tenantId, storeId, entity, action, status, createdAt",
+      heldOrders: "id, storeId, label, customerId, createdAt",
     });
   }
 }
@@ -179,16 +183,36 @@ export async function processLocalSale(params: {
   userId?: string | null;
   items: Array<{ product: Product; quantity: number; unitPrice: number }>;
   paymentMethod: PaymentMethod;
+  paymentSplits?: PaymentSplit[];
   amountPaid: number;
+  discountAmount?: number;
+  discountType?: "PERCENT" | "FIXED";
+  discountValue?: number;
+  tableOrLabel?: string;
   notes?: string;
 }): Promise<{ sale: Sale; items: SaleItem[] }> {
-  const { tenantId = DEFAULT_TENANT_ID, storeId, customerId, userId, items, paymentMethod, amountPaid, notes } = params;
+  const {
+    tenantId = DEFAULT_TENANT_ID,
+    storeId,
+    customerId,
+    userId,
+    items,
+    paymentMethod,
+    paymentSplits,
+    amountPaid,
+    discountAmount = 0,
+    discountType,
+    discountValue,
+    tableOrLabel,
+    notes,
+  } = params;
   const now = new Date().toISOString();
 
-  const totalAmount = items.reduce(
+  const subtotalAmount = items.reduce(
     (acc, it) => acc + it.quantity * it.unitPrice,
     0
   );
+  const totalAmount = Math.max(0, subtotalAmount - discountAmount);
   const debtAmount = Math.max(0, totalAmount - amountPaid);
   const saleId = generateUUID();
   const receiptNumber = `TK-${Date.now().toString().slice(-6)}`;
@@ -199,12 +223,18 @@ export async function processLocalSale(params: {
     storeId,
     customerId: customerId || null,
     userId: userId || null,
+    subtotalAmount,
+    discountAmount,
+    discountType,
+    discountValue,
     totalAmount,
     amountPaid,
     debtAmount,
     paymentMethod,
+    paymentSplits: paymentSplits && paymentSplits.length > 0 ? paymentSplits : undefined,
     status: "COMPLETED",
     receiptNumber,
+    tableOrLabel,
     notes,
     isSynced: false,
     createdAt: now,

@@ -135,6 +135,12 @@ export interface SaleItem {
   productName?: string;
 }
 
+export interface PaymentSplit {
+  method: PaymentMethod;
+  amount: number;
+  reference?: string;
+}
+
 export interface Sale {
   id: string;
   tenantId?: string;
@@ -142,11 +148,17 @@ export interface Sale {
   customerId?: string | null;
   userId?: string | null;
   totalAmount: number;
+  subtotalAmount?: number;
+  discountAmount?: number;
+  discountType?: "PERCENT" | "FIXED";
+  discountValue?: number;
   amountPaid: number;
   debtAmount: number;
   paymentMethod: PaymentMethod;
+  paymentSplits?: PaymentSplit[];
   status: "COMPLETED" | "CANCELLED" | "PENDING";
   receiptNumber?: string;
+  tableOrLabel?: string;
   notes?: string;
   isSynced: boolean;
   createdAt: string;
@@ -301,6 +313,23 @@ export interface CartItem {
   quantity: number;
   unitPrice: number;
   subtotal: number;
+  discountAmount?: number;
+}
+
+export interface HeldOrder {
+  id: string;
+  storeId: string;
+  label: string; // Ex: Table 4, Commande Paul, Terrasse
+  customerId?: string | null;
+  customerName?: string;
+  items: CartItem[];
+  subtotalAmount: number;
+  discountAmount: number;
+  discountType?: "PERCENT" | "FIXED";
+  discountValue?: number;
+  totalAmount: number;
+  notes?: string;
+  createdAt: string;
 }
 
 export interface PlanConfig {
