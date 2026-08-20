@@ -128,7 +128,7 @@ export function PinLockScreen({ title = "Caisse Verrouillée" }: { title?: strin
             href="/auth/register"
             className="text-blue-400 font-bold hover:underline flex items-center gap-0.5"
           >
-            <span>Créer boutique</span>
+            <span>Créer un commerce</span>
             <ArrowRight className="w-3 h-3" />
           </Link>
         </div>

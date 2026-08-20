@@ -261,10 +261,10 @@ export default function AdminTenantsPage() {
             <span>Gestion Multi-Tenants RDC</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-white">
-            Boutiques & Commerces ({tenants.length})
+            Commerces & Établissements ({tenants.length})
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Création, modification, changement de forfait et suspension des comptes boutiques.
+            Création, modification, changement de forfait et gestion des commerces.
           </p>
         </div>
 
@@ -273,7 +273,7 @@ export default function AdminTenantsPage() {
           className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-blue-600/30 transition-all touch-press"
         >
           <Plus className="w-4 h-4" />
-          <span>Créer une Boutique</span>
+          <span>Créer un Commerce</span>
         </button>
       </div>
 

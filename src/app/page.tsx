@@ -99,12 +99,20 @@ export default function LandingPage() {
 
   const businessTypes = [
     {
+      title: "Restaurants, Bars & Terrasses",
+      subtitle: "Additions proforma, gestion de tables (Hold) & multi-paiements",
+      desc: "Gérez les commandes en attente par table, imprimez des additions proforma avant règlement et encaissez en plusieurs modes (Cash + Mobile Money).",
+      icon: "🍽️",
+      badge: "Nouveau • Spécial Resto",
+      gradient: "from-amber-500/10 to-orange-500/10 border-amber-200/80",
+    },
+    {
       title: "Alimentations & Supérettes",
       subtitle: "Ventes rapides, articles multiples & monnaie instantanée",
       desc: "Encaissez en moins de 3 secondes avec photos d'articles, gestion des devises doubles (CDF / USD) et contrôle strict du tiroir-caisse.",
       icon: "🥫",
       badge: "Très Populaire",
-      gradient: "from-amber-500/10 to-orange-500/10 border-amber-200/80",
+      gradient: "from-emerald-500/10 to-teal-500/10 border-emerald-200/80",
     },
     {
       title: "Quincailleries & Matériaux",
@@ -115,15 +123,15 @@ export default function LandingPage() {
       gradient: "from-blue-500/10 to-indigo-500/10 border-blue-200/80",
     },
     {
-      title: "Dépôts de Boissons & Grossistes",
-      subtitle: "Transferts entre dépôts & gros volumes",
-      desc: "Gérez vos casiers, cartons et fûts avec alertes de seuil critique, encaissements Mobile Money et consolidation multi-boutiques.",
-      icon: "🍺",
-      badge: "Multi-Dépôts",
-      gradient: "from-emerald-500/10 to-teal-500/10 border-emerald-200/80",
+      title: "Services d'Impression & Bureautique",
+      subtitle: "Facturation de prestations, devis & photocopies",
+      desc: "Générez des factures professionnelles pour tirages, impressions grand format, saisie et fournitures de bureau avec remises négociées.",
+      icon: "🖨️",
+      badge: "Services & Devis",
+      gradient: "from-indigo-500/10 to-purple-500/10 border-indigo-200/80",
     },
     {
-      title: "Boutiques Prêt-à-porter & Mode",
+      title: "Magasins Prêt-à-porter & Mode",
       subtitle: "Catalogue avec photos & suivi des tailles/couleurs",
       desc: "Caisse tactile visuelle avec photos haute définition des vêtements et chaussures pour une expérience client moderne et sans erreur.",
       icon: "👗",
@@ -131,19 +139,11 @@ export default function LandingPage() {
       gradient: "from-purple-500/10 to-pink-500/10 border-purple-200/80",
     },
     {
-      title: "Pharmacies & Cosmétiques",
-      subtitle: "Gestion précise des stocks & alerte péremption",
-      desc: "Recherche instantanée de médicaments ou produits de beauté par code-barre ou nom avec suivi strict des quantités restantes.",
-      icon: "💊",
-      badge: "Stock Strict",
-      gradient: "from-rose-500/10 to-red-500/10 border-rose-200/80",
-    },
-    {
-      title: "Kiosques & Multi-Services",
-      subtitle: "Encaissement Mobile Money & cartes prépayées",
-      desc: "Idéal pour les points de vente mixtes combinant vente de marchandises au détail et encaissements M-Pesa, Airtel Money et Orange Money.",
-      icon: "📱",
-      badge: "Mobile Money",
+      title: "Dépôts de Boissons & Grossistes",
+      subtitle: "Transferts entre dépôts & gros volumes",
+      desc: "Gérez vos casiers, cartons et fûts avec alertes de seuil critique, encaissements Mobile Money et consolidation multi-points de vente.",
+      icon: "🍺",
+      badge: "Multi-Dépôts",
       gradient: "from-sky-500/10 to-cyan-500/10 border-sky-200/80",
     },
   ];
@@ -192,7 +192,7 @@ export default function LandingPage() {
                   href="/auth/register"
                   className="w-full sm:w-auto py-3.5 px-7 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm shadow-xl shadow-blue-600/30 flex items-center justify-center gap-2 transition-all touch-press"
                 >
-                  <span>Créer ma Boutique Gratuitement</span>
+                  <span>Créer mon Commerce Gratuitement</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
 
@@ -237,8 +237,8 @@ export default function LandingPage() {
             <div className="lg:col-span-5 relative">
               <div className="relative rounded-3xl overflow-hidden shadow-2xl border-2 border-white/20 group">
                 <img
-                  src="/images/hero-smartpos.jpg"
-                  alt="Boutique moderne en RDC équipée de Kuettu Global POS"
+                  src="/images/og-image.jpg"
+                  alt="Commerçante africaine utilisant le logiciel de caisse Kuettu Global POS avec son client"
                   className="w-full h-[380px] sm:h-[450px] object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />

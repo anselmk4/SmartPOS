@@ -157,7 +157,7 @@ export function Sidebar() {
         {!isCollapsed && plan === "BUSINESS" && stores.length > 1 && (
           <div className="mt-3 pt-2.5 border-t border-slate-100">
             <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">
-              Boutique Active
+              Commerce Actif
             </label>
             <select
               value={store?.id || ""}

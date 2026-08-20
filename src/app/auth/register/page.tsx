@@ -189,7 +189,7 @@ export default function RegisterPage() {
             />
           </div>
           <h2 className="text-2xl font-black text-slate-900">
-            Créer votre Boutique SaaS
+            Créer votre Commerce
           </h2>
           <p className="text-xs text-slate-500 mt-1">
             Configuration rapide en 4 étapes • 100% Hors-ligne & Cloud
@@ -267,10 +267,10 @@ export default function RegisterPage() {
                 </span>
               </div>
 
-              {/* Field 1: Nom de la Boutique */}
+              {/* Field 1: Nom du Commerce */}
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                  Nom de votre Boutique / Magasin *
+                  Nom de votre Commerce / Établissement *
                 </label>
                 <div className="relative">
                   <Store className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />

@@ -169,7 +169,7 @@ export function Navbar() {
                         value={store?.id || ""}
                         onChange={(e) => selectStore(e.target.value)}
                         className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-950 rounded-xl text-xs font-bold border border-indigo-200 outline-none cursor-pointer max-w-[180px] truncate"
-                        title="Changer de boutique active"
+                        title="Changer de commerce actif"
                       >
                         {stores.map((s) => (
                           <option key={s.id} value={s.id}>
@@ -320,7 +320,7 @@ export function Navbar() {
                   className="py-2 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/25 transition-all flex items-center gap-1.5 touch-press"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Créer Boutique</span>
+                  <span>Créer Commerce</span>
                 </Link>
               </>
             )}
