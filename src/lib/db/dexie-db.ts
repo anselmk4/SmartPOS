@@ -842,3 +842,82 @@ export async function deleteStaffUser(userId: string): Promise<void> {
   });
 }
 
+/**
+ * Standard baseline prices map for sample products (CDF)
+ */
+export const ORIGINAL_SAMPLE_PRICE_MAP: Record<string, { unitPrice: number; costPrice: number }> = {
+  "Sac de Riz Parfumé Lion 25kg": { unitPrice: 65000, costPrice: 58000 },
+  "Huile Végétale Simba 5L": { unitPrice: 28000, costPrice: 24500 },
+  "Lait Concentré Bonnet Rouge 410g": { unitPrice: 3500, costPrice: 2900 },
+  "Sucre Blanc Kwilu Ngongo 1kg": { unitPrice: 4500, costPrice: 3800 },
+  "Spaghetti Régal 500g": { unitPrice: 2000, costPrice: 1600 },
+  "Savon de Ménage Brilliant 250g": { unitPrice: 1500, costPrice: 1100 },
+  "Eau Minérale Swissta 1.5L (Pack 6)": { unitPrice: 9000, costPrice: 7500 },
+  "Boisson Gazeuse Bralima 33cl": { unitPrice: 2000, costPrice: 1500 },
+  "Café de l'Est Moulu 250g": { unitPrice: 5500, costPrice: 4200 },
+  "Farine de Froment Midema 1kg": { unitPrice: 3000, costPrice: 2400 },
+  "Savon Poudre Omo 500g": { unitPrice: 4000, costPrice: 3200 },
+  "Boîte Allumettes Papillon (Paquet 10)": { unitPrice: 1500, costPrice: 1000 },
+};
+
+/**
+ * Automatically repairs and resets all over-inflated product prices to sensible retail values.
+ */
+export async function repairAndRestoreStandardProductPrices(): Promise<number> {
+  let repairedCount = 0;
+  const products = await db.products.toArray();
+  const now = new Date().toISOString();
+
+  for (const prod of products) {
+    let correctedUnitPrice = prod.unitPrice;
+    let correctedCostPrice = prod.costPrice;
+    let needsFix = false;
+
+    // Check if name matches any known catalog item
+    const matchedKnown = Object.entries(ORIGINAL_SAMPLE_PRICE_MAP).find(
+      ([key]) =>
+        prod.name.toLowerCase().includes(key.toLowerCase().slice(0, 10)) ||
+        key.toLowerCase().includes(prod.name.toLowerCase().slice(0, 10))
+    );
+
+    if (matchedKnown && (prod.unitPrice > 100000 || prod.unitPrice < 500 || prod.unitPrice > matchedKnown[1].unitPrice * 2)) {
+      correctedUnitPrice = matchedKnown[1].unitPrice;
+      correctedCostPrice = matchedKnown[1].costPrice;
+      needsFix = true;
+    } else if (prod.unitPrice > 300000) {
+      // Over-inflated by conversion multiplier -> reduce by factor 2850
+      while (correctedUnitPrice > 150000) {
+        correctedUnitPrice = Math.round(correctedUnitPrice / 2850);
+        if (correctedCostPrice) correctedCostPrice = Math.round(correctedCostPrice / 2850);
+      }
+      needsFix = true;
+    }
+
+    if (needsFix && (correctedUnitPrice !== prod.unitPrice || correctedCostPrice !== prod.costPrice)) {
+      await db.products.update(prod.id, {
+        unitPrice: correctedUnitPrice,
+        costPrice: correctedCostPrice,
+        updatedAt: now,
+      });
+      repairedCount++;
+    }
+  }
+
+  // Sanitize debts if over-inflated
+  const customers = await db.customers.toArray();
+  for (const cust of customers) {
+    if (cust.currentDebtBalance > 500000) {
+      let balance = cust.currentDebtBalance;
+      while (balance > 100000) {
+        balance = Math.round(balance / 2850);
+      }
+      await db.customers.update(cust.id, {
+        currentDebtBalance: balance,
+        updatedAt: now,
+      });
+    }
+  }
+
+  return repairedCount;
+}
+

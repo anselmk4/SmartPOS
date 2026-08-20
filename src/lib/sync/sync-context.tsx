@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { syncEngine } from "./sync-engine";
-import { db, DEFAULT_STORE_ID, DEFAULT_TENANT_ID } from "../db/dexie-db";
+import { db, DEFAULT_STORE_ID, DEFAULT_TENANT_ID, repairAndRestoreStandardProductPrices } from "../db/dexie-db";
 import { countPendingSyncItems } from "./sync-queue";
 import { useAuth } from "../auth/auth-context";
 import type { Store } from "../shared/types";
@@ -141,6 +141,9 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       window.addEventListener("offline", handleOffline);
 
       (async () => {
+        try {
+          await repairAndRestoreStandardProductPrices();
+        } catch {}
         await updatePendingCount();
         const lastTime = localStorage.getItem("micro_erp_last_synced_time");
         if (lastTime) setLastSyncedAt(lastTime);
