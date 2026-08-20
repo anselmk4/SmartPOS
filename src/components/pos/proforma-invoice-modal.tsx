@@ -19,6 +19,7 @@ interface ProformaInvoiceModalProps {
   cashierName?: string;
   formatMoney: (amount: number) => string;
   currency: string;
+  onSaveAsHoldAndClose?: () => void;
 }
 
 export function ProformaInvoiceModal({
@@ -35,6 +36,7 @@ export function ProformaInvoiceModal({
   cashierName,
   formatMoney,
   currency,
+  onSaveAsHoldAndClose,
 }: ProformaInvoiceModalProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
 
@@ -121,7 +123,7 @@ export function ProformaInvoiceModal({
               <FileText className="w-4 h-4" />
             </div>
             <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-              Addition / Facture Proforma
+              Addition / Note Provisoire
             </h3>
           </div>
           <button
@@ -230,7 +232,7 @@ export function ProformaInvoiceModal({
               className="py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-slate-900/20"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Imprimer l'Addition</span>
+              <span>Imprimer Note</span>
             </button>
 
             <button
@@ -243,11 +245,20 @@ export function ProformaInvoiceModal({
             </button>
           </div>
 
+          {onSaveAsHoldAndClose && (
+            <button
+              onClick={onSaveAsHoldAndClose}
+              className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 transition-all"
+            >
+              <span>💾 Conserver en Attente (Libérer la Caisse)</span>
+            </button>
+          )}
+
           <button
             onClick={onClose}
-            className="w-full py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold"
+            className="w-full py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold"
           >
-            Fermer
+            Fermer sans mettre en attente
           </button>
         </div>
       </div>
