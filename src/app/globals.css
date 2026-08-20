@@ -79,3 +79,82 @@ input, textarea, select {
   color: #ca8a04;
   border-color: #fef08a;
 }
+
+/* ========================================================================= */
+/* STRICT PRINT ISOLATION (Thermal POS 58mm / 80mm & Pure Invoices)          */
+/* ========================================================================= */
+@media print {
+  @page {
+    margin: 0;
+    size: auto;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Hide app chrome, sidebar, navigation, buttons, background backdrops by default */
+  header,
+  nav,
+  aside,
+  button,
+  .no-print,
+  .print-hide {
+    display: none !important;
+  }
+
+  /* Hide background workspace when a printable modal is open */
+  body > * {
+    visibility: hidden;
+  }
+
+  /* Expose ONLY the designated printable ticket / invoice container */
+  .printable-receipt-target,
+  .printable-receipt-target * {
+    visibility: visible !important;
+  }
+
+  .printable-receipt-target {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 80mm !important;
+    margin: 0 auto !important;
+    padding: 3mm 4mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+  }
+
+  /* For A4 Reports */
+  .printable-a4-target,
+  .printable-a4-target * {
+    visibility: visible !important;
+  }
+
+  .printable-a4-target {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 210mm !important;
+    margin: 0 auto !important;
+    padding: 10mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}

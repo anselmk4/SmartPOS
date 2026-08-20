@@ -5,6 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, processCashClosing, DEFAULT_STORE_ID } from "@/lib/db/dexie-db";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
+import { printIsolatedDocument } from "@/lib/native/print-service";
 import {
   Coins,
   X,
@@ -171,7 +172,54 @@ export default function CashReconciliationModal({ isOpen, onClose }: CashReconci
 
             <div className="flex gap-2 pt-2">
               <button
-                onClick={() => window.print()}
+                onClick={async () => {
+                  const storeName = store?.name || tenant?.name || "Kuettu Global POS";
+                  const dateStr = new Date(completedZ.createdAt).toLocaleDateString("fr-FR");
+                  const timeStr = new Date(completedZ.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
+                  const bodyHtml = `
+                    <div class="text-center">
+                      <div class="font-black text-base uppercase">${storeName}</div>
+                      <div class="divider"></div>
+                      <div class="badge uppercase">*** CLÔTURE DE CAISSE (TICKET Z) ***</div>
+                    </div>
+
+                    <div class="divider"></div>
+                    <div style="font-size: 10px; line-height: 1.3;">
+                      <div class="flex justify-between"><span>Date :</span><span>${dateStr} à ${timeStr}</span></div>
+                      <div class="flex justify-between"><span>Gérant/Caissier :</span><b>${completedZ.userName || user?.name || "Caisse"}</b></div>
+                    </div>
+
+                    <div class="divider"></div>
+                    <div style="font-size: 11px; line-height: 1.4;">
+                      <div class="flex justify-between"><span>Fond de caisse d'ouverture :</span><span>${formatMoney(completedZ.openingCash)}</span></div>
+                      <div class="flex justify-between"><span>+ Ventes Espèces (Jour) :</span><span>${formatMoney(completedZ.totalSalesCash)}</span></div>
+                      <div class="flex justify-between"><span>+ Remboursements Dettes (Espèces) :</span><span>${formatMoney(completedZ.totalDebtRepaymentsCash)}</span></div>
+                      <div class="divider"></div>
+                      <div class="flex justify-between font-bold"><span>TOTAL THÉORIQUE ATTENDU :</span><span>${formatMoney(completedZ.expectedCash)}</span></div>
+                      <div class="flex justify-between font-black" style="font-size: 12px; margin-top: 3px;"><span>ESPÈCES REELLEMENT COMPTÉES :</span><span>${formatMoney(completedZ.actualCashCounted)}</span></div>
+                      <div class="divider"></div>
+                      <div class="flex justify-between font-black" style="font-size: 13px;">
+                        <span>ÉCART DE CAISSE :</span>
+                        <span>${completedZ.variance > 0 ? "+" : ""}${formatMoney(completedZ.variance)}</span>
+                      </div>
+                    </div>
+
+                    ${completedZ.notes ? `<div class="divider"></div><div style="font-size: 9px; color: #444;"><b>Notes :</b> ${completedZ.notes}</div>` : ""}
+
+                    <div class="divider"></div>
+                    <div class="text-center text-xs" style="color: #444; font-size: 9px; margin-top: 5px;">
+                      <p>Rapport certifié conforme • Kuettu Global POS</p>
+                      <p>https://globalpos.app</p>
+                    </div>
+                  `;
+
+                  await printIsolatedDocument({
+                    title: `Ticket_Z_${dateStr}`,
+                    width: "80mm",
+                    bodyHtml,
+                  });
+                }}
                 className="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5"
               >
                 <Printer className="w-4 h-4" />

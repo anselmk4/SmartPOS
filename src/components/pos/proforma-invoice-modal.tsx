@@ -3,7 +3,7 @@
 import React, { useRef } from "react";
 import type { CartItem, Customer, Store, Tenant } from "@/lib/shared/types";
 import { Printer, MessageCircle, X, FileText, Share2, Check } from "lucide-react";
-import { printThermalReceipt } from "@/lib/native/native-pos";
+import { printIsolatedDocument } from "@/lib/native/print-service";
 
 interface ProformaInvoiceModalProps {
   isOpen: boolean;
@@ -59,37 +59,72 @@ export function ProformaInvoiceModal({
   )}`;
 
   const handlePrint = async () => {
-    // 1. Try Native Thermal Bluetooth print bridge
-    const printLines = [
-      store?.name || tenant?.name || "KUETTU GLOBAL POS",
-      store?.address || "Kinshasa / RDC",
-      `Tel: ${store?.phone || tenant?.phone || ""}`,
-      "--------------------------------",
-      "*** ADDITION / NOTE PROVISOIRE ***",
-      `Note N: ${proformaNumber}`,
-      `Date: ${dateStr} ${timeStr}`,
-      tableOrLabel ? `Table / Ref: ${tableOrLabel}` : "",
-      selectedCustomer ? `Client: ${selectedCustomer.name}` : "",
-      cashierName ? `Serveur/Caissier: ${cashierName}` : "",
-      "--------------------------------",
-      ...items.map(
-        (it) =>
-          `${it.product.name.substring(0, 18)} x${it.quantity} = ${formatMoney(it.subtotal)}`
-      ),
-      "--------------------------------",
-      `Sous-total: ${formatMoney(subtotalAmount)}`,
-      discountAmount > 0 ? `Remise: -${formatMoney(discountAmount)}` : "",
-      `NET A PAYER: ${formatMoney(totalAmount)}`,
-      "--------------------------------",
-      "A regler en caisse ou par Mobile Money",
-      "Merci de votre visite !",
-      "https://globalpos.app",
-    ].filter(Boolean);
+    const storeName = store?.name || tenant?.name || "Kuettu Global POS";
+    const address = store?.address ? `<p class="text-xs">${store.address}</p>` : "";
+    const phone = store?.phone ? `<p class="text-xs">Tél: ${store.phone}</p>` : "";
 
-    const printed = await printThermalReceipt(printLines);
-    if (!printed && typeof window !== "undefined") {
-      window.print();
-    }
+    const itemsHtml = items
+      .map(
+        (it) => `
+      <tr>
+        <td><b>${it.product.name}</b><br/><span style="font-size: 9px; color: #444;">${it.quantity} x ${formatMoney(it.unitPrice)}</span></td>
+        <td class="text-right font-black" style="vertical-align: middle;">${formatMoney(it.subtotal)}</td>
+      </tr>`
+      )
+      .join("");
+
+    const bodyHtml = `
+      <div class="text-center">
+        <div class="font-black text-base uppercase">${storeName}</div>
+        ${address}
+        ${phone}
+        <div class="divider"></div>
+        <div class="badge uppercase">*** ADDITION / NOTE PROVISOIRE ***</div>
+      </div>
+
+      <div class="divider"></div>
+      <div style="font-size: 10px; line-height: 1.3;">
+        <div class="flex justify-between"><span>Note N° :</span><b>${proformaNumber}</b></div>
+        <div class="flex justify-between"><span>Date :</span><span>${dateStr} ${timeStr}</span></div>
+        ${tableOrLabel ? `<div class="flex justify-between font-bold"><span>Table / Ref :</span><span>${tableOrLabel}</span></div>` : ""}
+        ${selectedCustomer ? `<div class="flex justify-between"><span>Client :</span><b>${selectedCustomer.name}</b></div>` : ""}
+        ${cashierName ? `<div class="flex justify-between"><span>Caissier :</span><span>${cashierName}</span></div>` : ""}
+      </div>
+
+      <div class="divider"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Article</th>
+            <th class="text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+      </table>
+
+      <div class="divider"></div>
+      <div style="font-size: 11px;">
+        <div class="flex justify-between"><span>Sous-total Brut :</span><span>${formatMoney(subtotalAmount)}</span></div>
+        ${discountAmount > 0 ? `<div class="flex justify-between font-bold"><span>Remise déduite :</span><span>-${formatMoney(discountAmount)}</span></div>` : ""}
+        <div class="divider"></div>
+        <div class="flex justify-between font-black text-sm" style="font-size: 13px;"><span>NET À PAYER :</span><span>${formatMoney(totalAmount)}</span></div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="text-center text-xs" style="color: #444; font-size: 9px; line-height: 1.3;">
+        <p>Document provisoire ne valant pas quittance</p>
+        <p>Paiement accepté : Espèces, Mobile Money, Carte</p>
+        <p style="margin-top: 3px; font-weight: bold;">Kuettu Global POS • https://globalpos.app</p>
+      </div>
+    `;
+
+    await printIsolatedDocument({
+      title: `Addition_${proformaNumber}`,
+      width: "80mm",
+      bodyHtml,
+    });
   };
 
   const handleWhatsAppShare = () => {

@@ -54,6 +54,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { printThermalReceipt } from "@/lib/native/native-pos";
+import { printIsolatedDocument } from "@/lib/native/print-service";
 
 export default function POSPage() {
   const { user, tenant, store: authStore, isAuthenticated, isLoading, plan } = useAuth();
@@ -339,44 +340,87 @@ export default function POSPage() {
 
   // Printing & WhatsApp Receipt Helpers
   const handlePrintSaleReceipt = async (sale: Sale, items: SaleItem[]) => {
-    const storeName = authStore?.name || tenant?.name || "KUETTU GLOBAL POS";
+    const storeName = authStore?.name || tenant?.name || "Kuettu Global POS";
+    const address = authStore?.address ? `<p class="text-xs">${authStore.address}</p>` : "";
+    const phone = authStore?.phone ? `<p class="text-xs">Tél: ${authStore.phone}</p>` : "";
     const cust = customers.find((c) => c.id === sale.customerId);
+    const dateStr = new Date(sale.createdAt).toLocaleDateString("fr-FR");
+    const timeStr = new Date(sale.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
-    const printLines = [
-      storeName,
-      authStore?.address || "Kinshasa / RDC",
-      `Tel: ${authStore?.phone || tenant?.phone || ""}`,
-      "--------------------------------",
-      "*** TICKET DE CAISSE ***",
-      `Facture N: ${sale.receiptNumber}`,
-      `Date: ${new Date(sale.createdAt).toLocaleDateString("fr-FR")} ${new Date(sale.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`,
-      sale.tableOrLabel ? `Table/Ref: ${sale.tableOrLabel}` : "",
-      cust ? `Client: ${cust.name}` : "",
-      `Caissier: ${user?.name || "Caisse"}`,
-      "--------------------------------",
-      ...items.map(
-        (it) =>
-          `${it.productName || "Article"} x${it.quantity} = ${formatMoney(it.quantity * it.unitPrice)}`
-      ),
-      "--------------------------------",
-      sale.subtotalAmount ? `Sous-total: ${formatMoney(sale.subtotalAmount)}` : "",
-      sale.discountAmount && sale.discountAmount > 0
-        ? `Remise: -${formatMoney(sale.discountAmount)}`
-        : "",
-      `TOTAL PAYE: ${formatMoney(sale.amountPaid)}`,
-      sale.debtAmount > 0 ? `Reste Dette: ${formatMoney(sale.debtAmount)}` : "",
-      "--------------------------------",
+    const itemsHtml = items
+      .map(
+        (it) => `
+      <tr>
+        <td><b>${it.productName || "Article"}</b><br/><span style="font-size: 9px; color: #444;">${it.quantity} x ${formatMoney(it.unitPrice)}</span></td>
+        <td class="text-right font-black" style="vertical-align: middle;">${formatMoney(it.quantity * it.unitPrice)}</td>
+      </tr>`
+      )
+      .join("");
+
+    const splitsHtml =
       sale.paymentSplits && sale.paymentSplits.length > 0
-        ? `Reglement: ${sale.paymentSplits.map((s) => `${s.method} (${formatMoney(s.amount)})`).join(", ")}`
-        : `Reglement: ${sale.paymentMethod}`,
-      "Merci de votre visite !",
-      "https://globalpos.app",
-    ].filter(Boolean);
+        ? `<div class="divider"></div>
+           <div style="font-size: 10px; color: #333;">
+             <b>Détail des règlements :</b>
+             ${sale.paymentSplits.map((s) => `<div class="flex justify-between"><span>• ${s.method} :</span><span>${formatMoney(s.amount)}</span></div>`).join("")}
+           </div>`
+        : "";
 
-    const printed = await printThermalReceipt(printLines);
-    if (!printed && typeof window !== "undefined") {
-      window.print();
-    }
+    const bodyHtml = `
+      <div class="text-center">
+        <div class="font-black text-base uppercase">${storeName}</div>
+        ${address}
+        ${phone}
+        <div class="divider"></div>
+        <div class="badge uppercase">*** TICKET DE CAISSE ***</div>
+      </div>
+
+      <div class="divider"></div>
+      <div style="font-size: 10px; line-height: 1.3;">
+        <div class="flex justify-between"><span>Facture N° :</span><b>${sale.receiptNumber}</b></div>
+        <div class="flex justify-between"><span>Date :</span><span>${dateStr} à ${timeStr}</span></div>
+        ${sale.tableOrLabel ? `<div class="flex justify-between font-bold"><span>Table / Ref :</span><span>${sale.tableOrLabel}</span></div>` : ""}
+        ${cust ? `<div class="flex justify-between"><span>Client :</span><b>${cust.name}</b></div>` : ""}
+        <div class="flex justify-between"><span>Caissier :</span><span>${user?.name || "Caisse"}</span></div>
+      </div>
+
+      <div class="divider"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Article</th>
+            <th class="text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+      </table>
+
+      <div class="divider"></div>
+      <div style="font-size: 11px;">
+        ${sale.subtotalAmount && sale.subtotalAmount !== sale.totalAmount ? `<div class="flex justify-between"><span>Sous-total Brut :</span><span>${formatMoney(sale.subtotalAmount)}</span></div>` : ""}
+        ${sale.discountAmount && sale.discountAmount > 0 ? `<div class="flex justify-between font-bold"><span>Remise déduite :</span><span>-${formatMoney(sale.discountAmount)}</span></div>` : ""}
+        <div class="divider"></div>
+        <div class="flex justify-between font-black text-sm" style="font-size: 13px;"><span>TOTAL NET :</span><span>${formatMoney(sale.totalAmount)}</span></div>
+        <div class="flex justify-between font-bold" style="margin-top: 2px;"><span>Montant Payé (${sale.paymentMethod}) :</span><span>${formatMoney(sale.amountPaid)}</span></div>
+        ${sale.debtAmount > 0 ? `<div class="flex justify-between font-bold" style="color: #000; margin-top: 2px;"><span>Reste Dû (Dette) :</span><span>${formatMoney(sale.debtAmount)}</span></div>` : ""}
+      </div>
+
+      ${splitsHtml}
+
+      <div class="divider"></div>
+      <div class="text-center text-xs" style="color: #444; font-size: 9px; line-height: 1.3;">
+        <p>Merci pour votre confiance !</p>
+        <p style="margin-top: 3px; font-weight: bold;">Kuettu Global POS • https://globalpos.app</p>
+      </div>
+    `;
+
+    await printIsolatedDocument({
+      title: `Ticket_${sale.receiptNumber}`,
+      width: "80mm",
+      bodyHtml,
+    });
   };
 
   const getWhatsAppReceiptUrl = (sale: Sale, items: SaleItem[]) => {

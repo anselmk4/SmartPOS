@@ -17,6 +17,8 @@ import {
   Crown,
 } from "lucide-react";
 
+import { printIsolatedDocument } from "@/lib/native/print-service";
+
 interface ExportReportModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -86,13 +88,13 @@ export default function ExportReportModal({ isOpen, onClose }: ExportReportModal
           const d = new Date(s.createdAt);
           csv += `"${s.receiptNumber || s.id}";"${d.toLocaleDateString("fr-FR")}";"${d.toLocaleTimeString("fr-FR")}";"${s.paymentMethod}";${s.totalAmount};${s.amountPaid};${s.debtAmount};"${s.status}"\n`;
         });
-        downloadCSV(`Rapport_Ventes_${tenant?.name || "Boutique"}_${dateStr}.csv`, csv);
+        downloadCSV(`Rapport_Ventes_${tenant?.name || "Commerce"}_${dateStr}.csv`, csv);
       } else if (reportType === "debts") {
         let csv = "Nom Client;Telephone;Solde Dette;Date Creation\n";
         customers.forEach((c) => {
           csv += `"${c.name}";"${c.phone || "N/A"}";${c.currentDebtBalance};"${new Date(c.createdAt).toLocaleDateString("fr-FR")}"\n`;
         });
-        downloadCSV(`Carnet_Dettes_${tenant?.name || "Boutique"}_${dateStr}.csv`, csv);
+        downloadCSV(`Carnet_Dettes_${tenant?.name || "Commerce"}_${dateStr}.csv`, csv);
       } else if (reportType === "inventory") {
         let csv = "Nom Produit;Categorie;Prix Vente;Prix Achat;Quantite Stock;Seuil Alerte;Valeur Stock Vente;Valeur Stock Achat\n";
         products.forEach((p) => {
@@ -100,11 +102,165 @@ export default function ExportReportModal({ isOpen, onClose }: ExportReportModal
           const stockValAchat = p.stockQuantity * (p.costPrice || p.unitPrice * 0.8);
           csv += `"${p.name}";"${p.category || "Général"}";${p.unitPrice};${p.costPrice || 0};${p.stockQuantity};${p.minStockAlert};${stockValVente};${stockValAchat}\n`;
         });
-        downloadCSV(`Inventaire_Stock_${tenant?.name || "Boutique"}_${dateStr}.csv`, csv);
+        downloadCSV(`Inventaire_Stock_${tenant?.name || "Commerce"}_${dateStr}.csv`, csv);
       }
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const handlePrintPDF = async () => {
+    const storeName = store?.name || tenant?.name || "Kuettu Global POS";
+    const dateStr = new Date().toISOString().split("T")[0];
+    let reportTitle = "Rapport Financier";
+    let tableHtml = "";
+
+    if (reportType === "sales") {
+      let filtered = sales;
+      if (period === "today") {
+        filtered = sales.filter((s) => s.createdAt.startsWith(dateStr));
+      } else if (period === "month") {
+        const currentMonth = dateStr.slice(0, 7);
+        filtered = sales.filter((s) => s.createdAt.startsWith(currentMonth));
+      }
+      reportTitle = `Journal des Ventes (${period === "today" ? "Aujourd'hui" : period === "month" ? "Mois en cours" : "Historique complet"})`;
+
+      const totalVentes = filtered.reduce((sum, s) => sum + s.totalAmount, 0);
+      const totalPaye = filtered.reduce((sum, s) => sum + s.amountPaid, 0);
+      const totalDettes = filtered.reduce((sum, s) => sum + s.debtAmount, 0);
+
+      tableHtml = `
+        <table>
+          <thead>
+            <tr>
+              <th>N° Reçu</th>
+              <th>Date & Heure</th>
+              <th>Paiement</th>
+              <th class="text-right">Total Net</th>
+              <th class="text-right">Payé</th>
+              <th class="text-right">Dette</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filtered
+              .map((s) => {
+                const d = new Date(s.createdAt);
+                return `<tr>
+                <td><b>${s.receiptNumber || s.id.slice(0, 8)}</b></td>
+                <td>${d.toLocaleDateString("fr-FR")} ${d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</td>
+                <td>${s.paymentMethod}</td>
+                <td class="text-right font-bold">${formatMoney(s.totalAmount)}</td>
+                <td class="text-right">${formatMoney(s.amountPaid)}</td>
+                <td class="text-right font-bold" style="color: ${s.debtAmount > 0 ? '#b91c1c' : '#000'}">${s.debtAmount > 0 ? formatMoney(s.debtAmount) : "-"}</td>
+              </tr>`;
+              })
+              .join("")}
+          </tbody>
+          <tfoot>
+            <tr style="border-top: 2px solid #000; font-weight: bold;">
+              <td colspan="3">TOTAL (${filtered.length} ventes)</td>
+              <td class="text-right font-black">${formatMoney(totalVentes)}</td>
+              <td class="text-right">${formatMoney(totalPaye)}</td>
+              <td class="text-right font-black" style="color: #b91c1c">${formatMoney(totalDettes)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      `;
+    } else if (reportType === "debts") {
+      reportTitle = "Carnet de Dettes & Créances Clients";
+      const totalCreances = customers.reduce((sum, c) => sum + c.currentDebtBalance, 0);
+
+      tableHtml = `
+        <table>
+          <thead>
+            <tr>
+              <th>Nom du Client</th>
+              <th>Téléphone</th>
+              <th class="text-right">Solde Dû</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${customers
+              .map(
+                (c) => `<tr>
+                <td><b>${c.name}</b></td>
+                <td>${c.phone || "N/A"}</td>
+                <td class="text-right font-black" style="color: ${c.currentDebtBalance > 0 ? '#b91c1c' : '#000'}">${formatMoney(c.currentDebtBalance)}</td>
+              </tr>`
+              )
+              .join("")}
+          </tbody>
+          <tfoot>
+            <tr style="border-top: 2px solid #000; font-weight: bold;">
+              <td colspan="2">TOTAL CRÉANCES CLIENTS (${customers.length} clients)</td>
+              <td class="text-right font-black" style="color: #b91c1c">${formatMoney(totalCreances)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      `;
+    } else if (reportType === "inventory") {
+      reportTitle = "État des Stocks & Valorisation de l'Inventaire";
+      const totalStockValVente = products.reduce((sum, p) => sum + p.stockQuantity * p.unitPrice, 0);
+
+      tableHtml = `
+        <table>
+          <thead>
+            <tr>
+              <th>Article</th>
+              <th>Catégorie</th>
+              <th class="text-right">Prix Vente</th>
+              <th class="text-right">Stock</th>
+              <th class="text-right">Valeur Stock</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${products
+              .map(
+                (p) => `<tr>
+                <td><b>${p.name}</b></td>
+                <td>${p.category || "Général"}</td>
+                <td class="text-right">${formatMoney(p.unitPrice)}</td>
+                <td class="text-right font-bold" style="color: ${p.stockQuantity <= p.minStockAlert ? '#b91c1c' : '#000'}">${p.stockQuantity}</td>
+                <td class="text-right font-black">${formatMoney(p.stockQuantity * p.unitPrice)}</td>
+              </tr>`
+              )
+              .join("")}
+          </tbody>
+          <tfoot>
+            <tr style="border-top: 2px solid #000; font-weight: bold;">
+              <td colspan="4">VALEUR TOTALE DU STOCK (${products.length} articles)</td>
+              <td class="text-right font-black">${formatMoney(totalStockValVente)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      `;
+    }
+
+    const bodyHtml = `
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
+        <div>
+          <h1 style="font-size: 18px; margin: 0; text-transform: uppercase;">${storeName}</h1>
+          <p style="margin: 3px 0 0 0; font-size: 11px; color: #555;">${store?.address || "Kinshasa / RDC"} • Tél: ${store?.phone || ""}</p>
+        </div>
+        <div style="text-align: right;">
+          <h2 style="font-size: 14px; margin: 0; color: #000;">${reportTitle}</h2>
+          <p style="margin: 3px 0 0 0; font-size: 10px; color: #666;">Date d'édition : ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</p>
+        </div>
+      </div>
+
+      ${tableHtml}
+
+      <div style="margin-top: 30px; padding-top: 10px; border-top: 1px dashed #999; display: flex; justify-content: space-between; font-size: 10px; color: #666;">
+        <span>Document comptable généré automatiquement • Kuettu Global POS</span>
+        <span>https://globalpos.app</span>
+      </div>
+    `;
+
+    await printIsolatedDocument({
+      title: `${reportTitle}_${dateStr}`,
+      width: "a4",
+      bodyHtml,
+    });
   };
 
   return (
@@ -140,7 +296,7 @@ export default function ExportReportModal({ isOpen, onClose }: ExportReportModal
             </label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { id: "sales", label: "Journal des Ventes", count: sales.length },
+                { id: "sales", label: "Journal Ventes", count: sales.length },
                 { id: "debts", label: "Carnet Dettes", count: customers.length },
                 { id: "inventory", label: "Inventaire Stock", count: products.length },
               ].map((t) => (
@@ -193,11 +349,11 @@ export default function ExportReportModal({ isOpen, onClose }: ExportReportModal
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => window.print()}
-            className="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5"
+            onClick={handlePrintPDF}
+            className="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
           >
             <Printer className="w-4 h-4" />
-            <span>Imprimer PDF</span>
+            <span>Imprimer PDF Propre</span>
           </button>
           <button
             type="button"
