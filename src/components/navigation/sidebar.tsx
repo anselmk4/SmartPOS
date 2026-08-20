@@ -52,6 +52,15 @@ export function Sidebar() {
       allowed: true,
     },
     {
+      label: "Journal des Ventes",
+      shortLabel: "Ventes",
+      href: "/sales",
+      icon: Receipt,
+      color: "text-blue-500",
+      bgActive: "bg-blue-600 text-white shadow-md shadow-blue-600/30",
+      allowed: true,
+    },
+    {
       label: "Carnet de Dettes",
       shortLabel: "Dettes",
       href: "/debts",
