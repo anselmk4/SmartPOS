@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
+import LandingFooter from "@/components/landing/landing-footer";
 import {
   Store,
   ShoppingCart,
@@ -41,6 +42,9 @@ import {
   ArrowRightLeft,
   Receipt,
   FileSpreadsheet,
+  Barcode,
+  Laptop,
+  CheckCheck,
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -151,7 +155,7 @@ export default function LandingPage() {
   return (
     <div className="flex-1 bg-white text-slate-900 overflow-x-hidden scroll-smooth">
       {/* ========================================================= */}
-      {/* 1. HERO SECTION AVEC IMAGE RÉALISTE */}
+      {/* 1. HERO SECTION */}
       {/* ========================================================= */}
       <section
         id="hero"
@@ -267,9 +271,9 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================= */}
-      {/* 2. SECTION 1 : OFFLINE-FIRST & SYNCHRO CLOUD (AVEC IMAGE) */}
+      {/* 2. SECTION 1 : OFFLINE-FIRST (#features) */}
       {/* ========================================================= */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100">
+      <section id="features" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           {/* Left Column : Realistic Image */}
           <div className="lg:col-span-6 order-2 lg:order-1">
@@ -337,7 +341,7 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================= */}
-      {/* 3. SECTION 2 : CARNET DE DETTES & WHATSAPP (AVEC IMAGE) */}
+      {/* 3. SECTION 2 : CARNET DE DETTES & WHATSAPP */}
       {/* ========================================================= */}
       <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100 bg-gradient-to-b from-rose-50/30 to-white">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
@@ -407,9 +411,9 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================= */}
-      {/* 4. SECTION 3 : MULTI-BOUTIQUES & SUPERVISION (AVEC IMAGE) */}
+      {/* 4. SECTION 3 : MULTI-BOUTIQUES & SUPERVISION */}
       {/* ========================================================= */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100">
+      <section id="about" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           {/* Left Column : Realistic Image */}
           <div className="lg:col-span-6 order-2 lg:order-1">
@@ -477,9 +481,9 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================= */}
-      {/* 5. SECTION 4 : MOBILE MONEY & DEVISES (AVEC IMAGE) */}
+      {/* 5. SECTION 4 : MOBILE MONEY (#mobile-money) */}
       {/* ========================================================= */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100 bg-gradient-to-b from-sky-50/40 to-white">
+      <section id="mobile-money" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100 bg-gradient-to-b from-sky-50/40 to-white">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           {/* Left Column : Features */}
           <div className="lg:col-span-6 space-y-4 text-left">
@@ -596,7 +600,222 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================= */}
-      {/* 7. FAQ ACCORDION SECTION (#faq) */}
+      {/* 7. SECTION TARIFS & ABONNEMENTS (#pricing) */}
+      {/* ========================================================= */}
+      <section id="pricing" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="text-center max-w-3xl mx-auto mb-14">
+          <span className="text-xs font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-3.5 py-1 rounded-full border border-blue-200">
+            Tarifs Clairs & Sans Surprise
+          </span>
+          <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3">
+            Des formules adaptées à chaque taille de commerce
+          </h2>
+          <p className="text-slate-500 text-sm sm:text-base mt-2">
+            Payez facilement par Mobile Money (M-Pesa, Airtel, Orange) en Francs Congolais ou Dollars.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+          {/* Plan 1: BASIC */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Démarrage</div>
+              <h3 className="text-xl font-black text-slate-900 mt-1">Plan Gratuit / Basic</h3>
+              <div className="mt-4 mb-6">
+                <span className="text-3xl font-black text-slate-900">0 FC</span>
+                <span className="text-xs text-slate-500 ml-1">/ mois</span>
+              </div>
+              <p className="text-xs text-slate-600 mb-6">
+                Idéal pour tester la caisse tactile et démarrer sans engagement.
+              </p>
+
+              <ul className="space-y-3 text-xs text-slate-700">
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>1 Boutique & 1 Caisse locale</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Mode 100% Hors-Ligne (0ms)</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Jusqu'à 50 articles au catalogue</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Carnet de dettes basique</span>
+                </li>
+              </ul>
+            </div>
+
+            <Link
+              href="/auth/register"
+              className="mt-8 w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs text-center transition-colors block"
+            >
+              Démarrer Gratuitement
+            </Link>
+          </div>
+
+          {/* Plan 2: PRO (Star) */}
+          <div className="bg-gradient-to-b from-blue-900 via-slate-900 to-blue-950 text-white rounded-3xl p-6 sm:p-8 border-2 border-blue-500 shadow-2xl flex flex-col justify-between relative overflow-hidden transform md:-translate-y-2">
+            <div className="absolute top-4 right-4 bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow">
+              Plus Populaire ⭐
+            </div>
+
+            <div>
+              <div className="text-xs font-bold text-blue-300 uppercase tracking-wider">Commerce Pro</div>
+              <h3 className="text-2xl font-black text-white mt-1">Plan PRO</h3>
+              <div className="mt-4 mb-6">
+                <span className="text-4xl font-black text-white">15 000 FC</span>
+                <span className="text-xs text-blue-300 ml-1">/ mois (~5.2 USD)</span>
+              </div>
+              <p className="text-xs text-slate-300 mb-6">
+                Tout pour booster vos ventes, éliminer les pertes et relancer vos dettes par WhatsApp.
+              </p>
+
+              <ul className="space-y-3 text-xs text-slate-200">
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span><b>Articles & Ventes illimités</b></span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span><b>Relance WhatsApp 1-Clic</b> automatique</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Synchronisation Cloud Supabase sécurisée</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Comptes Caissiers illimités (codes PIN)</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Rapports Z & Clôtures journalières</span>
+                </li>
+              </ul>
+            </div>
+
+            <Link
+              href="/auth/register"
+              className="mt-8 w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs text-center shadow-lg shadow-blue-600/40 transition-all block"
+            >
+              Essai Gratuit 14 Jours
+            </Link>
+          </div>
+
+          {/* Plan 3: BUSINESS */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+              <div className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Réseau & Grossistes</div>
+              <h3 className="text-xl font-black text-slate-900 mt-1">Plan BUSINESS</h3>
+              <div className="mt-4 mb-6">
+                <span className="text-3xl font-black text-slate-900">45 000 FC</span>
+                <span className="text-xs text-slate-500 ml-1">/ mois (~15.7 USD)</span>
+              </div>
+              <p className="text-xs text-slate-600 mb-6">
+                Multi-boutiques, transferts entre dépôts et gérants isolés.
+              </p>
+
+              <ul className="space-y-3 text-xs text-slate-700">
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span><b>Jusqu'à 10 Boutiques & Dépôts</b></span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span>Transferts de stock inter-magasins</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span>Comptes Gérants de dépôt dédiés</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span>Toutes les fonctionnalités du Plan PRO</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span>Support prioritaire VIP 7j/7</span>
+                </li>
+              </ul>
+            </div>
+
+            <Link
+              href="/auth/register"
+              className="mt-8 w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs text-center shadow transition-all block"
+            >
+              Choisir le Plan Business
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================= */}
+      {/* 8. MATÉRIEL COMPATIBLE (#hardware) */}
+      {/* ========================================================= */}
+      <section id="hardware" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-slate-900 text-white border-t border-slate-800">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <span className="text-xs font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3.5 py-1 rounded-full border border-emerald-500/20">
+              Prêt Pour Votre Matériel
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-black text-white mt-3">
+              100% Compatible avec vos Équipements de Caisse
+            </h2>
+            <p className="text-slate-400 text-sm sm:text-base mt-2">
+              Pas besoin d'acheter de matériel propriétaire coûteux. Utilisez ce que vous possédez déjà.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-slate-800/60 p-6 rounded-3xl border border-slate-700/60 text-left space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                <Smartphone className="w-6 h-6" />
+              </div>
+              <h3 className="font-bold text-white text-base">Smartphones & Tablettes</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Fonctionne sur Android, iPhone, iPad ou tablettes tactiles bon marché sans configuration complexe.
+              </p>
+            </div>
+
+            <div className="bg-slate-800/60 p-6 rounded-3xl border border-slate-700/60 text-left space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <Printer className="w-6 h-6" />
+              </div>
+              <h3 className="font-bold text-white text-base">Imprimantes Thermiques</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Impression directe de tickets de caisse 58mm et 80mm via Bluetooth, Wi-Fi ou câble USB.
+              </p>
+            </div>
+
+            <div className="bg-slate-800/60 p-6 rounded-3xl border border-slate-700/60 text-left space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                <Barcode className="w-6 h-6" />
+              </div>
+              <h3 className="font-bold text-white text-base">Lecteurs Code-Barres</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Compatible avec les douchettes USB et scanners Bluetooth pour scanner vos articles en 1 seconde.
+              </p>
+            </div>
+
+            <div className="bg-slate-800/60 p-6 rounded-3xl border border-slate-700/60 text-left space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                <Laptop className="w-6 h-6" />
+              </div>
+              <h3 className="font-bold text-white text-base">PC & Ordinateurs Portables</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Utilisable sur navigateur Chrome/Edge sous Windows, macOS ou Linux avec raccourcis clavier caisse.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================= */}
+      {/* 9. FAQ ACCORDION SECTION (#faq) */}
       {/* ========================================================= */}
       <section id="faq" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
         <div className="text-center mb-12">
@@ -643,7 +862,7 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================= */}
-      {/* 8. BOTTOM FINAL CTA BANNER */}
+      {/* 10. BOTTOM FINAL CTA BANNER */}
       {/* ========================================================= */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white text-center">
         <div className="max-w-4xl mx-auto space-y-6">
@@ -677,6 +896,11 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ========================================================= */}
+      {/* 11. MODERN LANDING FOOTER (POWERED BY KUETTU CORPORATION) */}
+      {/* ========================================================= */}
+      <LandingFooter />
     </div>
   );
 }

@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       prisma.syncLog.count(),
     ]);
 
-    // 2. Fetch all tenants for plan distribution & MRR computation
+    // 2. Fetch all tenants with relationships
     const tenants = await prisma.tenant.findMany({
       orderBy: { createdAt: "desc" },
       include: {
@@ -69,10 +69,9 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    // 5. Fetch real Subscriptions with tenant details
-    const recentSubscriptions = await prisma.subscription.findMany({
-      take: 10,
-      orderBy: { createdAt: "desc" },
+    // 5. Fetch all subscriptions for time-series charts (Jour, Semaine, Mois, Année)
+    const allSubscriptions = await prisma.subscription.findMany({
+      orderBy: { createdAt: "asc" },
       include: {
         tenant: {
           select: { id: true, name: true, phone: true, slug: true },
@@ -80,7 +79,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // 6. Mobile Money Distribution from real Subscriptions & Sales
+    // 6. Mobile Money Distribution from Subscriptions & Sales
     const mobileMoneyStats: Record<string, { count: number; total: number }> = {
       MPESA: { count: 0, total: 0 },
       AIRTEL_MONEY: { count: 0, total: 0 },
@@ -92,10 +91,6 @@ export async function GET(req: NextRequest) {
       CREDIT: { count: 0, total: 0 },
     };
 
-    // Subscriptions payments
-    const allSubscriptions = await prisma.subscription.findMany({
-      select: { paymentMethod: true, amount: true },
-    });
     allSubscriptions.forEach((s) => {
       const method = s.paymentMethod;
       if (mobileMoneyStats[method]) {
@@ -104,7 +99,6 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    // Sales payments
     const allSalesMethods = await prisma.sale.groupBy({
       by: ["paymentMethod"],
       _count: { _all: true },
@@ -118,9 +112,63 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    // Recent Sales
+    // 7. Top Merchants by Sales Volume & GMV (Le commerce avec plus de ventes)
+    const salesByTenant = await prisma.sale.groupBy({
+      by: ["tenantId"],
+      _count: { _all: true },
+      _sum: { totalAmount: true },
+      orderBy: {
+        _sum: { totalAmount: "desc" },
+      },
+      take: 10,
+    });
+
+    const topMerchants = salesByTenant.map((item, index) => {
+      const matchingTenant = tenants.find((t) => t.id === item.tenantId);
+      const totalAmount = item._sum.totalAmount || 0;
+      const salesCount = item._count._all || 0;
+      const avgBasket = salesCount > 0 ? Math.round(totalAmount / salesCount) : 0;
+
+      return {
+        rank: index + 1,
+        tenantId: item.tenantId,
+        name: matchingTenant?.name || "Commerce Inconnu",
+        slug: matchingTenant?.slug || "",
+        plan: matchingTenant?.plan || "FREE",
+        isActive: matchingTenant?.isActive ?? true,
+        salesCount,
+        totalGmv: totalAmount,
+        avgBasket,
+        productsCount: matchingTenant?._count.products || 0,
+        storesCount: matchingTenant?.stores.length || 1,
+      };
+    });
+
+    // If there are tenants without sales yet, add them to complete the ranking
+    if (topMerchants.length < 5) {
+      const existingIds = new Set(topMerchants.map((m) => m.tenantId));
+      tenants.forEach((t) => {
+        if (!existingIds.has(t.id)) {
+          topMerchants.push({
+            rank: topMerchants.length + 1,
+            tenantId: t.id,
+            name: t.name,
+            slug: t.slug,
+            plan: t.plan,
+            isActive: t.isActive,
+            salesCount: t._count.sales || 0,
+            totalGmv: 0,
+            avgBasket: 0,
+            productsCount: t._count.products || 0,
+            storesCount: t.stores.length || 1,
+          });
+        }
+      });
+    }
+
+    // 8. Recent Sales
     const recentSales = await prisma.sale.findMany({
-      take: 5,
+      take: 6,
       orderBy: { createdAt: "desc" },
       include: {
         tenant: { select: { id: true, name: true } },
@@ -148,8 +196,10 @@ export async function GET(req: NextRequest) {
         },
         planStats,
         mobileMoneyStats,
+        allSubscriptions,
         recentTenants: tenants.slice(0, 5),
-        recentSubscriptions,
+        recentSubscriptions: allSubscriptions.slice(-10).reverse(),
+        topMerchants: topMerchants.slice(0, 8),
         recentSales,
         serverTime: new Date().toISOString(),
       },

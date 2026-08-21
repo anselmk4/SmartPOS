@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { adminFetch } from "@/lib/admin/admin-api";
+import AdminPaymentAnalytics from "@/components/admin/admin-payment-analytics";
 import {
   LayoutDashboard,
   Store as StoreIcon,
@@ -19,6 +20,8 @@ import {
   RefreshCw,
   AlertCircle,
   Database,
+  Crown,
+  Award,
 } from "lucide-react";
 
 interface OverviewData {
@@ -43,6 +46,20 @@ interface OverviewData {
     BUSINESS: number;
   };
   mobileMoneyStats: Record<string, { count: number; total: number }>;
+  allSubscriptions: Array<{
+    id: string;
+    plan: string;
+    amount: number;
+    currency: string;
+    paymentMethod: string;
+    paymentStatus: string;
+    transactionId?: string;
+    createdAt: string;
+    tenant?: {
+      name: string;
+      slug: string;
+    };
+  }>;
   recentTenants: Array<{
     id: string;
     name: string;
@@ -65,6 +82,19 @@ interface OverviewData {
       name: string;
       slug: string;
     };
+  }>;
+  topMerchants: Array<{
+    rank: number;
+    tenantId: string;
+    name: string;
+    slug: string;
+    plan: string;
+    isActive: boolean;
+    salesCount: number;
+    totalGmv: number;
+    avgBasket: number;
+    productsCount: number;
+    storesCount: number;
   }>;
   recentSales: Array<{
     id: string;
@@ -159,6 +189,8 @@ export default function AdminOverviewPage() {
   const mobileMoneyStats = data?.mobileMoneyStats || {};
   const recentTenants = data?.recentTenants || [];
   const recentSubscriptions = data?.recentSubscriptions || [];
+  const allSubscriptions = data?.allSubscriptions || [];
+  const topMerchants = data?.topMerchants || [];
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -294,6 +326,13 @@ export default function AdminOverviewPage() {
           </div>
         </Link>
       </div>
+
+      {/* Modern Payment Graphs, Best Selling Plan & Top Merchants Analytics */}
+      <AdminPaymentAnalytics
+        subscriptions={allSubscriptions}
+        topMerchants={topMerchants}
+        formatMoney={formatMoney}
+      />
 
       {/* Mobile Money Operators Distribution */}
       <div className="bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-sm">
