@@ -160,7 +160,7 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
             Souscription Forfait {plan === "BASIC" ? "Commerçant Basic" : plan === "PRO" ? "Commerçant Pro" : "Business Multi-Magasins"}
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 mt-1">
-            Activation instantanée via PawaPay • Sans engagement
+            Activation instantanée par Mobile Money • Sans engagement
           </p>
         </div>
 

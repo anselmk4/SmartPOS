@@ -62,12 +62,12 @@ export default function LandingPage() {
     {
       question: "Est-ce que l'application fonctionne vraiment sans connexion Internet ?",
       answer:
-        "Oui, à 100% ! Kuettu Global POS est conçu avec une architecture Offline-First (IndexedDB). Vous pouvez encaisser des ventes, enregistrer des nouveaux clients, ajouter des produits et tenir votre carnet de dettes toute la journée sans aucun réseau Internet ni électricité continue. Aucune coupure réseau ne bloque votre caisse.",
+        "Oui, à 100% ! Kuettu Global POS est conçu avec une technologie hors-ligne avancée. Vous pouvez encaisser des ventes, enregistrer des nouveaux clients, ajouter des produits et tenir votre carnet de dettes toute la journée sans aucun réseau Internet ni électricité continue. Aucune coupure réseau ne bloque votre caisse.",
     },
     {
       question: "Que se passe-t-il lorsque la connexion Internet revient ?",
       answer:
-        "Dès que votre téléphone, tablette ou ordinateur capte la 3G/4G ou le Wi-Fi, Kuettu Global POS synchronise automatiquement toutes les transactions enregistrées en local vers notre Cloud Supabase sécurisé. Vos données sont sauvegardées et consultables à distance par le propriétaire sans intervention manuelle.",
+        "Dès que votre téléphone, tablette ou ordinateur capte la 3G/4G ou le Wi-Fi, Kuettu Global POS synchronise automatiquement et de manière transparente toutes les transactions enregistrées vers nos serveurs Cloud sécurisés. Vos données sont sauvegardées et consultables à distance par le propriétaire sans intervention manuelle.",
     },
     {
       question: "Comment fonctionne la relance WhatsApp des clients endettés ?",
@@ -92,7 +92,7 @@ export default function LandingPage() {
     {
       question: "Quels moyens de paiement Mobile Money sont supportés ?",
       answer:
-        "Kuettu Global POS prend en charge tous les opérateurs majeurs de Mobile Money en RDC : M-Pesa (Vodacom), Airtel Money, Orange Money et Afrimoney via la passerelle PawaPay. Les encaissements en Francs Congolais (CDF) et en Dollars ($) sont comptabilisés séparément des espèces.",
+        "Kuettu Global POS prend en charge tous les opérateurs majeurs de Mobile Money en RDC : M-Pesa (Vodacom), Airtel Money, Orange Money et Afrimoney avec confirmation instantanée sur le téléphone. Les encaissements en Francs Congolais (CDF) et en Dollars ($) sont comptabilisés séparément des espèces.",
     },
     {
       question: "Quels matériels (imprimantes, lecteurs code-barre) sont compatibles ?",
@@ -187,7 +187,7 @@ export default function LandingPage() {
               <p className="text-slate-300 text-sm sm:text-base max-w-2xl leading-relaxed">
                 <b>Kuettu Global POS</b> est la solution tout-en-un conçue pour les commerces d'Afrique :
                 caisse tactile <b>0ms sans latence</b>, carnet de dettes avec <b>relance WhatsApp en 1 clic</b>,
-                supervision <b>multi-magasins</b> et encaissement <b>Mobile Money PawaPay (M-Pesa, Airtel, Orange, Afrimoney)</b>.
+                supervision <b>multi-magasins</b> et encaissement direct <b>Mobile Money (Vodacom M-Pesa, Airtel Money, Orange Money, Afrimoney)</b>.
               </p>
 
               {/* CTAs */}
@@ -213,7 +213,7 @@ export default function LandingPage() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-white/10">
                 <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
                   <div className="text-blue-400 font-black text-xl">0ms</div>
-                  <div className="text-xs text-slate-300 font-semibold">Offline-First</div>
+                  <div className="text-xs text-slate-300 font-semibold">Mode Hors-Ligne</div>
                   <div className="text-[10px] text-slate-400">Zéro coupure</div>
                 </div>
 
@@ -271,7 +271,7 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================= */}
-      {/* 2. SECTION 1 : OFFLINE-FIRST (#features) */}
+      {/* 2. SECTION 1 : OFFLINE & CLOUD (#features) */}
       {/* ========================================================= */}
       <section id="features" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
@@ -306,7 +306,7 @@ export default function LandingPage() {
             </h2>
             <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
               En Afrique, les pannes d'électricité et les coupures 3G/4G ne doivent plus jamais paralyser votre caisse.
-              <b> Kuettu Global POS</b> stocke 100% des articles, clients et ventes dans la mémoire locale de votre appareil (**IndexedDB**).
+              <b> Kuettu Global POS</b> stocke 100% des articles, clients et ventes dans la mémoire locale sécurisée de votre appareil.
             </p>
 
             <div className="space-y-2.5 pt-2">
@@ -321,8 +321,8 @@ export default function LandingPage() {
               <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <div className="font-bold text-xs sm:text-sm text-slate-900">Synchronisation Automatique Silencieuse</div>
-                  <div className="text-xs text-slate-500">Dès que le réseau revient (ou toutes les 10 minutes), toutes les ventes sont sauvegardées sur Supabase Cloud.</div>
+                  <div className="font-bold text-xs sm:text-sm text-slate-900">Sauvegarde Automatique Continue</div>
+                  <div className="text-xs text-slate-500">Dès que le réseau revient, toutes les ventes sont sauvegardées automatiquement sur nos serveurs Cloud sécurisés.</div>
                 </div>
               </div>
             </div>
@@ -397,7 +397,7 @@ export default function LandingPage() {
               />
               <div className="absolute top-4 left-4 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-black shadow-md flex items-center gap-1.5">
                 <MessageCircle className="w-3.5 h-3.5" />
-                <span>WhatsApp API Connecté</span>
+                <span>WhatsApp Connecté</span>
               </div>
               <div className="absolute bottom-4 right-4 bg-slate-900/90 backdrop-blur-sm text-white p-3 rounded-2xl text-xs max-w-xs border border-white/10 text-left">
                 <p className="font-bold text-emerald-400">Message Pré-rempli :</p>
@@ -488,7 +488,7 @@ export default function LandingPage() {
           {/* Left Column : Features */}
           <div className="lg:col-span-6 space-y-4 text-left">
             <span className="text-xs font-black uppercase tracking-wider text-sky-700 bg-sky-50 px-3.5 py-1 rounded-full border border-sky-200">
-              Paiements PawaPay Intégrés
+              Paiements Mobile Money Intégrés
             </span>
             <h2 className="text-2xl sm:text-4xl font-black text-slate-900 leading-tight">
               Paiements Mobile Money & Double Devise CDF / USD
@@ -511,7 +511,7 @@ export default function LandingPage() {
               <div className="p-3 bg-white rounded-2xl border border-sky-100 shadow-sm">
                 <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                   <Smartphone className="w-4 h-4 text-sky-600" />
-                  <span>Push USSD PawaPay</span>
+                  <span>Push USSD Mobile Direct</span>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1">
                   Débit direct et confirmation instantanée sur le téléphone du client.
@@ -600,152 +600,218 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================= */}
-      {/* 7. SECTION TARIFS & ABONNEMENTS (#pricing) */}
+      {/* 7. SECTION TARIFS & LES 4 PLANS OFFICIELS (#pricing) */}
       {/* ========================================================= */}
       <section id="pricing" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-14">
           <span className="text-xs font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-3.5 py-1 rounded-full border border-blue-200">
-            Tarifs Clairs & Sans Surprise
+            Forfaits & Tarifs Transparents
           </span>
           <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3">
             Des formules adaptées à chaque taille de commerce
           </h2>
           <p className="text-slate-500 text-sm sm:text-base mt-2">
-            Payez facilement par Mobile Money (M-Pesa, Airtel, Orange) en Francs Congolais ou Dollars.
+            Payez simplement en Francs Congolais ou Dollars via Vodacom M-Pesa, Airtel Money, Orange Money ou Afrimoney.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-          {/* Plan 1: BASIC */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+        {/* 4 Official Plans Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
+          {/* Plan 1: FREE (Découverte) */}
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
             <div>
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Démarrage</div>
-              <h3 className="text-xl font-black text-slate-900 mt-1">Plan Gratuit / Basic</h3>
-              <div className="mt-4 mb-6">
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
+                Pour démarrer
+              </span>
+              <h3 className="text-lg font-black text-slate-900 mt-3">Découverte</h3>
+              <div className="mt-3 mb-5">
                 <span className="text-3xl font-black text-slate-900">0 FC</span>
-                <span className="text-xs text-slate-500 ml-1">/ mois</span>
+                <span className="text-xs text-slate-500 ml-1">Gratuit à vie</span>
               </div>
-              <p className="text-xs text-slate-600 mb-6">
-                Idéal pour tester la caisse tactile et démarrer sans engagement.
+              <p className="text-xs text-slate-600 mb-5 leading-relaxed">
+                Idéal pour tester la caisse tactile locale sans aucun frais.
               </p>
 
-              <ul className="space-y-3 text-xs text-slate-700">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>1 Boutique & 1 Caisse locale</span>
+              <ul className="space-y-2.5 text-xs text-slate-700">
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>1 Caisse tactile locale</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Mode 100% Hors-Ligne (0ms)</span>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>100 ventes par mois</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Jusqu'à 50 articles au catalogue</span>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>Carnet de dettes (max 10 clients)</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Carnet de dettes basique</span>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>Fonctionne 100% hors-ligne</span>
                 </li>
               </ul>
             </div>
 
             <Link
               href="/auth/register"
-              className="mt-8 w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs text-center transition-colors block"
+              className="mt-6 w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs text-center transition-colors block"
             >
-              Démarrer Gratuitement
+              Créer un Compte Gratuit
             </Link>
           </div>
 
-          {/* Plan 2: PRO (Star) */}
-          <div className="bg-gradient-to-b from-blue-900 via-slate-900 to-blue-950 text-white rounded-3xl p-6 sm:p-8 border-2 border-blue-500 shadow-2xl flex flex-col justify-between relative overflow-hidden transform md:-translate-y-2">
-            <div className="absolute top-4 right-4 bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow">
+          {/* Plan 2: BASIC (Commerçant Basic) */}
+          <div className="bg-white rounded-3xl p-6 border border-emerald-300 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Accessible & Efficace
+              </span>
+              <h3 className="text-lg font-black text-slate-900 mt-3">Commerçant Basic</h3>
+              <div className="mt-3 mb-5">
+                <span className="text-3xl font-black text-slate-900">15 000 FC</span>
+                <span className="text-xs text-slate-500 ml-1">/ mois (~5,50 $)</span>
+              </div>
+              <p className="text-xs text-slate-600 mb-5 leading-relaxed">
+                Parfait pour les boutiques de quartier avec relances de dettes.
+              </p>
+
+              <ul className="space-y-2.5 text-xs text-slate-700">
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>1 000 ventes par mois</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>Jusqu'à 10 Caisses & Caissiers</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>Carnet de dettes (100 clients)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>Relances WhatsApp en 1 clic</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>Sauvegarde Cloud automatique</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>Clôture quotidienne (Ticket Z)</span>
+                </li>
+              </ul>
+            </div>
+
+            <Link
+              href="/auth/register"
+              className="mt-6 w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs text-center shadow transition-colors block"
+            >
+              Choisir le Forfait Basic
+            </Link>
+          </div>
+
+          {/* Plan 3: PRO (Commerçant Pro - Star) */}
+          <div className="bg-gradient-to-b from-blue-900 via-slate-900 to-blue-950 text-white rounded-3xl p-6 border-2 border-blue-500 shadow-2xl flex flex-col justify-between relative overflow-hidden transform lg:-translate-y-2">
+            <div className="absolute top-3.5 right-3.5 bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow">
               Plus Populaire ⭐
             </div>
 
             <div>
-              <div className="text-xs font-bold text-blue-300 uppercase tracking-wider">Commerce Pro</div>
-              <h3 className="text-2xl font-black text-white mt-1">Plan PRO</h3>
-              <div className="mt-4 mb-6">
-                <span className="text-4xl font-black text-white">15 000 FC</span>
-                <span className="text-xs text-blue-300 ml-1">/ mois (~5.2 USD)</span>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                Performance Maximale
+              </span>
+              <h3 className="text-xl font-black text-white mt-3">Commerçant Pro</h3>
+              <div className="mt-3 mb-5">
+                <span className="text-3xl font-black text-white">30 000 FC</span>
+                <span className="text-xs text-blue-300 ml-1">/ mois (~11 $)</span>
               </div>
-              <p className="text-xs text-slate-300 mb-6">
-                Tout pour booster vos ventes, éliminer les pertes et relancer vos dettes par WhatsApp.
+              <p className="text-xs text-slate-300 mb-5 leading-relaxed">
+                Le choix N°1 pour éliminer les pertes, marges nettes et dettes illimitées.
               </p>
 
-              <ul className="space-y-3 text-xs text-slate-200">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span><b>Articles & Ventes illimités</b></span>
+              <ul className="space-y-2.5 text-xs text-slate-200">
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span><b>Ventes & Caisses illimitées</b></span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span><b>Relance WhatsApp 1-Clic</b> automatique</span>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span><b>Carnet de dettes illimité</b></span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Synchronisation Cloud Supabase sécurisée</span>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>Relances WhatsApp automatiques</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Comptes Caissiers illimités (codes PIN)</span>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>Calcul des marges & bénéfices net</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Rapports Z & Clôtures journalières</span>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>Supervision gérant à distance</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span>Sauvegarde Cloud continue</span>
                 </li>
               </ul>
             </div>
 
             <Link
               href="/auth/register"
-              className="mt-8 w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs text-center shadow-lg shadow-blue-600/40 transition-all block"
+              className="mt-6 w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs text-center shadow-lg shadow-blue-600/40 transition-all block"
             >
               Essai Gratuit 14 Jours
             </Link>
           </div>
 
-          {/* Plan 3: BUSINESS */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+          {/* Plan 4: BUSINESS (Multi-Magasins) */}
+          <div className="bg-white rounded-3xl p-6 border border-indigo-300 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
             <div>
-              <div className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Réseau & Grossistes</div>
-              <h3 className="text-xl font-black text-slate-900 mt-1">Plan BUSINESS</h3>
-              <div className="mt-4 mb-6">
-                <span className="text-3xl font-black text-slate-900">45 000 FC</span>
-                <span className="text-xs text-slate-500 ml-1">/ mois (~15.7 USD)</span>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                Réseaux & Dépôts
+              </span>
+              <h3 className="text-lg font-black text-slate-900 mt-3">Business Multi-Magasins</h3>
+              <div className="mt-3 mb-5">
+                <span className="text-3xl font-black text-slate-900">100 000 FC</span>
+                <span className="text-xs text-slate-500 ml-1">/ mois (~35 $)</span>
               </div>
-              <p className="text-xs text-slate-600 mb-6">
+              <p className="text-xs text-slate-600 mb-5 leading-relaxed">
                 Multi-boutiques, transferts entre dépôts et gérants isolés.
               </p>
 
-              <ul className="space-y-3 text-xs text-slate-700">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-indigo-600 shrink-0" />
+              <ul className="space-y-2.5 text-xs text-slate-700">
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
                   <span><b>Jusqu'à 10 Boutiques & Dépôts</b></span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-indigo-600 shrink-0" />
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
                   <span>Transferts de stock inter-magasins</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-indigo-600 shrink-0" />
-                  <span>Comptes Gérants de dépôt dédiés</span>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                  <span>Gérants de boutiques dédiés</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-indigo-600 shrink-0" />
-                  <span>Toutes les fonctionnalités du Plan PRO</span>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                  <span>Export comptable Excel (CSV) & PDF</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-indigo-600 shrink-0" />
-                  <span>Support prioritaire VIP 7j/7</span>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                  <span>Consolidation réseau en temps réel</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                  <span>Support prioritaire VIP WhatsApp</span>
                 </li>
               </ul>
             </div>
 
             <Link
               href="/auth/register"
-              className="mt-8 w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs text-center shadow transition-all block"
+              className="mt-6 w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs text-center shadow transition-all block"
             >
               Choisir le Plan Business
             </Link>

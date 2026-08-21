@@ -168,7 +168,7 @@ export default function BillingPage() {
           <span>Abonnement SaaS Kuettu Global POS</span>
         </div>
         <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
-          Forfaits Clairs & Paiements Mobile Money PawaPay
+          Forfaits Clairs & Paiements Mobile Money Directs
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
           Payez instantanément par <b>M-Pesa</b>, <b>Airtel Money</b>, <b>Orange Money</b>, <b>MTN MoMo</b> ou <b>Wave</b> selon votre devise locale.

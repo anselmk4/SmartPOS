@@ -443,10 +443,10 @@ export default function AdminPaymentAnalytics({
             {/* Ranking of all plans */}
             <div className="space-y-2.5">
               {[
-                { key: "BUSINESS", name: "BUSINESS", desc: "45 000 CDF / mois", color: "bg-indigo-500" },
-                { key: "PRO", name: "PRO", desc: "15 000 CDF / mois", color: "bg-blue-500" },
-                { key: "BASIC", name: "BASIC", desc: "5 000 CDF / mois", color: "bg-emerald-500" },
-                { key: "FREE", name: "FREE (Gratuit)", desc: "Découverte", color: "bg-slate-600" },
+                { key: "BUSINESS", name: "BUSINESS", desc: "100 000 CDF / mois", color: "bg-indigo-500" },
+                { key: "PRO", name: "PRO", desc: "30 000 CDF / mois", color: "bg-blue-500" },
+                { key: "BASIC", name: "BASIC", desc: "15 000 CDF / mois", color: "bg-emerald-500" },
+                { key: "FREE", name: "FREE (Gratuit)", desc: "Gratuit à vie", color: "bg-slate-600" },
               ].map((p) => {
                 const item = bestSellingPlanStats.allPlans[p.key] || { count: 0, totalAmount: 0 };
                 const pct = bestSellingPlanStats.totalSubs > 0

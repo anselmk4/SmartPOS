@@ -63,9 +63,9 @@ export async function GET(req: NextRequest) {
         planStats[t.plan as keyof typeof planStats] += 1;
       }
       if (t.isActive) {
-        if (t.plan === "PRO") mrrTotal += 15000;
-        else if (t.plan === "BUSINESS") mrrTotal += 45000;
-        else if (t.plan === "BASIC") mrrTotal += 5000;
+        if (t.plan === "PRO") mrrTotal += 30000;
+        else if (t.plan === "BUSINESS") mrrTotal += 100000;
+        else if (t.plan === "BASIC") mrrTotal += 15000;
       }
     });
 
