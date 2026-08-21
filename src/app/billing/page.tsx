@@ -78,8 +78,16 @@ function BillingPageContent() {
         .then(async (data) => {
           if (data.success && data.subscriptions) {
             setCloudSubscriptions(data.subscriptions);
-            // Save to Dexie
+            // Save to Dexie without duplicates
             for (const sub of data.subscriptions) {
+              if (sub.transactionId) {
+                const existing = await db.subscriptions.where("transactionId").equals(sub.transactionId).toArray();
+                for (const old of existing) {
+                  if (old.id !== sub.id) {
+                    await db.subscriptions.delete(old.id);
+                  }
+                }
+              }
               await db.subscriptions.put(sub);
             }
           }
@@ -101,11 +109,13 @@ function BillingPageContent() {
   const isPaidPlan = currentPlan === "BASIC" || currentPlan === "PRO" || currentPlan === "BUSINESS";
   const isCancelled = planStatus === "CANCELLED";
 
-  // Merge subscriptions (Dexie + Cloud deduplicated)
+  // Merge subscriptions (Dexie + Cloud deduplicated strictly by transactionId)
   const allSubscriptionsMap = new Map<string, any>();
-  [...localSubscriptions, ...cloudSubscriptions].forEach((s) => {
-    if (s.id) allSubscriptionsMap.set(s.id, s);
-    else if (s.transactionId) allSubscriptionsMap.set(s.transactionId, s);
+  [...cloudSubscriptions, ...localSubscriptions].forEach((s) => {
+    const key = (s.transactionId && s.transactionId.trim()) || s.id;
+    if (key) {
+      allSubscriptionsMap.set(key, s);
+    }
   });
   const allSubscriptions = Array.from(allSubscriptionsMap.values()).sort(
     (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()

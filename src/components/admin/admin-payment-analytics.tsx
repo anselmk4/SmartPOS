@@ -19,6 +19,9 @@ import {
   CheckCircle2,
   Package,
   ShoppingBag,
+  Coins,
+  Globe,
+  Wallet,
 } from "lucide-react";
 
 export type Timeframe = "DAY" | "WEEK" | "MONTH" | "YEAR";
@@ -56,20 +59,64 @@ interface Props {
   formatMoney: (amount: number, currency?: string) => string;
 }
 
+const CURRENCY_INFO: Record<string, { label: string; flag: string; symbol: string }> = {
+  ALL: { label: "Toutes les devises", flag: "🌍", symbol: "Devises" },
+  CDF: { label: "Franc Congolais (CDF)", flag: "🇨🇩", symbol: "FC" },
+  XOF: { label: "Franc CFA UEMOA (XOF)", flag: "🇨🇮", symbol: "FCFA" },
+  XAF: { label: "Franc CFA CEMAC (XAF)", flag: "🇨🇲", symbol: "FCFA" },
+  USD: { label: "Dollar Américain (USD)", flag: "🇺🇸", symbol: "$" },
+  GNF: { label: "Franc Guinéen (GNF)", flag: "🇬🇳", symbol: "FG" },
+};
+
 export default function AdminPaymentAnalytics({
   subscriptions,
   topMerchants,
   formatMoney,
 }: Props) {
   const [timeframe, setTimeframe] = useState<Timeframe>("MONTH");
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("ALL");
   const [metricType, setMetricType] = useState<"AMOUNT" | "COUNT">("AMOUNT");
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);
 
-  // Filter subscriptions based on selected timeframe
+  // Discover all currencies present in subscriptions
+  const availableCurrencies = useMemo(() => {
+    const list = new Set<string>();
+    subscriptions.forEach((s) => {
+      if (s.currency) list.add(s.currency.toUpperCase());
+    });
+    return Array.from(list);
+  }, [subscriptions]);
+
+  // Breakdown of all revenue by currency
+  const currencyBreakdown = useMemo(() => {
+    const map: Record<string, { total: number; count: number; plans: Record<string, number> }> = {};
+
+    subscriptions.forEach((s) => {
+      const cur = (s.currency || "CDF").toUpperCase();
+      if (!map[cur]) {
+        map[cur] = { total: 0, count: 0, plans: { BASIC: 0, PRO: 0, BUSINESS: 0 } };
+      }
+      map[cur].total += s.amount || 0;
+      map[cur].count += 1;
+      if (map[cur].plans[s.plan] !== undefined) {
+        map[cur].plans[s.plan] += 1;
+      }
+    });
+
+    return map;
+  }, [subscriptions]);
+
+  // Filter subscriptions based on selected timeframe and currency
   const filteredData = useMemo(() => {
     const now = new Date();
 
     return subscriptions.filter((s) => {
+      // Currency filter
+      if (selectedCurrency !== "ALL" && (s.currency || "CDF").toUpperCase() !== selectedCurrency) {
+        return false;
+      }
+
+      // Timeframe filter
       const date = new Date(s.createdAt);
       const diffMs = now.getTime() - date.getTime();
       const diffDays = diffMs / (1000 * 60 * 60 * 24);
@@ -80,7 +127,10 @@ export default function AdminPaymentAnalytics({
       if (timeframe === "YEAR") return diffDays <= 365;
       return true;
     });
-  }, [subscriptions, timeframe]);
+  }, [subscriptions, timeframe, selectedCurrency]);
+
+  const activeCurrencySymbol =
+    selectedCurrency === "ALL" ? "Unités" : CURRENCY_INFO[selectedCurrency]?.symbol || selectedCurrency;
 
   // Aggregate time series chart buckets
   const chartSeries = useMemo(() => {
@@ -194,7 +244,6 @@ export default function AdminPaymentAnalytics({
     let highestScore = -1;
 
     Object.entries(planCounts).forEach(([planKey, val]) => {
-      // Weighted score: count * 1000 + totalAmount
       const score = val.count * 10000 + val.totalAmount;
       if (score > highestScore && val.count > 0) {
         highestScore = score;
@@ -219,6 +268,78 @@ export default function AdminPaymentAnalytics({
 
   return (
     <div className="space-y-6">
+      {/* 0. Multi-Currency Summary Cards */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Coins className="w-5 h-5 text-amber-500" />
+            <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+              Paiements des Forfaits par Devise
+            </h4>
+          </div>
+          <span className="text-xs text-slate-500">
+            {Object.keys(currencyBreakdown).length} devise(s) active(s)
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {/* All Currencies Pill */}
+          <button
+            type="button"
+            onClick={() => setSelectedCurrency("ALL")}
+            className={`p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden ${
+              selectedCurrency === "ALL"
+                ? "bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-600/30"
+                : "bg-white text-slate-800 border-slate-200 hover:border-slate-300"
+            }`}
+          >
+            <div className="flex items-center justify-between text-xs font-bold mb-1">
+              <span>🌍 Toutes Devises</span>
+              {selectedCurrency === "ALL" && <CheckCircle2 className="w-3.5 h-3.5" />}
+            </div>
+            <div className="text-base font-black font-mono">
+              {subscriptions.length} <span className="text-xs font-normal">paiements</span>
+            </div>
+            <span className="text-[10px] opacity-80 block mt-0.5">Vue globale consolidée</span>
+          </button>
+
+          {/* Individual Currencies */}
+          {Object.entries(currencyBreakdown).map(([cur, data]) => {
+            const isSelected = selectedCurrency === cur;
+            const info = CURRENCY_INFO[cur] || { flag: "💵", symbol: cur, label: cur };
+
+            return (
+              <button
+                type="button"
+                key={cur}
+                onClick={() => setSelectedCurrency(cur)}
+                className={`p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden ${
+                  isSelected
+                    ? "bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/30"
+                    : "bg-white text-slate-800 border-slate-200 hover:border-slate-300"
+                }`}
+              >
+                <div className="flex items-center justify-between text-xs font-bold mb-1">
+                  <span className="flex items-center gap-1">
+                    <span>{info.flag}</span>
+                    <span>{cur}</span>
+                  </span>
+                  {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />}
+                </div>
+
+                <div className="text-base font-black font-mono">
+                  {data.total.toLocaleString("fr-FR")} {info.symbol}
+                </div>
+
+                <div className="text-[10px] opacity-80 flex items-center justify-between mt-0.5">
+                  <span>{data.count} abonnement(s)</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* 1. Main Analytics & Graph Header */}
       <div className="bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-800/80">
@@ -227,11 +348,14 @@ export default function AdminPaymentAnalytics({
               <BarChart3 className="w-3.5 h-3.5" />
               <span>Analyse Graphique des Encaissements SaaS</span>
             </div>
-            <h3 className="text-xl font-black text-white">
-              Évolution des Paiements d'Abonnements par Période
+            <h3 className="text-xl font-black text-white flex items-center gap-2">
+              <span>Évolution des Paiements</span>
+              <span className="text-sm px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-400/30">
+                {selectedCurrency === "ALL" ? "Toutes Devises" : `${selectedCurrency} (${CURRENCY_INFO[selectedCurrency]?.symbol || ""})`}
+              </span>
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Graphique temps réel des revenus souscriptions générés par les commerces.
+              Graphique temps réel des revenus d'abonnements générés par les boutiques.
             </p>
           </div>
 
@@ -246,7 +370,7 @@ export default function AdminPaymentAnalytics({
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                Revenus (CDF)
+                Montant ({activeCurrencySymbol})
               </button>
               <button
                 onClick={() => setMetricType("COUNT")}
@@ -256,360 +380,339 @@ export default function AdminPaymentAnalytics({
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                Nb Transactions
+                Volume (Nb)
               </button>
             </div>
 
-            {/* Timeframe Buttons */}
+            {/* Timeframe Selector */}
             <div className="bg-slate-800 p-1 rounded-xl flex items-center border border-slate-700">
-              {(
-                [
-                  { key: "DAY", label: "Jour" },
-                  { key: "WEEK", label: "Semaine" },
-                  { key: "MONTH", label: "Mois" },
-                  { key: "YEAR", label: "Année" },
-                ] as const
-              ).map((t) => (
-                <button
-                  key={t.key}
-                  onClick={() => setTimeframe(t.key)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    timeframe === t.key
-                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
+              {(["DAY", "WEEK", "MONTH", "YEAR"] as Timeframe[]).map((tf) => {
+                const labels: Record<Timeframe, string> = {
+                  DAY: "Jour",
+                  WEEK: "Semaine",
+                  MONTH: "Mois",
+                  YEAR: "Année",
+                };
+                const isActive = timeframe === tf;
+                return (
+                  <button
+                    key={tf}
+                    onClick={() => setTimeframe(tf)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      isActive
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {labels[tf]}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {/* 2. Interactive SVG Area/Bar Graph */}
+        {/* 2. Modern Interactive SVG Line/Bar Chart */}
         <div className="pt-6">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-            <span className="font-semibold">
-              Volume total ({timeframe.toLowerCase()}) :{" "}
-              <b className="text-white">
-                {metricType === "AMOUNT"
-                  ? formatMoney(filteredData.reduce((acc, s) => acc + (s.amount || 0), 0))
-                  : `${filteredData.length} transaction(s)`}
-              </b>
-            </span>
-            <span className="text-[11px] text-slate-500 font-mono">
-              Survolez les colonnes pour inspecter
-            </span>
+          <div className="h-64 sm:h-72 w-full relative">
+            <svg
+              className="w-full h-full overflow-visible"
+              viewBox="0 0 700 240"
+              preserveAspectRatio="none"
+            >
+              <defs>
+                <linearGradient id="adminChartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.45" />
+                  <stop offset="70%" stopColor="#6366f1" stopOpacity="0.1" />
+                  <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
+                </linearGradient>
+                <linearGradient id="adminLineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#60a5fa" />
+                  <stop offset="50%" stopColor="#818cf8" />
+                  <stop offset="100%" stopColor="#c084fc" />
+                </linearGradient>
+              </defs>
+
+              {/* Grid Lines */}
+              {[0, 60, 120, 180].map((y) => (
+                <line
+                  key={y}
+                  x1="0"
+                  y1={y}
+                  x2="700"
+                  y2={y}
+                  stroke="#334155"
+                  strokeDasharray="4 4"
+                  strokeWidth="0.8"
+                  opacity="0.4"
+                />
+              ))}
+
+              {/* Area & Polyline */}
+              {chartSeries.length > 1 && (
+                <>
+                  {/* Area Fill */}
+                  <polygon
+                    points={`
+                      0,200 
+                      ${chartSeries
+                        .map((b, i) => {
+                          const x = (i / (chartSeries.length - 1)) * 700;
+                          const val = metricType === "AMOUNT" ? b.amount : b.count;
+                          const y = 200 - (val / maxMetricValue) * 180;
+                          return `${x},${y}`;
+                        })
+                        .join(" ")} 
+                      700,200
+                    `}
+                    fill="url(#adminChartGradient)"
+                  />
+
+                  {/* Smooth Line */}
+                  <polyline
+                    fill="none"
+                    stroke="url(#adminLineGradient)"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    points={chartSeries
+                      .map((b, i) => {
+                        const x = (i / (chartSeries.length - 1)) * 700;
+                        const val = metricType === "AMOUNT" ? b.amount : b.count;
+                        const y = 200 - (val / maxMetricValue) * 180;
+                        return `${x},${y}`;
+                      })
+                      .join(" ")}
+                  />
+
+                  {/* Interactive Points */}
+                  {chartSeries.map((b, i) => {
+                    const x = (i / (chartSeries.length - 1)) * 700;
+                    const val = metricType === "AMOUNT" ? b.amount : b.count;
+                    const y = 200 - (val / maxMetricValue) * 180;
+                    const isHovered = hoveredPointIndex === i;
+
+                    return (
+                      <g key={i} className="cursor-pointer">
+                        <circle
+                          cx={x}
+                          cy={y}
+                          r={isHovered ? "7" : "4.5"}
+                          className={`transition-all duration-200 ${
+                            isHovered
+                              ? "fill-white stroke-blue-500 stroke-[3]"
+                              : "fill-blue-500 stroke-slate-900 stroke-2"
+                          }`}
+                          onMouseEnter={() => setHoveredPointIndex(i)}
+                          onMouseLeave={() => setHoveredPointIndex(null)}
+                        />
+
+                        {/* Interactive Tooltip on Hover */}
+                        {isHovered && (
+                          <g>
+                            <rect
+                              x={Math.max(10, Math.min(580, x - 60))}
+                              y={Math.max(10, y - 50)}
+                              width="120"
+                              height="40"
+                              rx="8"
+                              fill="#0f172a"
+                              stroke="#475569"
+                              strokeWidth="1"
+                              className="shadow-xl"
+                            />
+                            <text
+                              x={Math.max(70, Math.min(640, x))}
+                              y={Math.max(26, y - 34)}
+                              textAnchor="middle"
+                              fill="#94a3b8"
+                              fontSize="10"
+                              fontWeight="bold"
+                            >
+                              {b.dateStr}
+                            </text>
+                            <text
+                              x={Math.max(70, Math.min(640, x))}
+                              y={Math.max(42, y - 18)}
+                              textAnchor="middle"
+                              fill="#ffffff"
+                              fontSize="12"
+                              fontWeight="900"
+                              fontFamily="monospace"
+                            >
+                              {metricType === "AMOUNT"
+                                ? `${b.amount.toLocaleString("fr-FR")} ${activeCurrencySymbol}`
+                                : `${b.count} souscription(s)`}
+                            </text>
+                          </g>
+                        )}
+                      </g>
+                    );
+                  })}
+                </>
+              )}
+            </svg>
           </div>
 
-          <div className="relative h-64 w-full bg-slate-950/60 rounded-2xl p-4 border border-slate-800/80 flex flex-col justify-between overflow-hidden">
-            {/* Grid horizontal lines */}
-            <div className="absolute inset-0 px-4 py-6 flex flex-col justify-between pointer-events-none opacity-20">
-              <div className="border-b border-dashed border-slate-600 w-full" />
-              <div className="border-b border-dashed border-slate-600 w-full" />
-              <div className="border-b border-dashed border-slate-600 w-full" />
-              <div className="border-b border-dashed border-slate-600 w-full" />
-            </div>
-
-            {/* Bars & Interactive Columns */}
-            <div className="relative z-10 flex-1 flex items-end justify-between gap-2 sm:gap-4 px-2 pt-6">
-              {chartSeries.map((bucket, idx) => {
-                const val = metricType === "AMOUNT" ? bucket.amount : bucket.count;
-                const heightPercent = Math.min(100, Math.max(8, (val / maxMetricValue) * 100));
-                const isHovered = hoveredPointIndex === idx;
-
-                return (
-                  <div
-                    key={idx}
-                    onMouseEnter={() => setHoveredPointIndex(idx)}
-                    onMouseLeave={() => setHoveredPointIndex(null)}
-                    className="flex-1 flex flex-col items-center justify-end h-full group cursor-pointer relative"
-                  >
-                    {/* Tooltip on Hover */}
-                    {isHovered && (
-                      <div className="absolute -top-12 z-30 bg-slate-800 text-white text-[11px] px-3 py-1.5 rounded-xl border border-slate-700 shadow-2xl pointer-events-none whitespace-nowrap animate-in fade-in zoom-in-95 duration-150">
-                        <div className="font-bold">{bucket.dateStr}</div>
-                        <div className="text-emerald-400 font-mono font-black">
-                          {formatMoney(bucket.amount)} • {bucket.count} souscription(s)
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Value Badge above Bar on high value */}
-                    {val > 0 && !isHovered && (
-                      <span className="text-[10px] font-mono text-slate-400 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {metricType === "AMOUNT" ? `${Math.round(val / 1000)}k` : val}
-                      </span>
-                    )}
-
-                    {/* Animated Bar with Gradient */}
-                    <div
-                      style={{ height: `${heightPercent}%` }}
-                      className={`w-full max-w-[48px] rounded-t-xl transition-all duration-300 ${
-                        isHovered
-                          ? "bg-gradient-to-t from-blue-600 via-indigo-500 to-emerald-400 shadow-lg shadow-indigo-500/40"
-                          : val > 0
-                          ? "bg-gradient-to-t from-blue-700/80 to-indigo-500 hover:from-blue-600 hover:to-indigo-400"
-                          : "bg-slate-800/40"
-                      }`}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Bottom X-Axis Labels */}
-            <div className="relative z-10 flex items-center justify-between gap-2 px-2 pt-3 border-t border-slate-800/80 text-[11px] font-mono text-slate-400">
-              {chartSeries.map((bucket, idx) => (
-                <div
-                  key={idx}
-                  className={`flex-1 text-center truncate ${
-                    hoveredPointIndex === idx ? "text-white font-bold" : ""
-                  }`}
-                >
-                  {bucket.label}
-                </div>
-              ))}
-            </div>
+          {/* X Axis Labels */}
+          <div className="flex justify-between items-center text-[11px] font-bold text-slate-400 pt-3 px-1">
+            {chartSeries.map((b, i) => (
+              <span key={i} className="text-center">
+                {b.label}
+              </span>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* 3. TWO COLUMNS: BEST-SELLING PLAN & TOP MERCHANT */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* ========================================================= */}
-        {/* LEFT: PLAN LE PLUS VENDU SELON LE TEMPS (5 Cols) */}
-        {/* ========================================================= */}
-        <div className="lg:col-span-5 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950/60 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl flex flex-col justify-between relative overflow-hidden">
-          {/* Ambient Glow */}
-          <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      {/* 3. Two Special Focus Cards: "Plan le Plus Vendu" & "Commerce avec le Plus de Ventes" */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Focus 1: Plan le Plus Vendu */}
+        <div className="bg-gradient-to-br from-slate-900 via-indigo-950/70 to-slate-900 rounded-3xl p-6 border border-indigo-500/20 shadow-xl flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold">
-                <Crown className="w-3.5 h-3.5" />
-                <span>Performance des Forfaits</span>
-              </div>
-
-              <span className="text-[11px] text-slate-400 font-mono uppercase font-bold">
-                Filtre : {timeframe}
+          <div className="space-y-4 relative z-10">
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-black uppercase tracking-wider">
+                <Flame className="w-3.5 h-3.5 text-amber-400" />
+                Forfait N°1 le Plus Vendu
+              </span>
+              <span className="text-xs text-slate-400 font-bold">
+                {timeframe === "DAY" ? "Aujourd'hui" : timeframe === "WEEK" ? "Cette Semaine" : timeframe === "MONTH" ? "Ce Mois" : "Cette Année"}
               </span>
             </div>
 
-            <h3 className="text-lg font-black text-white mb-1">
-              Forfait le Plus Vendu
-            </h3>
-            <p className="text-xs text-slate-400 mb-5">
-              Plan générant la plus forte adoption et le plus grand volume d'encaissement.
-            </p>
+            <div>
+              <h4 className="text-2xl font-black text-white flex items-center gap-2">
+                <span>
+                  {bestSellingPlanStats.bestPlan === "PRO" && "Commerçant Pro"}
+                  {bestSellingPlanStats.bestPlan === "BUSINESS" && "Business Multi-Magasins"}
+                  {bestSellingPlanStats.bestPlan === "BASIC" && "Commerçant Basic"}
+                  {bestSellingPlanStats.bestPlan === "FREE" && "Découverte Gratuit"}
+                </span>
+                <Crown className="w-5 h-5 text-amber-400 shrink-0" />
+              </h4>
 
-            {/* Star Plan Hero Box */}
-            <div className="bg-gradient-to-r from-blue-900/40 via-indigo-900/40 to-slate-800/80 p-5 rounded-2xl border border-blue-500/30 relative mb-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-blue-300">
-                    Leader du Réseau
-                  </span>
-                  <div className="text-2xl sm:text-3xl font-black text-white mt-0.5 flex items-center gap-2">
-                    <span>Plan {bestSellingPlanStats.bestPlan}</span>
-                    <Flame className="w-6 h-6 text-amber-400" />
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="text-2xl font-black text-emerald-400">
-                    {bestSellingPlanStats.percentage}%
-                  </div>
-                  <span className="text-[10px] text-slate-400">Part de marché</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-blue-500/20 text-xs">
-                <div>
-                  <span className="text-slate-400 text-[11px]">Souscriptions :</span>
-                  <div className="font-bold text-white">
-                    {bestSellingPlanStats.bestData.count} contrat(s)
-                  </div>
-                </div>
-                <div>
-                  <span className="text-slate-400 text-[11px]">Volume Encaissé :</span>
-                  <div className="font-bold text-emerald-400 font-mono">
-                    {formatMoney(bestSellingPlanStats.bestData.totalAmount)}
-                  </div>
-                </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-black text-indigo-400 font-mono">
+                  {bestSellingPlanStats.percentage}%
+                </span>
+                <span className="text-xs text-slate-300">
+                  des abonnements enregistrés ({bestSellingPlanStats.bestData.count} sur {bestSellingPlanStats.totalSubs})
+                </span>
               </div>
             </div>
 
-            {/* Ranking of all plans */}
-            <div className="space-y-2.5">
-              {[
-                { key: "BUSINESS", name: "BUSINESS", desc: "100 000 CDF / mois", color: "bg-indigo-500" },
-                { key: "PRO", name: "PRO", desc: "30 000 CDF / mois", color: "bg-blue-500" },
-                { key: "BASIC", name: "BASIC", desc: "15 000 CDF / mois", color: "bg-emerald-500" },
-                { key: "FREE", name: "FREE (Gratuit)", desc: "Gratuit à vie", color: "bg-slate-600" },
-              ].map((p) => {
-                const item = bestSellingPlanStats.allPlans[p.key] || { count: 0, totalAmount: 0 };
-                const pct = bestSellingPlanStats.totalSubs > 0
-                  ? Math.round((item.count / bestSellingPlanStats.totalSubs) * 100)
-                  : 0;
+            {/* Distribution bars */}
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="text-slate-300">Répartition par Forfaits</span>
+                <span className="text-slate-400 font-mono">
+                  Total : {bestSellingPlanStats.bestData.totalAmount.toLocaleString("fr-FR")} {activeCurrencySymbol}
+                </span>
+              </div>
 
-                return (
-                  <div
-                    key={p.key}
-                    className="bg-slate-800/40 p-3 rounded-2xl border border-slate-800 flex items-center justify-between text-xs"
-                  >
-                    <div className="min-w-0 flex-1 pr-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-white">{p.name}</span>
-                        <span className="text-slate-400 font-mono">
-                          {item.count} vente(s) • {pct}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-slate-700/60 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          style={{ width: `${pct}%` }}
-                          className={`h-full rounded-full ${p.color}`}
-                        />
-                      </div>
-                    </div>
+              <div className="w-full bg-slate-800 rounded-full h-3 flex overflow-hidden p-0.5 gap-0.5">
+                <div
+                  style={{
+                    width: `${Math.round(
+                      (bestSellingPlanStats.allPlans.PRO.count / bestSellingPlanStats.totalSubs) * 100
+                    )}%`,
+                  }}
+                  className="bg-blue-500 rounded-l-full"
+                  title={`Pro: ${bestSellingPlanStats.allPlans.PRO.count}`}
+                />
+                <div
+                  style={{
+                    width: `${Math.round(
+                      (bestSellingPlanStats.allPlans.BUSINESS.count / bestSellingPlanStats.totalSubs) * 100
+                    )}%`,
+                  }}
+                  className="bg-indigo-500"
+                  title={`Business: ${bestSellingPlanStats.allPlans.BUSINESS.count}`}
+                />
+                <div
+                  style={{
+                    width: `${Math.round(
+                      (bestSellingPlanStats.allPlans.BASIC.count / bestSellingPlanStats.totalSubs) * 100
+                    )}%`,
+                  }}
+                  className="bg-emerald-500 rounded-r-full"
+                  title={`Basic: ${bestSellingPlanStats.allPlans.BASIC.count}`}
+                />
+              </div>
 
-                    <div className="text-right shrink-0">
-                      <span className="font-mono font-bold text-emerald-400">
-                        {formatMoney(item.totalAmount)}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+              <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold pt-1">
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-blue-500" /> Pro ({bestSellingPlanStats.allPlans.PRO.count})
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-indigo-500" /> Business ({bestSellingPlanStats.allPlans.BUSINESS.count})
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" /> Basic ({bestSellingPlanStats.allPlans.BASIC.count})
+                </span>
+              </div>
             </div>
           </div>
-
-          <Link
-            href="/admin/subscriptions"
-            className="mt-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-center text-xs font-bold text-slate-200 transition-colors flex items-center justify-center gap-1.5"
-          >
-            <span>Gérer tous les abonnements</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
         </div>
 
-        {/* ========================================================= */}
-        {/* RIGHT: LE COMMERCE AVEC PLUS DE VENTES (7 Cols) */}
-        {/* ========================================================= */}
-        <div className="lg:col-span-7 bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-xl flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold mb-1.5">
-                  <Award className="w-3.5 h-3.5" />
-                  <span>Classement des Commerces</span>
-                </div>
-                <h3 className="text-lg font-black text-white">
-                  Commerces avec le Plus de Ventes (Top GMV)
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Boutiques générant le plus de volume d'affaires et de transactions caisse.
-                </p>
-              </div>
+        {/* Focus 2: Commerce avec le Plus de Ventes */}
+        <div className="bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 rounded-3xl p-6 border border-emerald-500/20 shadow-xl flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-              <Link
-                href="/admin/tenants"
-                className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 shrink-0"
-              >
-                <span>Voir les boutiques</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
+          <div className="space-y-4 relative z-10">
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-black uppercase tracking-wider">
+                <Award className="w-3.5 h-3.5 text-amber-400" />
+                Commerce N°1 des Ventes (GMV)
+              </span>
+              <span className="text-xs text-slate-400 font-bold">Top Performance</span>
             </div>
 
-            {/* #1 Top Merchant Highlight */}
-            {topRank1Merchant && (
-              <div className="bg-gradient-to-r from-emerald-950/40 via-slate-800 to-indigo-950/30 p-4 sm:p-5 rounded-2xl border border-emerald-500/30 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center font-black text-xl shrink-0 shadow-lg">
-                    🥇
-                  </div>
+            {topRank1Merchant ? (
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-black text-white text-base truncate max-w-[200px] sm:max-w-[260px]">
-                        {topRank1Merchant.name}
-                      </h4>
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-blue-500/20 text-blue-300">
-                        {topRank1Merchant.plan}
+                    <h4 className="text-2xl font-black text-white flex items-center gap-2">
+                      <span>{topRank1Merchant.name}</span>
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-400/30">
+                        Forfait {topRank1Merchant.plan}
                       </span>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {topRank1Merchant.storesCount} point(s) de vente • {topRank1Merchant.productsCount} articles référencés
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-0.5 font-mono">
+                      ID: {topRank1Merchant.tenantId.substring(0, 12)}...
                     </p>
                   </div>
                 </div>
 
-                <div className="text-left sm:text-right">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                    Volume Total GMV
-                  </span>
-                  <span className="text-xl font-black text-emerald-400 font-mono">
-                    {formatMoney(topRank1Merchant.totalGmv)}
-                  </span>
-                  <span className="text-[11px] text-slate-300 block font-semibold">
-                    {topRank1Merchant.salesCount} vente(s) enregistrée(s)
-                  </span>
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div className="p-3 rounded-2xl bg-slate-800/80 border border-slate-700/60">
+                    <span className="text-[11px] text-slate-400 font-bold block">Volume Total Encaissé</span>
+                    <span className="text-lg font-black text-emerald-400 font-mono">
+                      {topRank1Merchant.totalGmv.toLocaleString("fr-FR")} FC
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-slate-800/80 border border-slate-700/60">
+                    <span className="text-[11px] text-slate-400 font-bold block">Nombre de Ventes</span>
+                    <span className="text-lg font-black text-white font-mono">
+                      {topRank1Merchant.salesCount} tickets
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-slate-300 pt-1">
+                  <span>Panier Moyen : <b>{topRank1Merchant.avgBasket.toLocaleString("fr-FR")} FC</b></span>
+                  <span>Articles au catalogue : <b>{topRank1Merchant.productsCount}</b></span>
                 </div>
               </div>
+            ) : (
+              <div className="py-8 text-center text-slate-400 text-xs font-semibold">
+                Aucune vente enregistrée pour le moment.
+              </div>
             )}
-
-            {/* Leaderboard Table / Cards */}
-            <div className="space-y-2">
-              {topMerchants.slice(0, 5).map((m, idx) => {
-                const rankMedal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`;
-                const topGmv = topMerchants[0]?.totalGmv || 1;
-                const progressPct = Math.max(5, Math.min(100, Math.round((m.totalGmv / topGmv) * 100)));
-
-                return (
-                  <div
-                    key={m.tenantId}
-                    className="bg-slate-800/50 hover:bg-slate-800 p-3 rounded-2xl border border-slate-700/50 transition-colors flex items-center justify-between text-xs gap-3"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <span className="font-black text-sm w-7 text-center shrink-0">
-                        {rankMedal}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white truncate">{m.name}</span>
-                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-slate-700 text-slate-300">
-                            {m.plan}
-                          </span>
-                        </div>
-                        <div className="w-full bg-slate-700/60 rounded-full h-1 mt-1.5 overflow-hidden">
-                          <div
-                            style={{ width: `${progressPct}%` }}
-                            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-400"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <div className="font-black text-emerald-400 font-mono">
-                        {formatMoney(m.totalGmv)}
-                      </div>
-                      <div className="text-[10px] text-slate-400">
-                        {m.salesCount} vente(s) • Panier: {formatMoney(m.avgBasket)}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           </div>
-
-          <Link
-            href="/admin/tenants"
-            className="mt-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-center text-xs font-bold text-slate-200 transition-colors flex items-center justify-center gap-1.5"
-          >
-            <span>Accéder à toutes les boutiques ({topMerchants.length})</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
         </div>
       </div>
     </div>

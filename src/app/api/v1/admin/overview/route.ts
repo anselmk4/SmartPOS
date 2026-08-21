@@ -79,6 +79,17 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // 5b. Revenue grouped by currency from Subscriptions
+    const revenueByCurrency: Record<string, { currency: string; total: number; count: number }> = {};
+    allSubscriptions.forEach((s) => {
+      const cur = s.currency || "CDF";
+      if (!revenueByCurrency[cur]) {
+        revenueByCurrency[cur] = { currency: cur, total: 0, count: 0 };
+      }
+      revenueByCurrency[cur].total += s.amount || 0;
+      revenueByCurrency[cur].count += 1;
+    });
+
     // 6. Mobile Money Distribution from Subscriptions & Sales
     const mobileMoneyStats: Record<string, { count: number; total: number }> = {
       MPESA: { count: 0, total: 0 },
@@ -193,6 +204,7 @@ export async function GET(req: NextRequest) {
         financials: {
           gmvTotal,
           mrrTotal,
+          revenueByCurrency,
         },
         planStats,
         mobileMoneyStats,
