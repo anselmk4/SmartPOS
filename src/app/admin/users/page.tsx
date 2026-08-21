@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db, generateUUID } from "@/lib/db/dexie-db";
-import type { User, Tenant, UserRole } from "@/lib/shared/types";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { adminFetch } from "@/lib/admin/admin-api";
+import type { UserRole } from "@/lib/shared/types";
 import {
   Users as UsersIcon,
   Search,
@@ -20,11 +19,41 @@ import {
   UserX,
   X,
   Lock,
+  RefreshCw,
+  AlertCircle,
+  Database,
 } from "lucide-react";
 
+interface UserWithTenant {
+  id: string;
+  tenantId: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  pinCode?: string | null;
+  role: UserRole;
+  isActive: boolean;
+  lastLoginAt?: string | null;
+  createdAt: string;
+  tenant?: {
+    id: string;
+    name: string;
+    slug: string;
+    plan: string;
+  };
+}
+
+interface SimpleTenant {
+  id: string;
+  name: string;
+}
+
 export default function AdminUsersPage() {
-  const users = useLiveQuery(() => db.users.toArray()) || [];
-  const tenants = useLiveQuery(() => db.tenants.toArray()) || [];
+  const [users, setUsers] = useState<UserWithTenant[]>([]);
+  const [tenants, setTenants] = useState<SimpleTenant[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,7 +64,7 @@ export default function AdminUsersPage() {
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserWithTenant | null>(null);
 
   // Form state
   const [formTenantId, setFormTenantId] = useState("");
@@ -44,6 +73,7 @@ export default function AdminUsersPage() {
   const [formEmail, setFormEmail] = useState("");
   const [formPinCode, setFormPinCode] = useState("1234");
   const [formRole, setFormRole] = useState<UserRole>("CASHIER");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Toast
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -51,6 +81,34 @@ export default function AdminUsersPage() {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
   };
+
+  const loadData = useCallback(async () => {
+    try {
+      const [usersRes, tenantsRes] = await Promise.all([
+        adminFetch<UserWithTenant[]>("/api/v1/admin/users"),
+        adminFetch<SimpleTenant[]>("/api/v1/admin/tenants"),
+      ]);
+
+      if (usersRes.success && Array.isArray(usersRes.data)) {
+        setUsers(usersRes.data);
+      } else {
+        setError(usersRes.error || "Erreur lors du chargement des utilisateurs");
+      }
+
+      if (tenantsRes.success && Array.isArray(tenantsRes.data)) {
+        setTenants(tenantsRes.data);
+      }
+    } catch (err: any) {
+      setError(err.message || "Erreur réseau");
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
@@ -75,13 +133,13 @@ export default function AdminUsersPage() {
     setIsAddUserModalOpen(true);
   };
 
-  const handleOpenPin = (u: User) => {
+  const handleOpenPin = (u: UserWithTenant) => {
     setSelectedUser(u);
     setFormPinCode(u.pinCode || "1234");
     setIsPinModalOpen(true);
   };
 
-  const handleOpenEdit = (u: User) => {
+  const handleOpenEdit = (u: UserWithTenant) => {
     setSelectedUser(u);
     setFormTenantId(u.tenantId);
     setFormName(u.name);
@@ -95,68 +153,112 @@ export default function AdminUsersPage() {
     e.preventDefault();
     if (!formName.trim() || !formTenantId) return;
 
-    const now = new Date().toISOString();
-    const newUser: User = {
-      id: generateUUID(),
-      tenantId: formTenantId,
-      name: formName.trim(),
-      phone: formPhone.trim() || undefined,
-      email: formEmail.trim() || undefined,
-      pinCode: formPinCode.trim() || "1234",
-      role: formRole,
-      isActive: true,
-      createdAt: now,
-      updatedAt: now,
-    };
+    setIsSubmitting(true);
+    const res = await adminFetch("/api/v1/admin/users", {
+      method: "POST",
+      body: JSON.stringify({
+        tenantId: formTenantId,
+        name: formName.trim(),
+        phone: formPhone.trim() || undefined,
+        email: formEmail.trim() || undefined,
+        pinCode: formPinCode.trim() || "1234",
+        role: formRole,
+      }),
+    });
+    setIsSubmitting(false);
 
-    await db.users.add(newUser);
-    setIsAddUserModalOpen(false);
-    showToast(`Utilisateur "${newUser.name}" ajouté avec succès dans la base.`);
+    if (res.success) {
+      setIsAddUserModalOpen(false);
+      showToast(`Utilisateur "${formName}" ajouté avec succès dans Supabase.`);
+      loadData();
+    } else {
+      alert(res.error || "Erreur lors de la création");
+    }
   };
 
   const handleUpdatePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser || !formPinCode.trim()) return;
 
-    await db.users.update(selectedUser.id, {
-      pinCode: formPinCode.trim(),
-      updatedAt: new Date().toISOString(),
+    setIsSubmitting(true);
+    const res = await adminFetch("/api/v1/admin/users", {
+      method: "PUT",
+      body: JSON.stringify({
+        id: selectedUser.id,
+        pinCode: formPinCode.trim(),
+      }),
     });
+    setIsSubmitting(false);
 
-    setIsPinModalOpen(false);
-    showToast(`Code PIN de "${selectedUser.name}" mis à jour : ${formPinCode}`);
+    if (res.success) {
+      setIsPinModalOpen(false);
+      showToast(`Code PIN de "${selectedUser.name}" mis à jour dans Supabase.`);
+      loadData();
+    } else {
+      alert(res.error || "Erreur lors de la mise à jour du code PIN");
+    }
   };
 
   const handleEditUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser || !formName.trim()) return;
 
-    await db.users.update(selectedUser.id, {
-      name: formName.trim(),
-      tenantId: formTenantId,
-      phone: formPhone.trim() || undefined,
-      email: formEmail.trim() || undefined,
-      role: formRole,
-      updatedAt: new Date().toISOString(),
+    setIsSubmitting(true);
+    const res = await adminFetch("/api/v1/admin/users", {
+      method: "PUT",
+      body: JSON.stringify({
+        id: selectedUser.id,
+        name: formName.trim(),
+        phone: formPhone.trim() || undefined,
+        email: formEmail.trim() || undefined,
+        role: formRole,
+        tenantId: formTenantId,
+      }),
     });
+    setIsSubmitting(false);
 
-    setIsEditUserModalOpen(false);
-    showToast(`Utilisateur "${formName}" mis à jour.`);
+    if (res.success) {
+      setIsEditUserModalOpen(false);
+      showToast(`Utilisateur "${formName}" mis à jour dans Supabase.`);
+      loadData();
+    } else {
+      alert(res.error || "Erreur lors de la mise à jour");
+    }
   };
 
-  const handleToggleUserActive = async (u: User) => {
-    const newStatus = !u.isActive;
-    await db.users.update(u.id, {
-      isActive: newStatus,
-      updatedAt: new Date().toISOString(),
+  const handleToggleUserStatus = async (u: UserWithTenant) => {
+    const nextStatus = !u.isActive;
+    const action = nextStatus ? "activer" : "désactiver";
+    if (!confirm(`Voulez-vous ${action} l'utilisateur "${u.name}" dans Supabase ?`)) return;
+
+    const res = await adminFetch("/api/v1/admin/users", {
+      method: "PUT",
+      body: JSON.stringify({
+        id: u.id,
+        isActive: nextStatus,
+      }),
     });
-    showToast(`Compte de "${u.name}" ${newStatus ? "activé" : "bloqué"}.`);
+
+    if (res.success) {
+      showToast(`Utilisateur "${u.name}" ${nextStatus ? "activé" : "désactivé"}.`);
+      loadData();
+    } else {
+      alert(res.error || "Erreur lors du changement de statut");
+    }
   };
 
-  const handleDeleteUser = async (u: User) => {
-    if (confirm(`Voulez-vous supprimer définitivement l'utilisateur "${u.name}" ?`)) {
-      await db.users.delete(u.id);
-      showToast(`Utilisateur "${u.name}" supprimé de la base.`);
+  const handleDeleteUser = async (u: UserWithTenant) => {
+    if (!confirm(`Voulez-vous supprimer définitivement l'utilisateur "${u.name}" de Supabase ?`)) return;
+
+    const res = await adminFetch(`/api/v1/admin/users?id=${u.id}`, {
+      method: "DELETE",
+    });
+
+    if (res.success) {
+      showToast(res.message || `Utilisateur "${u.name}" supprimé.`);
+      loadData();
+    } else {
+      alert(res.error || "Erreur lors de la suppression");
     }
   };
 
@@ -164,8 +266,8 @@ export default function AdminUsersPage() {
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Toast */}
       {toastMsg && (
-        <div className="fixed top-5 right-5 z-50 bg-blue-600 text-white px-4 py-3 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-2 animate-in slide-in-from-top duration-300">
-          <CheckCircle2 className="w-5 h-5 text-blue-200" />
+        <div className="fixed top-5 right-5 z-50 bg-emerald-600 text-white px-4 py-3 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-2 animate-in slide-in-from-top duration-300">
+          <CheckCircle2 className="w-5 h-5 text-emerald-200" />
           <span>{toastMsg}</span>
         </div>
       )}
@@ -174,421 +276,500 @@ export default function AdminUsersPage() {
       <div className="bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-bold mb-2">
-            <UsersIcon className="w-3.5 h-3.5" />
-            <span>Gestion des Utilisateurs & Caissiers</span>
+            <Database className="w-3.5 h-3.5" />
+            <span>Table `users` Supabase PostgreSQL</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-white">
-            Comptes & Permissions ({users.length})
+            Gestion des Utilisateurs & Caissiers ({users.length})
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Contrôle des codes PIN de caisse, affectation aux boutiques et gestion des rôles.
+            Supervision des accès caisse, réinitialisation des codes PIN et attribution des rôles.
           </p>
         </div>
 
-        <button
-          onClick={handleOpenAdd}
-          className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-blue-600/30 transition-all touch-press"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Créer un Utilisateur</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setIsRefreshing(true);
+              loadData();
+            }}
+            disabled={isRefreshing}
+            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-700"
+            title="Rafraîchir les données"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin text-blue-400" : ""}`} />
+          </button>
+
+          <button
+            onClick={handleOpenAdd}
+            className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-blue-600/30 transition-all touch-press"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Ajouter un Utilisateur</span>
+          </button>
+        </div>
       </div>
 
-      {/* Filters & Search */}
-      <div className="bg-slate-900 rounded-2xl p-3 sm:p-4 border border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+      {/* Search & Filters */}
+      <div className="bg-slate-900 rounded-2xl p-3 sm:p-4 border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
+        <div className="relative w-full md:w-96">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Rechercher par nom, téléphone, email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-slate-800 rounded-xl text-xs border border-slate-700 focus:outline-none focus:border-blue-500 text-white"
+            className="w-full bg-slate-800 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="p-2 bg-slate-800 rounded-xl text-xs font-bold border border-slate-700 text-white focus:outline-none"
-          >
-            <option value="ALL">Tous les rôles</option>
-            <option value="OWNER">Propriétaire (Gérant)</option>
-            <option value="MANAGER">Manager</option>
-            <option value="CASHIER">Caissier</option>
-          </select>
-
+        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
+          {/* Boutique Filter */}
           <select
             value={tenantFilter}
             onChange={(e) => setTenantFilter(e.target.value)}
-            className="p-2 bg-slate-800 rounded-xl text-xs font-bold border border-slate-700 text-white focus:outline-none"
+            className="bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500"
           >
-            <option value="ALL">Toutes les boutiques</option>
+            <option value="ALL">Toutes les Boutiques</option>
             {tenants.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
               </option>
             ))}
           </select>
+
+          {/* Role Filter */}
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500"
+          >
+            <option value="ALL">Tous les Rôles</option>
+            <option value="OWNER">Gérant / Propriétaire</option>
+            <option value="MANAGER">Superviseur / Manager</option>
+            <option value="CASHIER">Caissier(ère)</option>
+          </select>
         </div>
       </div>
 
-      {/* Users Table */}
-      <div className="bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-sm overflow-hidden">
-        {filteredUsers.length === 0 ? (
-          <div className="py-12 text-center text-slate-500">
-            <UsersIcon className="w-12 h-12 stroke-1 mx-auto mb-2 text-slate-600" />
-            <p className="text-sm font-bold text-slate-400">Aucun utilisateur trouvé</p>
-            <p className="text-xs mt-0.5">Modifiez vos critères de recherche ou créez un utilisateur.</p>
+      {/* Loading state */}
+      {isLoading && (
+        <div className="text-center py-12">
+          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-xs text-slate-400 font-mono">Chargement des utilisateurs depuis Supabase...</p>
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && !isLoading && (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            <span>{error}</span>
           </div>
-        ) : (
+          <button onClick={loadData} className="font-bold underline hover:text-white">
+            Réessayer
+          </button>
+        </div>
+      )}
+
+      {/* Users Table / Cards */}
+      {!isLoading && (
+        <div className="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[10px]">
-                  <th className="pb-3">Nom & Contact</th>
-                  <th className="pb-3">Boutique Associée</th>
-                  <th className="pb-3">Rôle</th>
-                  <th className="pb-3">Code PIN Caisse</th>
-                  <th className="pb-3">Dernière Connexion</th>
-                  <th className="pb-3">Statut</th>
-                  <th className="pb-3 text-right">Actions</th>
+            <table className="w-full text-left text-xs text-slate-300">
+              <thead className="bg-slate-800/80 text-[11px] uppercase font-bold text-slate-400 border-b border-slate-700/60">
+                <tr>
+                  <th className="px-4 py-3.5">Utilisateur & Contact</th>
+                  <th className="px-4 py-3.5">Boutique Rattachée</th>
+                  <th className="px-4 py-3.5">Rôle</th>
+                  <th className="px-4 py-3.5">Code PIN Caisse</th>
+                  <th className="px-4 py-3.5">Statut</th>
+                  <th className="px-4 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                {filteredUsers.map((u) => {
-                  const userTenant = tenants.find((t) => t.id === u.tenantId);
-                  return (
-                    <tr key={u.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="py-4 font-bold text-white">
-                        <div className="text-sm">{u.name}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">
-                          {u.phone || u.email || "Sans coordonnées"}
+              <tbody className="divide-y divide-slate-800/60 font-sans">
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-8 text-slate-500">
+                      Aucun utilisateur trouvé.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredUsers.map((u) => (
+                    <tr key={u.id} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="px-4 py-3.5">
+                        <div className="font-bold text-white text-sm">{u.name}</div>
+                        <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                          {u.phone && (
+                            <span className="flex items-center gap-1 font-mono">
+                              <Phone className="w-3 h-3" />
+                              {u.phone}
+                            </span>
+                          )}
+                          {u.email && (
+                            <span className="flex items-center gap-1">
+                              <Mail className="w-3 h-3" />
+                              {u.email}
+                            </span>
+                          )}
                         </div>
                       </td>
 
-                      <td className="py-4 font-bold text-slate-300">
-                        {userTenant ? (
-                          <div className="flex items-center gap-1.5">
-                            <Store className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                            <span>{userTenant.name}</span>
-                          </div>
-                        ) : (
-                          <span className="text-slate-500 italic">Non assigné</span>
-                        )}
-                      </td>
-
-                      <td className="py-4">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                            u.role === "OWNER"
-                              ? "bg-amber-500/15 text-amber-300 border-amber-500/25"
-                              : u.role === "MANAGER"
-                              ? "bg-blue-500/15 text-blue-300 border-blue-500/25"
-                              : "bg-slate-800 text-slate-300 border-slate-700"
-                          }`}
-                        >
-                          {u.role === "OWNER" ? "Gérant" : u.role === "MANAGER" ? "Manager" : "Caissier"}
+                      <td className="px-4 py-3.5">
+                        <span className="font-semibold text-slate-200 block">
+                          {u.tenant?.name || "Non affilié"}
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {u.tenantId}
                         </span>
                       </td>
 
-                      <td className="py-4 font-mono font-black text-emerald-400 tracking-wider">
-                        {u.pinCode ? `PIN : ${u.pinCode}` : "Non défini"}
-                      </td>
-
-                      <td className="py-4 font-mono text-slate-400">
-                        {u.lastLoginAt ? (
-                          <div>
-                            <div>{new Date(u.lastLoginAt).toLocaleDateString("fr-FR")}</div>
-                            <div className="text-[10px] text-slate-500">
-                              {new Date(u.lastLoginAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-slate-500">Jamais</span>
-                        )}
-                      </td>
-
-                      <td className="py-4">
-                        <button
-                          onClick={() => handleToggleUserActive(u)}
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all ${
-                            u.isActive
-                              ? "bg-emerald-500/20 text-emerald-400 hover:bg-rose-500/20 hover:text-rose-400"
-                              : "bg-rose-500/20 text-rose-400 hover:bg-emerald-500/20 hover:text-emerald-400"
+                      <td className="px-4 py-3.5">
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase inline-block ${
+                            u.role === "OWNER"
+                              ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                              : u.role === "MANAGER"
+                              ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                              : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
                           }`}
                         >
-                          {u.isActive ? "✓ Actif" : "✕ Bloqué"}
+                          {u.role === "OWNER"
+                            ? "Propriétaire"
+                            : u.role === "MANAGER"
+                            ? "Superviseur"
+                            : "Caissier"}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-black text-emerald-400 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">
+                            {u.pinCode || "1234"}
+                          </span>
+                          <button
+                            onClick={() => handleOpenPin(u)}
+                            className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                            title="Modifier le code PIN"
+                          >
+                            <KeyRound className="w-3.5 h-3.5 text-blue-400" />
+                          </button>
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-3.5">
+                        <button
+                          onClick={() => handleToggleUserStatus(u)}
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-colors ${
+                            u.isActive
+                              ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
+                              : "bg-rose-500/20 text-rose-400 hover:bg-rose-500/30"
+                          }`}
+                        >
+                          {u.isActive ? "Actif" : "Désactivé"}
                         </button>
                       </td>
 
-                      <td className="py-4 text-right space-x-1.5">
-                        <button
-                          onClick={() => handleOpenPin(u)}
-                          className="py-1.5 px-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 font-bold text-[10px] border border-emerald-500/20"
-                          title="Modifier le code PIN à 4 chiffres"
-                        >
-                          Modifier PIN
-                        </button>
+                      <td className="px-4 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleOpenEdit(u)}
+                            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                            title="Modifier l'utilisateur"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
 
-                        <button
-                          onClick={() => handleOpenEdit(u)}
-                          className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white"
-                          title="Modifier les infos"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          onClick={() => handleDeleteUser(u)}
-                          className="p-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                          <button
+                            onClick={() => handleDeleteUser(u)}
+                            className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors"
+                            title="Supprimer définitivement"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
-                  );
-                })}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* MODAL: Add User */}
+      {/* Modal: Add User */}
       {isAddUserModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <form
-            onSubmit={handleCreateUserSubmit}
-            className="bg-slate-900 w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-800 text-white space-y-4"
-          >
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-white text-base">Créer un Nouvel Utilisateur</h3>
+              <h3 className="font-bold text-white text-base">Nouvel Utilisateur Caissier</h3>
               <button
-                type="button"
                 onClick={() => setIsAddUserModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white p-1"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">
-                Boutique de Rattachement *
-              </label>
-              <select
-                value={formTenantId}
-                onChange={(e) => setFormTenantId(e.target.value)}
-                className="w-full p-2.5 bg-slate-800 rounded-xl text-xs font-bold border border-slate-700 text-white focus:outline-none"
-              >
-                {tenants.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    🏬 {t.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">
-                Nom complet *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="ex: David Mulamba"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                className="w-full p-2.5 bg-slate-800 rounded-xl text-xs border border-slate-700 text-white focus:outline-none"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
+            <form onSubmit={handleCreateUserSubmit} className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Téléphone
-                </label>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Boutique d'Affiliation *</label>
+                <select
+                  required
+                  value={formTenantId}
+                  onChange={(e) => setFormTenantId(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                >
+                  {tenants.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Nom Complet *</label>
                 <input
-                  type="tel"
-                  placeholder="+243 81..."
-                  value={formPhone}
-                  onChange={(e) => setFormPhone(e.target.value)}
-                  className="w-full p-2.5 bg-slate-800 rounded-xl text-xs border border-slate-700 text-white focus:outline-none"
+                  type="text"
+                  required
+                  placeholder="Ex: Jean Mukendi"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Téléphone</label>
+                  <input
+                    type="text"
+                    value={formPhone}
+                    onChange={(e) => setFormPhone(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Rôle</label>
+                  <select
+                    value={formRole}
+                    onChange={(e) => setFormRole(e.target.value as UserRole)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="CASHIER">Caissier(ère)</option>
+                    <option value="MANAGER">Manager</option>
+                    <option value="OWNER">Propriétaire</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Email (optionnel)</label>
+                <input
+                  type="email"
+                  placeholder="jean@gmail.com"
+                  value={formEmail}
+                  onChange={(e) => setFormEmail(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Rôle
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Code PIN de Connexion (4 chiffres) *
                 </label>
-                <select
-                  value={formRole}
-                  onChange={(e) => setFormRole(e.target.value as UserRole)}
-                  className="w-full p-2.5 bg-slate-800 rounded-xl text-xs font-bold border border-slate-700 text-white focus:outline-none"
-                >
-                  <option value="CASHIER">Caissier</option>
-                  <option value="MANAGER">Manager</option>
-                  <option value="OWNER">Gérant / Propriétaire</option>
-                </select>
+                <input
+                  type="password"
+                  maxLength={4}
+                  required
+                  value={formPinCode}
+                  onChange={(e) => setFormPinCode(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono tracking-widest text-center focus:outline-none focus:border-blue-500"
+                />
               </div>
-            </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">
-                Code PIN Caisse (4 chiffres) *
-              </label>
-              <input
-                type="password"
-                maxLength={4}
-                required
-                value={formPinCode}
-                onChange={(e) => setFormPinCode(e.target.value)}
-                className="w-full p-2.5 bg-slate-800 rounded-xl text-xs font-mono font-bold tracking-widest text-center border border-slate-700 text-white focus:outline-none"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs shadow-md shadow-blue-600/30 transition-all"
-            >
-              Enregistrer l'Utilisateur
-            </button>
-          </form>
+              <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddUserModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-lg"
+                >
+                  {isSubmitting ? "Création..." : "Créer dans Supabase"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
-      {/* MODAL: Reset PIN */}
+      {/* Modal: Update PIN */}
       {isPinModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <form
-            onSubmit={handleUpdatePinSubmit}
-            className="bg-slate-900 w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-slate-800 text-white space-y-4"
-          >
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div>
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-5 h-5 text-blue-400" />
                 <h3 className="font-bold text-white text-base">Modifier le Code PIN</h3>
-                <p className="text-xs text-slate-400">{selectedUser.name}</p>
               </div>
               <button
-                type="button"
                 onClick={() => setIsPinModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white p-1"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                Nouveau Code PIN à 4 Chiffres
-              </label>
-              <input
-                type="password"
-                maxLength={4}
-                required
-                value={formPinCode}
-                onChange={(e) => setFormPinCode(e.target.value)}
-                className="w-full p-3 bg-slate-800 rounded-2xl text-center font-mono font-black text-xl tracking-widest border border-slate-700 focus:outline-none text-white"
-              />
-            </div>
+            <form onSubmit={handleUpdatePinSubmit} className="space-y-3">
+              <p className="text-xs text-slate-400">
+                Nouveau code PIN de caisse pour <b className="text-white">{selectedUser.name}</b> :
+              </p>
 
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-xs shadow-md shadow-emerald-600/30 transition-all"
-            >
-              Sauvegarder le Nouveau Code PIN
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* MODAL: Edit User */}
-      {isEditUserModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <form
-            onSubmit={handleEditUserSubmit}
-            className="bg-slate-900 w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-800 text-white space-y-4"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-white text-base">Modifier Utilisateur</h3>
-              <button
-                type="button"
-                onClick={() => setIsEditUserModalOpen(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">
-                Nom complet *
-              </label>
-              <input
-                type="text"
-                required
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                className="w-full p-2.5 bg-slate-800 rounded-xl text-xs border border-slate-700 text-white focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">
-                Boutique Assignée
-              </label>
-              <select
-                value={formTenantId}
-                onChange={(e) => setFormTenantId(e.target.value)}
-                className="w-full p-2.5 bg-slate-800 rounded-xl text-xs font-bold border border-slate-700 text-white focus:outline-none"
-              >
-                {tenants.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    🏬 {t.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Téléphone
-                </label>
                 <input
-                  type="tel"
-                  value={formPhone}
-                  onChange={(e) => setFormPhone(e.target.value)}
-                  className="w-full p-2.5 bg-slate-800 rounded-xl text-xs border border-slate-700 text-white focus:outline-none"
+                  type="password"
+                  maxLength={4}
+                  required
+                  autoFocus
+                  value={formPinCode}
+                  onChange={(e) => setFormPinCode(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-lg text-white font-mono tracking-widest text-center focus:outline-none focus:border-blue-500"
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Rôle
-                </label>
-                <select
-                  value={formRole}
-                  onChange={(e) => setFormRole(e.target.value as UserRole)}
-                  className="w-full p-2.5 bg-slate-800 rounded-xl text-xs font-bold border border-slate-700 text-white focus:outline-none"
+              <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPinModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300"
                 >
-                  <option value="CASHIER">Caissier</option>
-                  <option value="MANAGER">Manager</option>
-                  <option value="OWNER">Gérant / Propriétaire</option>
-                </select>
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-lg"
+                >
+                  {isSubmitting ? "Enregistrement..." : "Valider le PIN"}
+                </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit User */}
+      {isEditUserModalOpen && selectedUser && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="font-bold text-white text-base">Modifier {selectedUser.name}</h3>
+              <button
+                onClick={() => setIsEditUserModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs shadow-md shadow-blue-600/30 transition-all"
-            >
-              Sauvegarder les Modifications
-            </button>
-          </form>
+            <form onSubmit={handleEditUserSubmit} className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Boutique d'Affiliation</label>
+                <select
+                  value={formTenantId}
+                  onChange={(e) => setFormTenantId(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                >
+                  {tenants.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Nom Complet</label>
+                <input
+                  type="text"
+                  required
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Téléphone</label>
+                  <input
+                    type="text"
+                    value={formPhone}
+                    onChange={(e) => setFormPhone(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Rôle</label>
+                  <select
+                    value={formRole}
+                    onChange={(e) => setFormRole(e.target.value as UserRole)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="CASHIER">Caissier(ère)</option>
+                    <option value="MANAGER">Manager</option>
+                    <option value="OWNER">Propriétaire</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Email</label>
+                <input
+                  type="email"
+                  value={formEmail}
+                  onChange={(e) => setFormEmail(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditUserModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white"
+                >
+                  {isSubmitting ? "Enregistrement..." : "Sauvegarder"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

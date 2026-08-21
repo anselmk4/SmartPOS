@@ -1,12 +1,10 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/lib/db/dexie-db";
 import { useAdminAuth } from "@/lib/admin/admin-context";
-import { seedAdminPlatformDataIfEmpty } from "@/lib/admin/admin-db-seed";
+import { adminFetch } from "@/lib/admin/admin-api";
 import {
   LayoutDashboard,
   Store,
@@ -19,7 +17,8 @@ import {
   Activity,
   ExternalLink,
   ChevronRight,
-  Sparkles,
+  Database,
+  RefreshCw,
 } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -27,16 +26,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const { admin, isAdminAuthenticated, isLoading, logoutAdmin } = useAdminAuth();
 
-  // Reactive counts for badges
-  const tenantsCount = useLiveQuery(() => db.tenants.count()) || 0;
-  const usersCount = useLiveQuery(() => db.users.count()) || 0;
-  const subscriptionsCount = useLiveQuery(() => db.subscriptions.count()) || 0;
-  const productsCount = useLiveQuery(() => db.products.count()) || 0;
+  // Real Database aggregate counts for badges
+  const [counts, setCounts] = useState<{
+    tenants: number;
+    users: number;
+    subscriptions: number;
+    products: number;
+  }>({
+    tenants: 0,
+    users: 0,
+    subscriptions: 0,
+    products: 0,
+  });
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchRealCounts = useCallback(async () => {
+    try {
+      const res = await adminFetch("/api/v1/admin/overview");
+      if (res.success && res.data?.counts) {
+        setCounts({
+          tenants: res.data.counts.tenants || 0,
+          users: res.data.counts.users || 0,
+          subscriptions: res.data.counts.subscriptions || 0,
+          products: res.data.counts.products || 0,
+        });
+      }
+    } catch (err) {
+      console.error("[Admin Layout] Error fetching Supabase counts:", err);
+    }
+  }, []);
 
   useEffect(() => {
-    // Seed initial platform tenants & subscriptions if needed
-    seedAdminPlatformDataIfEmpty().catch(console.error);
-  }, []);
+    if (isAdminAuthenticated) {
+      fetchRealCounts();
+      // Auto refresh counts every 60 seconds
+      const interval = setInterval(fetchRealCounts, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [isAdminAuthenticated, fetchRealCounts, pathname]);
 
   // Allow login page without layout guard
   if (pathname === "/admin/login") {
@@ -61,10 +88,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { label: "Vue d'ensemble", href: "/admin", icon: LayoutDashboard, count: null },
-    { label: "Boutiques & Commerces", href: "/admin/tenants", icon: Store, count: tenantsCount },
-    { label: "Utilisateurs & Caissiers", href: "/admin/users", icon: Users, count: usersCount },
-    { label: "Abonnements & Mobile Money", href: "/admin/subscriptions", icon: CreditCard, count: subscriptionsCount },
-    { label: "Catalogue & Stocks Réseau", href: "/admin/catalog", icon: Package, count: productsCount },
+    { label: "Boutiques & Commerces", href: "/admin/tenants", icon: Store, count: counts.tenants },
+    { label: "Utilisateurs & Caissiers", href: "/admin/users", icon: Users, count: counts.users },
+    { label: "Abonnements & Mobile Money", href: "/admin/subscriptions", icon: CreditCard, count: counts.subscriptions },
+    { label: "Catalogue & Stocks Réseau", href: "/admin/catalog", icon: Package, count: counts.products },
     { label: "Paramètres Système", href: "/admin/settings", icon: Settings, count: null },
   ];
 
@@ -83,7 +110,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
-                    Console Master
+                    Supabase Live
                   </span>
                 </div>
               </div>
@@ -111,7 +138,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {item.count !== null && item.count > 0 && (
+                    {item.count !== null && item.count >= 0 && (
                       <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
                         isActive ? "bg-white/20 text-white" : "bg-slate-800 text-slate-400 group-hover:text-slate-200"
                       }`}>
@@ -170,14 +197,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-3">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-bold">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Super Admin Node RDC</span>
+              <span>Super Admin Master Node</span>
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold">
+              <Database className="w-3 h-3" />
+              <span>PostgreSQL / Supabase Connecté</span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={async () => {
+                setIsRefreshing(true);
+                await fetchRealCounts();
+                setTimeout(() => setIsRefreshing(false), 500);
+              }}
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+              title="Actualiser les compteurs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-blue-400" : ""}`} />
+            </button>
+
             <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400">
               <Activity className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-              <span>Système Opérationnel Offline & Cloud</span>
+              <span>Données Réelles en Temps Réel</span>
             </div>
           </div>
         </header>

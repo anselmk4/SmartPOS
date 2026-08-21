@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db, generateUUID } from "@/lib/db/dexie-db";
-import { useSync } from "@/lib/sync/sync-context";
-import type { Subscription, Tenant, SubscriptionPlan, PaymentMethod } from "@/lib/shared/types";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { adminFetch } from "@/lib/admin/admin-api";
+import type { SubscriptionPlan, PaymentMethod } from "@/lib/shared/types";
 import {
   CreditCard,
   Plus,
@@ -17,14 +15,50 @@ import {
   Check,
   X,
   Store,
-  FileSpreadsheet,
+  RefreshCw,
+  AlertCircle,
+  Database,
 } from "lucide-react";
 
-export default function AdminSubscriptionsPage() {
-  const { formatMoney } = useSync();
+interface SubscriptionWithTenant {
+  id: string;
+  tenantId: string;
+  plan: SubscriptionPlan;
+  amount: number;
+  currency: string;
+  paymentMethod: PaymentMethod;
+  paymentStatus: string;
+  transactionId?: string | null;
+  periodStart: string;
+  periodEnd: string;
+  createdAt: string;
+  tenant?: {
+    id: string;
+    name: string;
+    slug: string;
+    phone?: string | null;
+    plan: string;
+    planStatus: string;
+    planExpiresAt?: string | null;
+  };
+}
 
-  const subscriptions = useLiveQuery(() => db.subscriptions.toArray()) || [];
-  const tenants = useLiveQuery(() => db.tenants.toArray()) || [];
+interface TenantItem {
+  id: string;
+  name: string;
+  slug: string;
+  plan: string;
+  isActive: boolean;
+}
+
+export default function AdminSubscriptionsPage() {
+  const [subscriptions, setSubscriptions] = useState<SubscriptionWithTenant[]>([]);
+  const [tenants, setTenants] = useState<TenantItem[]>([]);
+  const [totalCollected, setTotalCollected] = useState(0);
+  const [mrrTotal, setMrrTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Search & Filters
   const [operatorFilter, setOperatorFilter] = useState<string>("ALL");
@@ -37,6 +71,8 @@ export default function AdminSubscriptionsPage() {
   const [subAmount, setSubAmount] = useState(15000);
   const [subMethod, setSubMethod] = useState<PaymentMethod>("MPESA");
   const [subTxId, setSubTxId] = useState("");
+  const [subDays, setSubDays] = useState(30);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Toast
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -45,19 +81,33 @@ export default function AdminSubscriptionsPage() {
     setTimeout(() => setToastMsg(null), 3500);
   };
 
-  // KPIs
-  const mrrTotal = useMemo(() => {
-    return tenants.reduce((acc, t) => {
-      if (!t.isActive) return acc;
-      if (t.plan === "PRO") return acc + 15000;
-      if (t.plan === "BUSINESS") return acc + 45000;
-      return acc;
-    }, 0);
-  }, [tenants]);
+  const formatMoney = (amount: number, currency = "CDF") => {
+    return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(amount || 0)} ${currency}`;
+  };
 
-  const totalCollected = useMemo(() => {
-    return subscriptions.reduce((acc, s) => acc + (s.amount || 0), 0);
-  }, [subscriptions]);
+  const loadData = useCallback(async () => {
+    try {
+      const res = await adminFetch("/api/v1/admin/subscriptions");
+      if (res.success && res.data) {
+        setSubscriptions(res.data.subscriptions || []);
+        setTenants(res.data.tenants || []);
+        setTotalCollected(res.data.totalCollected || 0);
+        setMrrTotal(res.data.mrrTotal || 0);
+        setError(null);
+      } else {
+        setError(res.error || "Erreur lors du chargement des abonnements");
+      }
+    } catch (err: any) {
+      setError(err.message || "Erreur réseau");
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const filteredSubscriptions = useMemo(() => {
     return subscriptions.filter((s) => {
@@ -73,6 +123,7 @@ export default function AdminSubscriptionsPage() {
     setSubAmount(15000);
     setSubMethod("MPESA");
     setSubTxId("");
+    setSubDays(30);
     setIsManualSubModalOpen(true);
   };
 
@@ -80,43 +131,35 @@ export default function AdminSubscriptionsPage() {
     e.preventDefault();
     if (!subTenantId) return;
 
-    const targetTenant = tenants.find((t) => t.id === subTenantId);
-    if (!targetTenant) return;
-
-    const now = new Date();
-    const subId = generateUUID();
-    const newSub: Subscription = {
-      id: subId,
-      tenantId: subTenantId,
-      plan: subPlan,
-      amount: subAmount,
-      currency: "CDF",
-      paymentMethod: subMethod,
-      paymentStatus: "ACTIVE",
-      transactionId: subTxId.trim() || `MANUAL-${Date.now().toString().slice(-6)}`,
-      periodStart: now.toISOString(),
-      periodEnd: new Date(now.getTime() + 30 * 86400000).toISOString(),
-      createdAt: now.toISOString(),
-    };
-
-    await db.subscriptions.add(newSub);
-    await db.tenants.update(subTenantId, {
-      plan: subPlan,
-      planStatus: "ACTIVE",
-      planExpiresAt: newSub.periodEnd,
-      updatedAt: now.toISOString(),
+    setIsSubmitting(true);
+    const res = await adminFetch("/api/v1/admin/subscriptions", {
+      method: "POST",
+      body: JSON.stringify({
+        tenantId: subTenantId,
+        plan: subPlan,
+        amount: Number(subAmount) || 0,
+        paymentMethod: subMethod,
+        transactionId: subTxId.trim() || undefined,
+        durationDays: subDays,
+      }),
     });
+    setIsSubmitting(false);
 
-    setIsManualSubModalOpen(false);
-    showToast(`Règlement de ${formatMoney(subAmount)} validé pour "${targetTenant.name}" !`);
+    if (res.success) {
+      setIsManualSubModalOpen(false);
+      showToast(res.message || "Paiement enregistré avec succès dans Supabase.");
+      loadData();
+    } else {
+      alert(res.error || "Erreur lors de l'enregistrement du paiement");
+    }
   };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Toast */}
       {toastMsg && (
-        <div className="fixed top-5 right-5 z-50 bg-blue-600 text-white px-4 py-3 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-2 animate-in slide-in-from-top duration-300">
-          <CheckCircle2 className="w-5 h-5 text-blue-200" />
+        <div className="fixed top-5 right-5 z-50 bg-emerald-600 text-white px-4 py-3 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-2 animate-in slide-in-from-top duration-300">
+          <CheckCircle2 className="w-5 h-5 text-emerald-200" />
           <span>{toastMsg}</span>
         </div>
       )}
@@ -125,37 +168,51 @@ export default function AdminSubscriptionsPage() {
       <div className="bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-bold mb-2">
-            <CreditCard className="w-3.5 h-3.5" />
-            <span>Suivi des Paiements & Abonnements SaaS</span>
+            <Database className="w-3.5 h-3.5" />
+            <span>Table `subscriptions` Supabase PostgreSQL</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-white">
-            Paiements Récurrents & Mobile Money ({subscriptions.length})
+            Abonnements & Paiements SaaS ({subscriptions.length})
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Enregistrement, historique et validation des encaissements d'abonnements des boutiques.
+            Suivi des transactions Mobile Money et reconductions des abonnements des boutiques.
           </p>
         </div>
 
-        <button
-          onClick={handleOpenManual}
-          className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-blue-600/30 transition-all touch-press"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Enregistrer un Règlement</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setIsRefreshing(true);
+              loadData();
+            }}
+            disabled={isRefreshing}
+            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-700"
+            title="Rafraîchir les données"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin text-blue-400" : ""}`} />
+          </button>
+
+          <button
+            onClick={handleOpenManual}
+            className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-blue-600/30 transition-all touch-press"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Saisie Manuelle Paiement</span>
+          </button>
+        </div>
       </div>
 
-      {/* Top 3 KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Top 2 KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-slate-900 rounded-3xl p-5 border border-slate-800 shadow-sm flex items-center justify-between">
           <div>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              MRR Plateforme
+              Revenus Récurrents Mensuels (MRR)
             </span>
             <div className="text-2xl font-black text-emerald-400 mt-1">
               {formatMoney(mrrTotal)}
             </div>
-            <p className="text-[10px] text-slate-400 mt-0.5">Revenus mensuels récurrents</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">Calculé sur le parc actif Supabase</p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
             <TrendingUp className="w-6 h-6" />
@@ -165,252 +222,282 @@ export default function AdminSubscriptionsPage() {
         <div className="bg-slate-900 rounded-3xl p-5 border border-slate-800 shadow-sm flex items-center justify-between">
           <div>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Total Encaissé
+              Total Encaissé Abonnements
             </span>
             <div className="text-2xl font-black text-white mt-1">
               {formatMoney(totalCollected)}
             </div>
-            <p className="text-[10px] text-slate-400 mt-0.5">Volume global d'abonnements</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">
+              Cumul des {subscriptions.length} transactions enregistrées
+            </p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
             <DollarSign className="w-6 h-6" />
           </div>
         </div>
-
-        <div className="bg-slate-900 rounded-3xl p-5 border border-slate-800 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Transactions Enregistrées
-            </span>
-            <div className="text-2xl font-black text-indigo-400 mt-1">
-              {subscriptions.length}
-            </div>
-            <p className="text-[10px] text-slate-400 mt-0.5">Règlements archivés en base</p>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
-            <Smartphone className="w-6 h-6" />
-          </div>
-        </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-slate-900 rounded-2xl p-3 sm:p-4 border border-slate-800 flex items-center justify-between gap-3">
-        <span className="text-xs font-bold text-slate-300">Filtrer les transactions :</span>
-        <div className="flex items-center gap-2">
+      {/* Filters Bar */}
+      <div className="bg-slate-900 rounded-2xl p-3 sm:p-4 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <span className="text-xs font-bold text-slate-400">Filtrer l'historique :</span>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Operator Filter */}
           <select
             value={operatorFilter}
             onChange={(e) => setOperatorFilter(e.target.value)}
-            className="p-2 bg-slate-800 rounded-xl text-xs font-bold border border-slate-700 text-white focus:outline-none"
+            className="bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500"
           >
-            <option value="ALL">Tous les opérateurs</option>
+            <option value="ALL">Tous les Modes de Paiement</option>
             <option value="MPESA">Vodacom M-Pesa</option>
             <option value="AIRTEL_MONEY">Airtel Money</option>
             <option value="ORANGE_MONEY">Orange Money</option>
             <option value="AFRIMONEY">Afrimoney</option>
-            <option value="CASH">Espèces / Bureau</option>
+            <option value="CASH">Espèces</option>
           </select>
 
+          {/* Plan Filter */}
           <select
             value={planFilter}
             onChange={(e) => setPlanFilter(e.target.value)}
-            className="p-2 bg-slate-800 rounded-xl text-xs font-bold border border-slate-700 text-white focus:outline-none"
+            className="bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500"
           >
-            <option value="ALL">Tous les forfaits</option>
-            <option value="FREE">Découverte (Gratuit)</option>
-            <option value="PRO">Commerçant Pro</option>
-            <option value="BUSINESS">Business Réseau</option>
+            <option value="ALL">Tous les Plans</option>
+            <option value="FREE">FREE</option>
+            <option value="BASIC">BASIC</option>
+            <option value="PRO">PRO</option>
+            <option value="BUSINESS">BUSINESS</option>
           </select>
         </div>
       </div>
 
-      {/* Subscriptions Table */}
-      <div className="bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-sm overflow-hidden">
-        {filteredSubscriptions.length === 0 ? (
-          <div className="py-12 text-center text-slate-500">
-            <CreditCard className="w-12 h-12 stroke-1 mx-auto mb-2 text-slate-600" />
-            <p className="text-sm font-bold text-slate-400">Aucune transaction trouvée</p>
-            <p className="text-xs mt-0.5">Enregistrez un nouveau règlement de souscription.</p>
+      {/* Loading state */}
+      {isLoading && (
+        <div className="text-center py-12">
+          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-xs text-slate-400 font-mono">Chargement des abonnements depuis Supabase...</p>
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && !isLoading && (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            <span>{error}</span>
           </div>
-        ) : (
+          <button onClick={loadData} className="font-bold underline hover:text-white">
+            Réessayer
+          </button>
+        </div>
+      )}
+
+      {/* Subscriptions Table */}
+      {!isLoading && (
+        <div className="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[10px]">
-                  <th className="pb-3">Réf Transaction</th>
-                  <th className="pb-3">Boutique Souscriptrice</th>
-                  <th className="pb-3">Forfait</th>
-                  <th className="pb-3">Opérateur</th>
-                  <th className="pb-3">Montant Encaissé</th>
-                  <th className="pb-3">Période Couverte</th>
-                  <th className="pb-3">Statut</th>
+            <table className="w-full text-left text-xs text-slate-300">
+              <thead className="bg-slate-800/80 text-[11px] uppercase font-bold text-slate-400 border-b border-slate-700/60">
+                <tr>
+                  <th className="px-4 py-3.5">Boutique</th>
+                  <th className="px-4 py-3.5">Forfait</th>
+                  <th className="px-4 py-3.5">Montant Encaissé</th>
+                  <th className="px-4 py-3.5">Canal & Référence</th>
+                  <th className="px-4 py-3.5">Période Couverte</th>
+                  <th className="px-4 py-3.5 text-right">Statut</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                {filteredSubscriptions.map((s) => {
-                  const boutique = tenants.find((t) => t.id === s.tenantId);
-                  return (
-                    <tr key={s.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="py-4 font-mono font-bold text-white">
-                        {s.transactionId || s.id.slice(0, 10)}
+              <tbody className="divide-y divide-slate-800/60 font-sans">
+                {filteredSubscriptions.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-8 text-slate-500">
+                      Aucune transaction d'abonnement trouvée.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredSubscriptions.map((s) => (
+                    <tr key={s.id} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="px-4 py-3.5">
+                        <div className="font-bold text-white text-sm">
+                          {s.tenant?.name || "Boutique"}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          {s.tenantId}
+                        </div>
                       </td>
 
-                      <td className="py-4 font-bold text-slate-200">
-                        {boutique ? (
-                          <div className="flex items-center gap-1.5">
-                            <Store className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                            <span>{boutique.name}</span>
-                          </div>
-                        ) : (
-                          <span className="text-slate-500">Boutique inconnue</span>
-                        )}
-                      </td>
-
-                      <td className="py-4">
+                      <td className="px-4 py-3.5">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase inline-block ${
                             s.plan === "BUSINESS"
-                              ? "bg-indigo-500/20 text-indigo-300"
+                              ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
                               : s.plan === "PRO"
-                              ? "bg-blue-500/20 text-blue-300"
-                              : "bg-slate-800 text-slate-300"
+                              ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                              : "bg-slate-800 text-slate-300 border border-slate-700"
                           }`}
                         >
                           {s.plan}
                         </span>
                       </td>
 
-                      <td className="py-4">
-                        <span className="font-bold text-slate-300">{s.paymentMethod}</span>
+                      <td className="px-4 py-3.5">
+                        <span className="font-mono font-black text-emerald-400 text-sm">
+                          {formatMoney(s.amount, s.currency)}
+                        </span>
                       </td>
 
-                      <td className="py-4 font-black text-emerald-400">
-                        {formatMoney(s.amount)}
+                      <td className="px-4 py-3.5">
+                        <div className="font-bold text-slate-200">{s.paymentMethod}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          Réf: {s.transactionId || s.id.slice(0, 8)}
+                        </div>
                       </td>
 
-                      <td className="py-4 font-mono text-slate-400">
-                        {new Date(s.periodStart).toLocaleDateString("fr-FR")} →{" "}
-                        {new Date(s.periodEnd).toLocaleDateString("fr-FR")}
+                      <td className="px-4 py-3.5">
+                        <div className="text-[11px] text-slate-300">
+                          Du {new Date(s.periodStart).toLocaleDateString("fr-FR")} au{" "}
+                          {new Date(s.periodEnd).toLocaleDateString("fr-FR")}
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          Enregistré le {new Date(s.createdAt).toLocaleDateString("fr-FR")}
+                        </div>
                       </td>
 
-                      <td className="py-4">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
-                          ✓ {s.paymentStatus}
+                      <td className="px-4 py-3.5 text-right">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
+                          {s.paymentStatus === "ACTIVE" ? "Validé" : s.paymentStatus}
                         </span>
                       </td>
                     </tr>
-                  );
-                })}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* MODAL: Manual Subscription Entry */}
+      {/* Modal: Manual Subscription Entry */}
       {isManualSubModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <form
-            onSubmit={handleManualSubSubmit}
-            className="bg-slate-900 w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-800 text-white space-y-4"
-          >
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-white text-base">Valider un Règlement d'Abonnement</h3>
+              <h3 className="font-bold text-white text-base">Enregistrer un Paiement SaaS</h3>
               <button
-                type="button"
                 onClick={() => setIsManualSubModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white p-1"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">
-                Boutique souscriptrice *
-              </label>
-              <select
-                value={subTenantId}
-                onChange={(e) => setSubTenantId(e.target.value)}
-                className="w-full p-2.5 bg-slate-800 rounded-xl text-xs font-bold border border-slate-700 text-white focus:outline-none"
-              >
-                {tenants.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    🏬 {t.name} (Forfait actuel: {t.plan})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
+            <form onSubmit={handleManualSubSubmit} className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Forfait Validé
-                </label>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Boutique Bénéficiaire *</label>
                 <select
-                  value={subPlan}
-                  onChange={(e) => {
-                    const p = e.target.value as SubscriptionPlan;
-                    setSubPlan(p);
-                    setSubAmount(p === "BUSINESS" ? 45000 : 15000);
-                  }}
-                  className="w-full p-2.5 bg-slate-800 rounded-xl text-xs font-bold border border-slate-700 text-white focus:outline-none"
+                  required
+                  value={subTenantId}
+                  onChange={(e) => setSubTenantId(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                 >
-                  <option value="PRO">Commerçant Pro</option>
-                  <option value="BUSINESS">Business Réseau</option>
+                  {tenants.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.plan})
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Moyen de Paiement
-                </label>
-                <select
-                  value={subMethod}
-                  onChange={(e) => setSubMethod(e.target.value as PaymentMethod)}
-                  className="w-full p-2.5 bg-slate-800 rounded-xl text-xs font-bold border border-slate-700 text-white focus:outline-none"
-                >
-                  <option value="MPESA">M-Pesa</option>
-                  <option value="AIRTEL_MONEY">Airtel Money</option>
-                  <option value="ORANGE_MONEY">Orange Money</option>
-                  <option value="AFRIMONEY">Afrimoney</option>
-                  <option value="CASH">Espèces / Bureau</option>
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Plan</label>
+                  <select
+                    value={subPlan}
+                    onChange={(e) => {
+                      const p = e.target.value as SubscriptionPlan;
+                      setSubPlan(p);
+                      if (p === "PRO") setSubAmount(15000);
+                      if (p === "BUSINESS") setSubAmount(45000);
+                      if (p === "BASIC") setSubAmount(5000);
+                    }}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="BASIC">BASIC</option>
+                    <option value="PRO">PRO</option>
+                    <option value="BUSINESS">BUSINESS</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Montant (CDF)</label>
+                  <input
+                    type="number"
+                    required
+                    value={subAmount}
+                    onChange={(e) => setSubAmount(Number(e.target.value))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">
-                Montant Encaissé (CDF) *
-              </label>
-              <input
-                type="number"
-                required
-                value={subAmount}
-                onChange={(e) => setSubAmount(Number(e.target.value))}
-                className="w-full p-2.5 bg-slate-800 rounded-xl text-sm font-black text-emerald-400 border border-slate-700 focus:outline-none"
-              />
-            </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Opérateur / Canal</label>
+                  <select
+                    value={subMethod}
+                    onChange={(e) => setSubMethod(e.target.value as PaymentMethod)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="MPESA">Vodacom M-Pesa</option>
+                    <option value="AIRTEL_MONEY">Airtel Money</option>
+                    <option value="ORANGE_MONEY">Orange Money</option>
+                    <option value="AFRIMONEY">Afrimoney</option>
+                    <option value="CASH">Espèces / Direct</option>
+                  </select>
+                </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">
-                Référence Transaction / ID Mobile Money (optionnel)
-              </label>
-              <input
-                type="text"
-                placeholder="ex: MPESA-TX-984312"
-                value={subTxId}
-                onChange={(e) => setSubTxId(e.target.value)}
-                className="w-full p-2.5 bg-slate-800 rounded-xl text-xs border border-slate-700 text-white focus:outline-none"
-              />
-            </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Durée (Jours)</label>
+                  <input
+                    type="number"
+                    value={subDays}
+                    onChange={(e) => setSubDays(Number(e.target.value))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
 
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs shadow-md shadow-blue-600/30 transition-all"
-            >
-              Enregistrer et Débloquer la Boutique (+30 jours)
-            </button>
-          </form>
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Référence Transaction Mobile Money
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: MPESA-TX-109283"
+                  value={subTxId}
+                  onChange={(e) => setSubTxId(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsManualSubModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-lg"
+                >
+                  {isSubmitting ? "Enregistrement..." : "Valider le Paiement Supabase"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

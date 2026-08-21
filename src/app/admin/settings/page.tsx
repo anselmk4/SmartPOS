@@ -1,9 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/lib/db/dexie-db";
-import { seedAdminPlatformDataIfEmpty } from "@/lib/admin/admin-db-seed";
+import React, { useState, useEffect, useCallback } from "react";
+import { adminFetch } from "@/lib/admin/admin-api";
 import {
   Settings,
   Database,
@@ -17,19 +15,40 @@ import {
   Zap,
   Globe,
   Sliders,
+  AlertCircle,
 } from "lucide-react";
 
+interface SystemStats {
+  database: {
+    connected: boolean;
+    provider: string;
+    latencyMs: number;
+    urlHost: string;
+    error?: string;
+  };
+  tableCounts: {
+    tenants: number;
+    stores: number;
+    users: number;
+    subscriptions: number;
+    products: number;
+    customers: number;
+    sales: number;
+    saleItems: number;
+    debtPayments: number;
+    syncLogs: number;
+    otpVerifications: number;
+  };
+  environment: string;
+  serverTimestamp: string;
+}
+
 export default function AdminSettingsPage() {
-  const tenantsCount = useLiveQuery(() => db.tenants.count()) || 0;
-  const storesCount = useLiveQuery(() => db.stores.count()) || 0;
-  const usersCount = useLiveQuery(() => db.users.count()) || 0;
-  const subscriptionsCount = useLiveQuery(() => db.subscriptions.count()) || 0;
-  const productsCount = useLiveQuery(() => db.products.count()) || 0;
-  const customersCount = useLiveQuery(() => db.customers.count()) || 0;
-  const salesCount = useLiveQuery(() => db.sales.count()) || 0;
-  const syncQueueCount = useLiveQuery(() => db.syncQueue.count()) || 0;
-  const transfersCount = useLiveQuery(() => db.stockTransfers.count()) || 0;
-  const closingsCount = useLiveQuery(() => db.cashClosings.count()) || 0;
+  const [stats, setStats] = useState<SystemStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Platform Pricing Settings (configurable)
   const [proPrice, setProPrice] = useState(15000);
@@ -43,38 +62,52 @@ export default function AdminSettingsPage() {
     setTimeout(() => setToastMsg(null), 3500);
   };
 
+  const loadStats = useCallback(async () => {
+    try {
+      const res = await adminFetch<SystemStats>("/api/v1/admin/settings");
+      if (res.success && res.data) {
+        setStats(res.data);
+        setError(null);
+      } else {
+        setError(res.error || "Erreur de connexion à la base de données");
+      }
+    } catch (err: any) {
+      setError(err.message || "Erreur réseau");
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
   const handleExportFullDatabaseJson = async () => {
-    const exportData = {
-      timestamp: new Date().toISOString(),
-      version: 3,
-      platform: "Kuettu Global POS Master",
-      tenants: await db.tenants.toArray(),
-      stores: await db.stores.toArray(),
-      users: await db.users.toArray(),
-      subscriptions: await db.subscriptions.toArray(),
-      products: await db.products.toArray(),
-      customers: await db.customers.toArray(),
-      sales: await db.sales.toArray(),
-      saleItems: await db.saleItems.toArray(),
-      stockTransfers: await db.stockTransfers.toArray(),
-      cashClosings: await db.cashClosings.toArray(),
-      syncQueue: await db.syncQueue.toArray(),
-    };
+    setIsExporting(true);
+    try {
+      const res = await adminFetch("/api/v1/admin/settings", {
+        method: "POST",
+      });
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `kuettu_platform_backup_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast("Sauvegarde intégrale JSON exportée avec succès !");
-  };
-
-  const handleReseedPlatform = async () => {
-    if (confirm("Voulez-vous réinjecter les données de démonstration multi-boutiques RDC (Kinshasa, Goma, Lubumbashi) ?")) {
-      await seedAdminPlatformDataIfEmpty();
-      showToast("Données multi-boutiques injectées avec succès !");
+      if (res.success && res.data) {
+        const blob = new Blob([JSON.stringify(res.data, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `supabase_globalpos_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast("Sauvegarde intégrale Supabase exportée avec succès !");
+      } else {
+        alert(res.error || "Erreur lors de l'exportation");
+      }
+    } catch (err: any) {
+      alert("Erreur lors de l'export: " + err.message);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -83,12 +116,26 @@ export default function AdminSettingsPage() {
     showToast("Configuration des tarifs et quotas sauvegardée avec succès !");
   };
 
+  const counts = stats?.tableCounts || {
+    tenants: 0,
+    stores: 0,
+    users: 0,
+    subscriptions: 0,
+    products: 0,
+    customers: 0,
+    sales: 0,
+    saleItems: 0,
+    debtPayments: 0,
+    syncLogs: 0,
+    otpVerifications: 0,
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Toast */}
       {toastMsg && (
-        <div className="fixed top-5 right-5 z-50 bg-blue-600 text-white px-4 py-3 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-2 animate-in slide-in-from-top duration-300">
-          <CheckCircle2 className="w-5 h-5 text-blue-200" />
+        <div className="fixed top-5 right-5 z-50 bg-emerald-600 text-white px-4 py-3 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-2 animate-in slide-in-from-top duration-300">
+          <CheckCircle2 className="w-5 h-5 text-emerald-200" />
           <span>{toastMsg}</span>
         </div>
       )}
@@ -98,154 +145,196 @@ export default function AdminSettingsPage() {
         <div>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-bold mb-2">
             <Settings className="w-3.5 h-3.5" />
-            <span>Console Système & Maintenance</span>
+            <span>Console Système Super Admin</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-white">
-            Paramètres Plateforme & Sauvegardes
+            Paramètres & Supervision Supabase PostgreSQL
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Supervision de la base locale Dexie, tarifs des forfaits et outils de maintenance.
+            Surveillance en temps réel de la base cloud, volume des données et sauvegardes intégrales.
           </p>
         </div>
+
+        <button
+          onClick={() => {
+            setIsRefreshing(true);
+            loadStats();
+          }}
+          disabled={isRefreshing}
+          className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-700 flex items-center gap-2 text-xs font-bold"
+        >
+          <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin text-blue-400" : ""}`} />
+          <span>Actualiser le Statut</span>
+        </button>
       </div>
 
-      {/* Database Health Metrics Grid */}
+      {/* Error state */}
+      {error && !isLoading && (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            <span>{error}</span>
+          </div>
+          <button onClick={loadStats} className="font-bold underline hover:text-white">
+            Réessayer
+          </button>
+        </div>
+      )}
+
+      {/* Database Status Card */}
       <div className="bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Database className="w-5 h-5 text-blue-400" />
-            <h3 className="font-bold text-white text-base">État & Volume de la Base de Données</h3>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-base">
+                Base de Données Principale (Supabase Cloud PostgreSQL)
+              </h3>
+              <p className="text-xs text-slate-400">
+                Fournisseur : {stats?.database.provider || "Supabase"} • Hôte : {stats?.database.urlHost || "Pooler AWS"}
+              </p>
+            </div>
           </div>
-          <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-            ✓ Indexée & Prête (Version 3)
-          </span>
+
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                stats?.database.connected
+                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                  : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  stats?.database.connected ? "bg-emerald-400 animate-pulse" : "bg-rose-400"
+                }`}
+              />
+              <span>{stats?.database.connected ? "En Ligne & Connecté" : "Hors Ligne"}</span>
+            </span>
+
+            {stats?.database.latencyMs !== undefined && (
+              <span className="text-xs font-mono text-slate-400 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">
+                {stats.database.latencyMs} ms
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {/* Real Table Counts Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mt-4">
           {[
-            { label: "Boutiques (Tenants)", count: tenantsCount, color: "text-blue-400" },
-            { label: "Points de Vente (Stores)", count: storesCount, color: "text-indigo-400" },
-            { label: "Utilisateurs / Caissiers", count: usersCount, color: "text-emerald-400" },
-            { label: "Abonnements", count: subscriptionsCount, color: "text-amber-400" },
-            { label: "Articles Référencés", count: productsCount, color: "text-purple-400" },
-            { label: "Clients Débiteurs", count: customersCount, color: "text-rose-400" },
-            { label: "Ventes Réalisées", count: salesCount, color: "text-sky-400" },
-            { label: "Transferts de Stock", count: transfersCount, color: "text-teal-400" },
-            { label: "Clôtures Ticket Z", count: closingsCount, color: "text-yellow-400" },
-            { label: "File de Synchro", count: syncQueueCount, color: "text-slate-400" },
-          ].map((item) => (
-            <div key={item.label} className="bg-slate-800/60 p-3.5 rounded-2xl border border-slate-700/50">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                {item.label}
+            { label: "Boutiques (tenants)", count: counts.tenants, color: "text-blue-400" },
+            { label: "Points de vente (stores)", count: counts.stores, color: "text-indigo-400" },
+            { label: "Utilisateurs (users)", count: counts.users, color: "text-purple-400" },
+            { label: "Abonnements (subscriptions)", count: counts.subscriptions, color: "text-emerald-400" },
+            { label: "Catalogue (products)", count: counts.products, color: "text-amber-400" },
+            { label: "Clients (customers)", count: counts.customers, color: "text-sky-400" },
+            { label: "Ventes (sales)", count: counts.sales, color: "text-emerald-300" },
+            { label: "Articles vendus (sale_items)", count: counts.saleItems, color: "text-teal-400" },
+            { label: "Règlements dettes", count: counts.debtPayments, color: "text-rose-400" },
+            { label: "Journaux sync (sync_logs)", count: counts.syncLogs, color: "text-slate-400" },
+          ].map((item, idx) => (
+            <div
+              key={idx}
+              className="bg-slate-800/50 p-3.5 rounded-2xl border border-slate-700/60 flex flex-col justify-between"
+            >
+              <span className="text-[11px] text-slate-400 font-medium truncate">{item.label}</span>
+              <span className={`text-xl font-black ${item.color} mt-1 font-mono`}>
+                {isLoading ? "..." : item.count}
               </span>
-              <div className={`text-2xl font-black ${item.color} mt-1`}>{item.count}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Two columns: Platform Pricing Config & Backup / Reseed Tools */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Platform Pricing Form */}
-        <div className="bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-sm flex flex-col justify-between">
+      {/* Database Backup & Export */}
+      <div className="bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-sm">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Sliders className="w-5 h-5 text-blue-400" />
-              <div>
-                <h3 className="font-bold text-white text-base">Configuration des Forfaits SaaS</h3>
-                <p className="text-xs text-slate-400">Tarification mensuelle et limites</p>
-              </div>
-            </div>
+            <h3 className="font-bold text-white text-base">
+              Sauvegarde Complète de la Base Supabase (JSON)
+            </h3>
+            <p className="text-xs text-slate-400 mt-1">
+              Générez et téléchargez une archive JSON intégrale contenant toutes les tables réelles de Supabase (boutiques, utilisateurs, produits, ventes, abonnements).
+            </p>
+          </div>
 
-            <form onSubmit={handleSavePlatformConfig} className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Prix Mensuel Forfait Commerçant Pro (CDF)
-                </label>
-                <input
-                  type="number"
-                  value={proPrice}
-                  onChange={(e) => setProPrice(Number(e.target.value))}
-                  className="w-full p-2.5 bg-slate-800 rounded-xl text-sm font-black text-blue-400 border border-slate-700 focus:outline-none"
-                />
-              </div>
+          <button
+            onClick={handleExportFullDatabaseJson}
+            disabled={isExporting}
+            className="py-3 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all touch-press shrink-0"
+          >
+            <Download className={`w-4 h-4 ${isExporting ? "animate-bounce" : ""}`} />
+            <span>{isExporting ? "Génération en cours..." : "Télécharger Sauvegarde Supabase"}</span>
+          </button>
+        </div>
+      </div>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Prix Mensuel Forfait Business Multi-Magasins (CDF)
-                </label>
-                <input
-                  type="number"
-                  value={bizPrice}
-                  onChange={(e) => setBizPrice(Number(e.target.value))}
-                  className="w-full p-2.5 bg-slate-800 rounded-xl text-sm font-black text-indigo-400 border border-slate-700 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Quota Maximum de Ventes / Mois (Forfait Découverte)
-                </label>
-                <input
-                  type="number"
-                  value={freeQuota}
-                  onChange={(e) => setFreeQuota(Number(e.target.value))}
-                  className="w-full p-2.5 bg-slate-800 rounded-xl text-sm font-black text-slate-200 border border-slate-700 focus:outline-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs shadow-md shadow-blue-600/30 transition-all"
-              >
-                Mettre à Jour la Configuration
-              </button>
-            </form>
+      {/* Pricing & SaaS Quotas */}
+      <div className="bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-sm">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+            <Sliders className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-bold text-white text-base">Tarification SaaS des Forfaits RDC</h3>
+            <p className="text-xs text-slate-400">
+              Paramétrez les montants standards des abonnements facturés aux boutiques.
+            </p>
           </div>
         </div>
 
-        {/* Maintenance & Backup Actions */}
-        <div className="space-y-4">
-          {/* Backup JSON */}
-          <div className="bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 text-blue-400 mb-2">
-                <Database className="w-5 h-5" />
-                <h4 className="font-bold text-sm text-white">Sauvegarde Complète de la Base (JSON)</h4>
-              </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Exporte immédiatement toutes les tables de la base de données en un seul fichier JSON horodaté.
-              </p>
-            </div>
-            <button
-              onClick={handleExportFullDatabaseJson}
-              className="mt-4 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-blue-600/30 transition-all touch-press"
-            >
-              <Download className="w-4 h-4" />
-              <span>Télécharger la Sauvegarde Globale (JSON)</span>
-            </button>
+        <form onSubmit={handleSavePlatformConfig} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-slate-800/40 p-4 rounded-2xl border border-slate-700/60">
+            <label className="text-xs font-bold text-slate-300 block mb-1">
+              Forfait PRO Mensuel (CDF)
+            </label>
+            <input
+              type="number"
+              value={proPrice}
+              onChange={(e) => setProPrice(Number(e.target.value))}
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-blue-500"
+            />
+            <p className="text-[10px] text-slate-500 mt-1">Équivalent ~5.5 USD / mois</p>
           </div>
 
-          {/* Reseed Data */}
-          <div className="bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 text-indigo-400 mb-2">
-                <Sparkles className="w-5 h-5" />
-                <h4 className="font-bold text-sm text-white">Réinjecter Données Démo RDC</h4>
-              </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Initialise des boutiques réalistes (Kinshasa, Goma, Lubumbashi) avec leurs abonnements Mobile Money pour des tests ou des démonstrations clients.
-              </p>
-            </div>
+          <div className="bg-slate-800/40 p-4 rounded-2xl border border-slate-700/60">
+            <label className="text-xs font-bold text-slate-300 block mb-1">
+              Forfait BUSINESS Mensuel (CDF)
+            </label>
+            <input
+              type="number"
+              value={bizPrice}
+              onChange={(e) => setBizPrice(Number(e.target.value))}
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-blue-500"
+            />
+            <p className="text-[10px] text-slate-500 mt-1">Équivalent ~16 USD / mois</p>
+          </div>
+
+          <div className="bg-slate-800/40 p-4 rounded-2xl border border-slate-700/60">
+            <label className="text-xs font-bold text-slate-300 block mb-1">
+              Quota Produits Forfait Gratuit
+            </label>
+            <input
+              type="number"
+              value={freeQuota}
+              onChange={(e) => setFreeQuota(Number(e.target.value))}
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-blue-500"
+            />
+            <p className="text-[10px] text-slate-500 mt-1">Limite max d'articles en version FREE</p>
+          </div>
+
+          <div className="sm:col-span-3 flex justify-end">
             <button
-              onClick={handleReseedPlatform}
-              className="mt-4 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition-colors"
+              type="submit"
+              className="py-2.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition-all"
             >
-              <RefreshCw className="w-4 h-4 text-blue-400" />
-              <span>Injecter les Boutiques de Démonstration</span>
+              Enregistrer la Configuration
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
