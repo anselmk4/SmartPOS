@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -19,10 +19,9 @@ import {
   Lock,
 } from "lucide-react";
 
-export default function VerifyOtpPage() {
+function VerifyOtpContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { loginWithPin } = useAuth();
 
   const phoneParam = searchParams?.get("phone") || "";
   const emailParam = searchParams?.get("email") || "";
@@ -202,145 +201,160 @@ export default function VerifyOtpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-blue-950 flex flex-col justify-center items-center p-4 sm:p-6 text-white font-sans">
-      <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-md space-y-6 relative overflow-hidden">
-        {/* Background Accent */}
-        <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-md space-y-6 relative overflow-hidden">
+      {/* Background Accent */}
+      <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Top Header */}
-        <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center mx-auto shadow-lg shadow-blue-500/20">
-            {methodParam === "EMAIL" ? <Mail className="w-7 h-7" /> : <Smartphone className="w-7 h-7" />}
-          </div>
-
-          <h2 className="text-xl sm:text-2xl font-black text-white">
-            Confirmation de Compte
-          </h2>
-          <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
-            Nous avons envoyé un code de vérification à 6 chiffres par{" "}
-            <b className="text-slate-200">{methodParam === "EMAIL" ? "e-mail" : "SMS"}</b> à :
-          </p>
-          <div className="inline-block px-3 py-1 bg-slate-800 rounded-full text-xs font-mono font-bold text-blue-400 border border-slate-700">
-            {identifier || "Votre numéro"}
-          </div>
+      {/* Top Header */}
+      <div className="text-center space-y-2">
+        <div className="w-14 h-14 rounded-2xl bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center mx-auto shadow-lg shadow-blue-500/20">
+          {methodParam === "EMAIL" ? <Mail className="w-7 h-7" /> : <Smartphone className="w-7 h-7" />}
         </div>
 
-        {/* Simulation Banner (Helpful for dev/sandbox until Twilio keys provided) */}
-        {simulatedCode && (
-          <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl text-xs text-amber-300 space-y-1.5 animate-in fade-in">
-            <div className="flex items-center justify-between font-bold">
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>Mode Simulation Actif</span>
-              </span>
-              <span className="font-mono text-sm text-white bg-amber-500/20 px-2 py-0.5 rounded-lg">
-                {simulatedCode}
-              </span>
-            </div>
-            <p className="text-[11px] text-amber-200/80 leading-relaxed">
-              Vos clés Twilio / Supabase n'étant pas encore renseignées, le code généré est pré-affiché pour vos tests.
-            </p>
-            <button
-              type="button"
-              onClick={handleFillSimulatedCode}
-              className="text-[11px] font-bold text-white bg-amber-600/60 hover:bg-amber-600 px-2.5 py-1 rounded-xl transition-all"
-            >
-              Remplir automatiquement le code ({simulatedCode}) →
-            </button>
-          </div>
-        )}
-
-        {/* Error / Success Alerts */}
-        {errorMsg && (
-          <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
-
-        {successMsg && (
-          <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-            <span>{successMsg}</span>
-          </div>
-        )}
-
-        {/* 6 Digit Input Boxes */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            verifyCode(digits.join(""));
-          }}
-          className="space-y-6"
-        >
-          <div className="flex items-center justify-center gap-2 sm:gap-3">
-            {digits.map((digit, idx) => (
-              <input
-                key={idx}
-                ref={(el) => {
-                  inputRefs.current[idx] = el;
-                }}
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={digit}
-                onChange={(e) => handleDigitChange(idx, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(idx, e)}
-                disabled={isLoading}
-                className="w-11 h-13 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-mono font-black text-white bg-slate-800 border-2 border-slate-700 rounded-2xl focus:border-blue-500 focus:bg-slate-800/80 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
-              />
-            ))}
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isLoading || digits.includes("")}
-            className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-black text-sm shadow-xl shadow-blue-600/30 transition-all touch-press flex items-center justify-center gap-2"
-          >
-            {isLoading ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Validation en cours...</span>
-              </>
-            ) : (
-              <>
-                <span>Confirmer et Ouvrir ma Caisse</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* Resend Code Section */}
-        <div className="pt-2 text-center text-xs text-slate-400 space-y-2 border-t border-slate-800/80">
-          <p>Vous n'avez pas reçu de code ?</p>
-          {resendCooldown > 0 ? (
-            <p className="text-slate-500 font-mono">
-              Renvoyer un code dans <b className="text-blue-400">{resendCooldown}s</b>
-            </p>
-          ) : (
-            <button
-              type="button"
-              onClick={handleResend}
-              disabled={isResending}
-              className="font-bold text-blue-400 hover:text-blue-300 underline underline-offset-4 transition-colors"
-            >
-              {isResending ? "Renvoi en cours..." : "Renvoyer un nouveau code"}
-            </button>
-          )}
-        </div>
-
-        {/* Help Link */}
-        <div className="text-center pt-2">
-          <Link
-            href="/auth/login"
-            className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
-          >
-            ← Retour à la page de connexion
-          </Link>
+        <h2 className="text-xl sm:text-2xl font-black text-white">
+          Confirmation de Compte
+        </h2>
+        <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+          Nous avons envoyé un code de vérification à 6 chiffres par{" "}
+          <b className="text-slate-200">{methodParam === "EMAIL" ? "e-mail" : "SMS"}</b> à :
+        </p>
+        <div className="inline-block px-3 py-1 bg-slate-800 rounded-full text-xs font-mono font-bold text-blue-400 border border-slate-700">
+          {identifier || "Votre numéro"}
         </div>
       </div>
+
+      {/* Simulation Banner (Helpful for dev/sandbox until Twilio keys provided) */}
+      {simulatedCode && (
+        <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl text-xs text-amber-300 space-y-1.5 animate-in fade-in">
+          <div className="flex items-center justify-between font-bold">
+            <span className="flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>Mode Simulation Actif</span>
+            </span>
+            <span className="font-mono text-sm text-white bg-amber-500/20 px-2 py-0.5 rounded-lg">
+              {simulatedCode}
+            </span>
+          </div>
+          <p className="text-[11px] text-amber-200/80 leading-relaxed">
+            Vos clés Twilio / Supabase n'étant pas encore renseignées, le code généré est pré-affiché pour vos tests.
+          </p>
+          <button
+            type="button"
+            onClick={handleFillSimulatedCode}
+            className="text-[11px] font-bold text-white bg-amber-600/60 hover:bg-amber-600 px-2.5 py-1 rounded-xl transition-all"
+          >
+            Remplir automatiquement le code ({simulatedCode}) →
+          </button>
+        </div>
+      )}
+
+      {/* Error / Success Alerts */}
+      {errorMsg && (
+        <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
+
+      {successMsg && (
+        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+          <span>{successMsg}</span>
+        </div>
+      )}
+
+      {/* 6 Digit Input Boxes */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          verifyCode(digits.join(""));
+        }}
+        className="space-y-6"
+      >
+        <div className="flex items-center justify-center gap-2 sm:gap-3">
+          {digits.map((digit, idx) => (
+            <input
+              key={idx}
+              ref={(el) => {
+                inputRefs.current[idx] = el;
+              }}
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={digit}
+              onChange={(e) => handleDigitChange(idx, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(idx, e)}
+              disabled={isLoading}
+              className="w-11 h-13 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-mono font-black text-white bg-slate-800 border-2 border-slate-700 rounded-2xl focus:border-blue-500 focus:bg-slate-800/80 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all"
+            />
+          ))}
+        </div>
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={isLoading || digits.includes("")}
+          className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-black text-sm shadow-xl shadow-blue-600/30 transition-all touch-press flex items-center justify-center gap-2"
+        >
+          {isLoading ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span>Validation en cours...</span>
+            </>
+          ) : (
+            <>
+              <span>Confirmer et Ouvrir ma Caisse</span>
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
+        </button>
+      </form>
+
+      {/* Resend Code Section */}
+      <div className="pt-2 text-center text-xs text-slate-400 space-y-2 border-t border-slate-800/80">
+        <p>Vous n'avez pas reçu de code ?</p>
+        {resendCooldown > 0 ? (
+          <p className="text-slate-500 font-mono">
+            Renvoyer un code dans <b className="text-blue-400">{resendCooldown}s</b>
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={isResending}
+            className="font-bold text-blue-400 hover:text-blue-300 underline underline-offset-4 transition-colors"
+          >
+            {isResending ? "Renvoi en cours..." : "Renvoyer un nouveau code"}
+          </button>
+        )}
+      </div>
+
+      {/* Help Link */}
+      <div className="text-center pt-2">
+        <Link
+          href="/auth/login"
+          className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+        >
+          ← Retour à la page de connexion
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+export default function VerifyOtpPage() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-blue-950 flex flex-col justify-center items-center p-4 sm:p-6 text-white font-sans">
+      <Suspense
+        fallback={
+          <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl flex flex-col items-center justify-center space-y-4">
+            <RefreshCw className="w-8 h-8 text-blue-400 animate-spin" />
+            <p className="text-xs text-slate-400 font-bold">Chargement de la confirmation...</p>
+          </div>
+        }
+      >
+        <VerifyOtpContent />
+      </Suspense>
     </div>
   );
 }
