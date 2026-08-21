@@ -9,6 +9,24 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
+function sanitizeSyncPrice(val: any): number {
+  if (val === null || val === undefined || isNaN(Number(val))) return 0;
+  let clean = Number(val);
+  while (clean > 250000) {
+    clean = Math.round(clean / 2850);
+  }
+  return Math.max(0, clean);
+}
+
+function sanitizeSyncDebt(val: any): number {
+  if (val === null || val === undefined || isNaN(Number(val))) return 0;
+  let clean = Number(val);
+  while (clean > 250000) {
+    clean = Math.round(clean / 2850);
+  }
+  return Math.max(0, clean);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for") || "127.0.0.1";
@@ -181,12 +199,15 @@ export async function POST(req: NextRequest) {
             });
             syncedIds.push(id);
           } else if (entity === "product" && (action === "CREATE" || action === "UPDATE")) {
+            const cleanUnitPrice = data.unitPrice !== undefined ? sanitizeSyncPrice(data.unitPrice) : undefined;
+            const cleanCostPrice = data.costPrice !== undefined ? sanitizeSyncPrice(data.costPrice) : undefined;
+
             await prisma.product.upsert({
               where: { id: data.id },
               update: {
                 name: data.name ?? undefined,
-                unitPrice: data.unitPrice ?? undefined,
-                costPrice: data.costPrice !== undefined ? data.costPrice : undefined,
+                unitPrice: cleanUnitPrice,
+                costPrice: cleanCostPrice,
                 stockQuantity: data.stockQuantity !== undefined ? data.stockQuantity : undefined,
                 minStockAlert: data.minStockAlert !== undefined ? data.minStockAlert : undefined,
                 category: data.category ?? undefined,
@@ -200,8 +221,8 @@ export async function POST(req: NextRequest) {
                 tenantId: data.tenantId || tenantId,
                 storeId: data.storeId || storeId,
                 name: data.name || "Article",
-                unitPrice: data.unitPrice ?? 0,
-                costPrice: data.costPrice ?? 0,
+                unitPrice: cleanUnitPrice ?? 0,
+                costPrice: cleanCostPrice ?? 0,
                 stockQuantity: data.stockQuantity ?? 0,
                 minStockAlert: data.minStockAlert ?? 5,
                 category: data.category ?? "Général",
@@ -214,12 +235,14 @@ export async function POST(req: NextRequest) {
             });
             syncedIds.push(id);
           } else if (entity === "customer" && (action === "CREATE" || action === "UPDATE")) {
+            const cleanDebt = data.currentDebtBalance !== undefined ? sanitizeSyncDebt(data.currentDebtBalance) : undefined;
+
             await prisma.customer.upsert({
               where: { id: data.id },
               update: {
                 name: data.name ?? undefined,
                 phone: data.phone !== undefined ? data.phone : undefined,
-                currentDebtBalance: data.currentDebtBalance !== undefined ? data.currentDebtBalance : undefined,
+                currentDebtBalance: cleanDebt,
                 isSynced: true,
                 updatedAt: now,
               },
@@ -229,7 +252,7 @@ export async function POST(req: NextRequest) {
                 storeId: data.storeId || storeId,
                 name: data.name || "Client",
                 phone: data.phone || null,
-                currentDebtBalance: data.currentDebtBalance ?? 0,
+                currentDebtBalance: cleanDebt ?? 0,
                 isSynced: true,
                 createdAt: new Date(data.createdAt || now),
                 updatedAt: now,
