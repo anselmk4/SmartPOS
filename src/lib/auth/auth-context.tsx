@@ -69,7 +69,14 @@ interface AuthContextType {
     currency?: string;
     pinCode?: string;
     plan?: SubscriptionPlan;
-  }) => Promise<{ success: boolean; message: string }>;
+  }) => Promise<{
+    success: boolean;
+    message: string;
+    requiresVerification?: boolean;
+    verificationMethod?: string;
+    simCode?: string;
+    identifier?: string;
+  }>;
   logout: () => void;
   lockTerminal: () => void;
   switchRole: (role: UserRole) => Promise<void>;
@@ -448,7 +455,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     currency?: string;
     pinCode?: string;
     plan?: SubscriptionPlan;
-  }): Promise<{ success: boolean; message: string }> => {
+  }): Promise<{
+    success: boolean;
+    message: string;
+    requiresVerification?: boolean;
+    verificationMethod?: string;
+    simCode?: string;
+    identifier?: string;
+  }> => {
     try {
       const now = new Date().toISOString();
       const tenantId = generateUUID();
@@ -516,6 +530,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       await db.users.add(cashierUser);
 
+      let requiresVerification = false;
+      let verificationMethod = "SMS";
+      let simCode: string | undefined;
+      let targetIdentifier = data.phone;
+
       // 2. Direct Cloud Registration API call (so the account is immediately active across all devices)
       if (typeof navigator !== "undefined" && navigator.onLine) {
         try {
@@ -525,7 +544,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ? `${baseUrl}/api/v1/auth/register`
             : "/api/v1/auth/register";
 
-          await fetch(apiUrl, {
+          const regRes = await fetch(apiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -544,6 +563,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               plan: data.plan,
             }),
           });
+
+          const regData = await regRes.json();
+          if (regData.success && regData.requiresVerification) {
+            requiresVerification = true;
+            verificationMethod = regData.verificationMethod || "SMS";
+            simCode = regData.otp?.simulatedCode;
+            targetIdentifier = regData.otp?.identifier || data.phone;
+          }
         } catch (cloudRegErr) {
           console.warn("[Auth] Cloud register background fallback:", cloudRegErr);
         }
@@ -568,7 +595,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem(AUTH_STORE_KEY, storeId);
       }
 
-      return { success: true, message: `Boutique "${data.storeName}" créée avec succès !` };
+      return {
+        success: true,
+        requiresVerification,
+        verificationMethod,
+        simCode,
+        identifier: targetIdentifier,
+        message: requiresVerification
+          ? `Code de confirmation envoyé par ${verificationMethod === "EMAIL" ? "e-mail" : "SMS"}`
+          : `Boutique "${data.storeName}" créée avec succès !`,
+      };
     } catch (e: any) {
       return { success: false, message: e.message || "Erreur lors de la création du compte marchand" };
     }

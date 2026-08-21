@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifySuperAdmin, unauthorizedAdminResponse } from "@/lib/admin/admin-guard";
+import {
+  getSystemVerificationConfig,
+  saveSystemVerificationConfig,
+  type VerificationMethod,
+} from "@/lib/services/system-settings";
+import { sendVerificationSms } from "@/lib/services/sms-service";
+import { sendVerificationEmail } from "@/lib/services/email-service";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// GET: Server health & Real database table stats
+// GET: Server health, table counts & System verification settings
 export async function GET(req: NextRequest) {
   try {
     const auth = verifySuperAdmin(req);
@@ -43,6 +50,7 @@ export async function GET(req: NextRequest) {
     ]);
 
     const pingMs = Date.now() - startTime;
+    const verificationConfig = getSystemVerificationConfig();
 
     return NextResponse.json({
       success: true,
@@ -66,6 +74,7 @@ export async function GET(req: NextRequest) {
           syncLogs: syncLogsCount,
           otpVerifications: otpCount,
         },
+        verificationConfig,
         environment: process.env.NODE_ENV || "development",
         serverTimestamp: new Date().toISOString(),
       },
@@ -80,6 +89,73 @@ export async function GET(req: NextRequest) {
           database: { connected: false, error: error.message },
         },
       },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT: Update Verification Settings or trigger Test SMS / Email
+export async function PUT(req: NextRequest) {
+  try {
+    const auth = verifySuperAdmin(req);
+    if (!auth.authenticated) {
+      return unauthorizedAdminResponse(auth.error);
+    }
+
+    const body = await req.json();
+    const { action, verificationMethod, isSimulationMode, twilio, email, testPhone, testEmail } = body;
+
+    // Action 1: Test SMS or Email Dispatch
+    if (action === "TEST_DISPATCH") {
+      const testCode = "789123";
+
+      if (verificationMethod === "EMAIL" && testEmail) {
+        const res = await sendVerificationEmail(testEmail, testCode, "Boutique Test Admin", "Super Administrateur");
+        return NextResponse.json({
+          success: res.success,
+          isSimulated: res.isSimulated,
+          simulatedCode: res.simulatedCode,
+          message: res.isSimulated
+            ? `[Simulation] E-mail de test déclenché vers ${testEmail} avec le code ${testCode}`
+            : `E-mail de test envoyé avec succès vers ${testEmail}`,
+          error: res.error,
+        });
+      } else if (testPhone) {
+        const res = await sendVerificationSms(testPhone, testCode, "Boutique Test Admin");
+        return NextResponse.json({
+          success: res.success,
+          isSimulated: res.isSimulated,
+          simulatedCode: res.simulatedCode,
+          message: res.isSimulated
+            ? `[Simulation] SMS Twilio de test simulé pour ${testPhone} avec le code ${testCode}`
+            : `SMS Twilio de test envoyé avec succès vers ${testPhone}`,
+          error: res.error,
+        });
+      }
+
+      return NextResponse.json(
+        { success: false, error: "Numéro de téléphone ou email de test manquant" },
+        { status: 400 }
+      );
+    }
+
+    // Action 2: Save Verification Config
+    const updated = saveSystemVerificationConfig({
+      verificationMethod: verificationMethod as VerificationMethod,
+      isSimulationMode: isSimulationMode !== undefined ? Boolean(isSimulationMode) : undefined,
+      twilio: twilio || {},
+      email: email || {},
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: updated,
+      message: `Configuration de validation mise à jour : Méthode active = ${updated.verificationMethod} (${updated.isSimulationMode ? "Mode Simulation" : "Mode Production API"})`,
+    });
+  } catch (error: any) {
+    console.error("[Admin Settings PUT Error]:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Erreur lors de la mise à jour de la configuration" },
       { status: 500 }
     );
   }
@@ -104,6 +180,7 @@ export async function POST(req: NextRequest) {
       saleItems,
       debtPayments,
       syncLogs,
+      otpVerifications,
     ] = await Promise.all([
       prisma.tenant.findMany(),
       prisma.store.findMany(),
@@ -115,6 +192,7 @@ export async function POST(req: NextRequest) {
       prisma.saleItem.findMany(),
       prisma.debtPayment.findMany(),
       prisma.syncLog.findMany(),
+      prisma.otpVerification.findMany(),
     ]);
 
     const backupData = {
@@ -135,6 +213,7 @@ export async function POST(req: NextRequest) {
         saleItems: saleItems.length,
         debtPayments: debtPayments.length,
         syncLogs: syncLogs.length,
+        otpVerifications: otpVerifications.length,
       },
       data: {
         tenants,
@@ -147,6 +226,7 @@ export async function POST(req: NextRequest) {
         saleItems,
         debtPayments,
         syncLogs,
+        otpVerifications,
       },
     };
 

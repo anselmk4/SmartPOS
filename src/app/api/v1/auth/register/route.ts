@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { SubscriptionPlan } from "@/lib/shared/types";
 import { hashPinCode } from "@/lib/security/password";
+import { triggerRegistrationOtp } from "@/lib/services/otp-service";
+import { getSystemVerificationConfig } from "@/lib/services/system-settings";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -35,6 +37,9 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days trial/active
 
+    const config = getSystemVerificationConfig();
+    const requiresVerification = config.verificationMethod !== "DISABLED";
+
     // 1. Create or upsert Tenant
     const cleanSlug = `${storeName.toLowerCase().replace(/[^a-z0-9]/g, "-")}-${Date.now().toString(36)}`;
     const tenant = await prisma.tenant.upsert({
@@ -45,8 +50,9 @@ export async function POST(req: NextRequest) {
         countryCode,
         currency,
         plan: (plan as SubscriptionPlan) || "PRO",
-        planStatus: "ACTIVE",
+        planStatus: requiresVerification ? "TRIAL" : "ACTIVE",
         planExpiresAt: periodEnd,
+        isActive: !requiresVerification,
         updatedAt: now,
       },
       create: {
@@ -57,9 +63,9 @@ export async function POST(req: NextRequest) {
         countryCode,
         currency,
         plan: (plan as SubscriptionPlan) || "PRO",
-        planStatus: "ACTIVE",
+        planStatus: requiresVerification ? "TRIAL" : "ACTIVE",
         planExpiresAt: periodEnd,
-        isActive: true,
+        isActive: !requiresVerification,
         createdAt: now,
         updatedAt: now,
       },
@@ -99,7 +105,7 @@ export async function POST(req: NextRequest) {
         email: email ? email.trim().toLowerCase() : undefined,
         pinCode: hashedPin,
         role: "OWNER",
-        isActive: true,
+        isActive: !requiresVerification,
         updatedAt: now,
       },
       create: {
@@ -110,18 +116,36 @@ export async function POST(req: NextRequest) {
         email: email ? email.trim().toLowerCase() : null,
         pinCode: hashedPin,
         role: "OWNER",
-        isActive: true,
+        isActive: !requiresVerification,
         createdAt: now,
         updatedAt: now,
       },
     });
 
+    // 4. Trigger OTP verification (SMS Twilio / Supabase Email)
+    let otpData = null;
+    if (requiresVerification) {
+      otpData = await triggerRegistrationOtp({
+        tenantId: tenant.id,
+        userId: user.id,
+        phone: phone.trim(),
+        email: email ? email.trim() : null,
+        storeName: storeName.trim(),
+        ownerName: ownerName.trim(),
+      });
+    }
+
     return NextResponse.json({
       success: true,
+      requiresVerification,
+      verificationMethod: config.verificationMethod,
+      otp: otpData,
       tenant,
       store,
       user,
-      message: `Boutique "${storeName}" créée et synchronisée sur le Cloud !`,
+      message: requiresVerification
+        ? `Code de confirmation envoyé par ${config.verificationMethod === "EMAIL" ? "e-mail" : "SMS"}.`
+        : `Boutique "${storeName}" créée avec succès !`,
     });
   } catch (error: any) {
     console.error("[Auth Register API Error]:", error);
