@@ -183,11 +183,19 @@ export async function verifyRegistrationOtp(
     data: { consumed: true },
   });
 
-  // Activate Tenant and User in Supabase
+  // Fetch existing tenant to check plan
+  const existingTenant = await prisma.tenant.findUnique({
+    where: { id: record.tenantId },
+  });
+
+  const isFreePlan = !existingTenant?.plan || existingTenant.plan === "FREE";
+  const initialPlanStatus = isFreePlan ? "ACTIVE" : "TRIAL";
+
+  // Activate Tenant (isActive = true) and User in Supabase, keeping planStatus pending if paid plan
   const [tenant, user, stores] = await Promise.all([
     prisma.tenant.update({
       where: { id: record.tenantId },
-      data: { isActive: true, planStatus: "ACTIVE" },
+      data: { isActive: true, planStatus: initialPlanStatus },
     }),
     prisma.user.update({
       where: { id: record.userId },

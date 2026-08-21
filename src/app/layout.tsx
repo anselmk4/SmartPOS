@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/navigation/sidebar";
 import { Navbar } from "@/components/navigation/navbar";
 import { PWARegister } from "@/components/pwa/pwa-register";
 import { PlanMotivationCapsule } from "@/components/plans/plan-motivation-capsule";
+import { PlanPaymentGate } from "@/components/auth/plan-payment-gate";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://globalpos.app"),
@@ -155,7 +156,9 @@ export default function RootLayout({
                   {/* Main Content Area */}
                   <div className="flex-1 flex flex-col min-w-0">
                     <Navbar />
-                    <main className="flex-1 flex flex-col">{children}</main>
+                    <main className="flex-1 flex flex-col">
+                      <PlanPaymentGate>{children}</PlanPaymentGate>
+                    </main>
                   </div>
                 </div>
 
