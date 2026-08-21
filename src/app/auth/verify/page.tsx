@@ -130,9 +130,7 @@ function VerifyOtpContent() {
         return;
       }
 
-      setSuccessMsg("Commerce confirmé avec succès ! Redirection...");
-
-      // Update local storage and Dexie
+      // Update local storage and Dexie so the user is immediately authenticated
       if (data.token && typeof window !== "undefined") {
         localStorage.setItem("kuettu_session_token", data.token);
       }
@@ -151,9 +149,20 @@ function VerifyOtpContent() {
         if (typeof window !== "undefined") localStorage.setItem("micro_erp_auth_store_id", data.stores[0].id);
       }
 
-      setTimeout(() => {
-        window.location.href = "/pos";
-      }, 1000);
+      const tenantPlan = data.tenant?.plan || searchParams?.get("plan") || "FREE";
+      const isPaidPlan = tenantPlan === "BASIC" || tenantPlan === "PRO" || tenantPlan === "BUSINESS";
+
+      if (isPaidPlan) {
+        setSuccessMsg(`Code SMS validé ! Redirection vers le règlement du forfait ${tenantPlan}...`);
+        setTimeout(() => {
+          window.location.href = `/billing?plan=${tenantPlan}&checkout=true&required=true`;
+        }, 900);
+      } else {
+        setSuccessMsg("Commerce confirmé avec succès ! Redirection vers votre caisse...");
+        setTimeout(() => {
+          window.location.href = "/pos";
+        }, 900);
+      }
     } catch (err: any) {
       setErrorMsg(err.message || "Erreur de connexion lors de la vérification");
       setIsLoading(false);

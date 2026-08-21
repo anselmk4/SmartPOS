@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
 import { PawaPayModal } from "@/components/billing/pawapay-modal";
@@ -31,17 +32,28 @@ import {
   Flame,
 } from "lucide-react";
 
-export default function BillingPage() {
+function BillingPageContent() {
   const { tenant, updateTenantPlan, cancelSubscription } = useAuth();
-  const { formatMoney } = useSync();
+  const { formatMoney, rawCurrency } = useSync();
+  const searchParams = useSearchParams();
+
+  const planParam = searchParams?.get("plan") as SubscriptionPlan | null;
+  const isRequired = searchParams?.get("required") === "true";
+  const isCheckout = searchParams?.get("checkout") === "true";
 
   const [selectedPlanToBuy, setSelectedPlanToBuy] = useState<SubscriptionPlan | null>(null);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  const { rawCurrency } = useSync();
   const [displayCurrency, setDisplayCurrency] = useState<string>(rawCurrency || "CDF");
+
+  // Auto open checkout modal if coming from registration with a paid plan
+  useEffect(() => {
+    if (planParam && (planParam === "BASIC" || planParam === "PRO" || planParam === "BUSINESS")) {
+      setSelectedPlanToBuy(planParam);
+    }
+  }, [planParam]);
 
   const currentPlan = tenant?.plan || "FREE";
   const planStatus = tenant?.planStatus || "ACTIVE";
@@ -139,8 +151,8 @@ export default function BillingPage() {
     if (plan === currentPlan && !isCancelled) return;
     if (plan === "FREE") {
       updateTenantPlan("FREE");
-      setSuccessToast("Passage au forfait Gratuit effectué !");
-      setTimeout(() => setSuccessToast(null), 3500);
+      setSuccessToast("Vous êtes maintenant sur le forfait Gratuit Découverte.");
+      setTimeout(() => setSuccessToast(null), 4000);
       return;
     }
     setSelectedPlanToBuy(plan);
@@ -160,8 +172,89 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col space-y-8">
-      {/* Header */}
+    <div className="space-y-8 max-w-7xl mx-auto pb-12 font-sans">
+      {/* Toast */}
+      {successToast && (
+        <div className="fixed top-5 right-5 z-50 bg-emerald-600 text-white px-5 py-3.5 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-2 animate-in slide-in-from-top duration-300">
+          <CheckCircle2 className="w-5 h-5 text-emerald-200" />
+          <span>{successToast}</span>
+        </div>
+      )}
+
+      {/* Onboarding Requirement Banner */}
+      {isRequired && (
+        <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top duration-300">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-black uppercase tracking-wider">
+              <Crown className="w-4 h-4 text-amber-300" />
+              <span>Dernière étape : Activation de votre Forfait</span>
+            </div>
+            <h3 className="text-lg sm:text-xl font-black">
+              Règlement du Forfait {planParam === "BASIC" ? "Commerçant Basic" : planParam === "PRO" ? "Commerçant Pro" : planParam === "BUSINESS" ? "Business Multi-Magasins" : "Sélectionné"}
+            </h3>
+            <p className="text-xs text-blue-100 max-w-2xl leading-relaxed">
+              Votre compte a été vérifié par SMS avec succès ! Pour débloquer l'accès complet à votre caisse tactile et à votre tableau de bord, veuillez régler votre forfait par Mobile Money (M-Pesa, Airtel, Orange, Afrimoney).
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => planParam && setSelectedPlanToBuy(planParam)}
+            className="px-6 py-3.5 rounded-2xl bg-white text-blue-950 hover:bg-blue-50 font-black text-xs shadow-lg shrink-0 flex items-center gap-2 transition-all touch-press"
+          >
+            <span>Payer maintenant</span>
+            <ArrowRight className="w-4 h-4 text-blue-600" />
+          </button>
+        </div>
+      )}
+
+      {/* Current Subscription Status Card */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-700/60 relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs font-black">
+              <Crown className="w-3.5 h-3.5 text-amber-400" />
+              <span>Abonnement Micro-ERP Actif</span>
+            </div>
+
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3">
+              <span>Forfait Actuel :</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">
+                {currentPlan === "FREE" && "Découverte (Gratuit)"}
+                {currentPlan === "BASIC" && "Commerçant Basic"}
+                {currentPlan === "PRO" && "Commerçant Pro"}
+                {currentPlan === "BUSINESS" && "Business Multi-Magasins"}
+              </span>
+            </h1>
+
+            <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
+              Boutique : <b>{tenant?.name || "Votre Boutique"}</b> • Devise principale : <b>{displayCurrency}</b>
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {isPaidPlan && !isCancelled && (
+              <button
+                type="button"
+                onClick={() => setIsCancelModalOpen(true)}
+                className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white text-xs font-bold border border-white/10 transition-all"
+              >
+                Résilier l'abonnement
+              </button>
+            )}
+
+            {isCancelled && (
+              <span className="px-3.5 py-1.5 rounded-2xl bg-rose-500/20 border border-rose-400/30 text-rose-300 text-xs font-bold">
+                Résiliation programmée en fin de période
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Pricing Header */}
       <div className="text-center max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold mb-2">
           <Sparkles className="w-3.5 h-3.5" />
@@ -189,8 +282,8 @@ export default function BillingPage() {
               onClick={() => setDisplayCurrency(c.code)}
               className={`px-3 py-1.5 rounded-xl transition-all ${
                 displayCurrency === c.code
-                  ? "bg-white text-slate-900 shadow-xs"
-                  : "text-slate-500 hover:text-slate-900"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               {c.label}
@@ -199,126 +292,71 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* Success Notification */}
-      {successToast && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl text-xs font-bold flex items-center justify-between shadow-sm animate-in fade-in">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-            <span>{successToast}</span>
-          </div>
-          <button onClick={() => setSuccessToast(null)} className="text-slate-400 hover:text-slate-700">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Current Subscription Status Badge */}
-      <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center font-black">
-            <Crown className="w-6 h-6 text-blue-600" />
-          </div>
-          <div>
-            <div className="text-xs text-slate-500 font-semibold">Forfait Actif de votre Commerce</div>
-            <div className="text-base font-black text-slate-900 flex items-center gap-2">
-              <span>{plans.find((p) => p.id === currentPlan)?.name || currentPlan}</span>
-              <span
-                className={`text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full ${
-                  isCancelled
-                    ? "bg-rose-100 text-rose-700 border border-rose-200"
-                    : "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                }`}
-              >
-                {isCancelled ? "Résilié" : "Actif"}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-          {tenant?.planExpiresAt && (
-            <div className="text-right text-xs text-slate-500">
-              <span className="block text-[10px] uppercase text-slate-400">Prochaine échéance</span>
-              <span className="font-bold text-slate-700">
-                {new Date(tenant.planExpiresAt).toLocaleDateString("fr-FR")}
-              </span>
-            </div>
-          )}
-
-          {isPaidPlan && !isCancelled && (
-            <button
-              onClick={() => setIsCancelModalOpen(true)}
-              className="py-2 px-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 text-xs font-bold transition-all"
-            >
-              Résilier
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Pricing Cards Grid (4 Columns) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 4 Pricing Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {plans.map((p) => {
           const isCurrent = currentPlan === p.id && !isCancelled;
+
           return (
             <div
               key={p.id}
-              className={`bg-white rounded-3xl p-5 border flex flex-col justify-between transition-all relative ${
-                p.color
-              } ${p.popular ? "shadow-xl border-blue-500" : "shadow-xs"}`}
+              className={`bg-white rounded-3xl p-6 border-2 transition-all flex flex-col justify-between relative shadow-sm hover:shadow-xl ${p.color}`}
             >
-              {p.badge && (
-                <div
-                  className={`absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full shadow-xs ${
-                    p.popular
-                      ? "bg-blue-600 text-white"
-                      : p.id === "BASIC"
-                      ? "bg-emerald-600 text-white"
-                      : "bg-slate-100 text-slate-700 border border-slate-200"
-                  }`}
-                >
-                  {p.badge}
+              {p.popular && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-md flex items-center gap-1">
+                  <Flame className="w-3 h-3 text-amber-300" />
+                  <span>Recommandé</span>
                 </div>
               )}
 
               <div>
-                <h3 className="font-black text-slate-900 text-base">{p.name}</h3>
-
-                <div className="mt-3 mb-4">
-                  <div className="text-2xl font-black text-slate-900">
-                    {p.priceInfo.formatted}
-                  </div>
-                  <div className="text-xs text-slate-500 font-medium">
-                    {p.priceInfo.period}
-                  </div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    {p.badge}
+                  </span>
+                  {isCurrent && (
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                      Actif
+                    </span>
+                  )}
                 </div>
 
-                <div className="space-y-2 border-t border-slate-100 pt-3">
-                  {p.features.map((f, idx) => (
+                <h3 className="text-xl font-black text-slate-900">{p.name}</h3>
+
+                <div className="mt-3 mb-6">
+                  <div className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">
+                    {p.priceInfo.formatted}
+                  </div>
+                  <span className="text-xs text-slate-400 block mt-0.5">
+                    {p.id === "FREE" ? "Gratuit à vie" : "Facturé chaque mois"}
+                  </span>
+                </div>
+
+                <div className="space-y-2.5 pt-4 border-t border-slate-100">
+                  {p.features.map((feat, idx) => (
                     <div key={idx} className="flex items-start gap-2 text-xs text-slate-600">
-                      <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <span>{f}</span>
+                      <Check className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                      <span>{feat}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="pt-5 mt-4 border-t border-slate-100">
+              <div className="pt-6 mt-6 border-t border-slate-100">
                 <button
-                  disabled={isCurrent}
+                  type="button"
                   onClick={() => handleOpenPayment(p.id)}
-                  className={`w-full py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 touch-press ${
-                    isCurrent
-                      ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
-                      : p.btnColor
+                  disabled={isCurrent}
+                  className={`w-full py-3 px-4 rounded-2xl font-black text-xs transition-all touch-press flex items-center justify-center gap-1.5 shadow-md ${
+                    isCurrent ? "bg-slate-100 text-slate-400 cursor-default shadow-none" : p.btnColor
                   }`}
                 >
                   {isCurrent ? (
                     <span>Forfait Actuel</span>
                   ) : (
                     <>
-                      <span>{p.id === "FREE" ? "Choisir Gratuit" : "S'abonner via Mobile Money"}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <span>Choisir {p.name}</span>
+                      <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
@@ -328,33 +366,35 @@ export default function BillingPage() {
         })}
       </div>
 
-      {/* Feature Comparison Matrix */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-sm">
-        <h3 className="font-black text-slate-900 text-base mb-4">Tableau Comparatif Détaillé des Forfaits</h3>
+      {/* Feature Comparison Table */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+        <div>
+          <h3 className="text-lg sm:text-xl font-black text-slate-900">
+            Comparatif Détaillé des Fonctionnalités
+          </h3>
+          <p className="text-xs text-slate-500 mt-1">
+            Comparez en détail ce que chaque forfait apporte à la gestion de votre commerce.
+          </p>
+        </div>
+
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left border-collapse min-w-[650px]">
+          <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-200 text-slate-500 uppercase text-[10px] font-black">
-                <th className="py-2.5 px-3">Fonctionnalité</th>
-                <th className="py-2.5 px-3 text-center">Gratuit</th>
-                <th className="py-2.5 px-3 text-center text-emerald-700 bg-emerald-50/40">
-                  Basic ({getPlanPriceInfo("BASIC", displayCurrency).formatted})
-                </th>
-                <th className="py-2.5 px-3 text-center text-blue-700 bg-blue-50/40">
-                  Pro ({getPlanPriceInfo("PRO", displayCurrency).formatted})
-                </th>
-                <th className="py-2.5 px-3 text-center text-indigo-700 bg-indigo-50/40">
-                  Business ({getPlanPriceInfo("BUSINESS", displayCurrency).formatted})
-                </th>
+              <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                <th className="py-3 px-4">Fonctionnalité</th>
+                <th className="py-3 px-3 text-center">Découverte (0 FC)</th>
+                <th className="py-3 px-3 text-center">Basic (15 000 FC)</th>
+                <th className="py-3 px-3 text-center text-blue-600 bg-blue-50/50 rounded-t-xl">Pro (30 000 FC)</th>
+                <th className="py-3 px-3 text-center text-indigo-600 bg-indigo-50/50 rounded-t-xl">Business (100 000 FC)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-              {comparisonFeatures.map((row, index) => (
-                <tr key={index} className="hover:bg-slate-50/60">
-                  <td className="py-2.5 px-3 font-semibold text-slate-800">{row.title}</td>
+            <tbody className="divide-y divide-slate-100">
+              {comparisonFeatures.map((row, idx) => (
+                <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                  <td className="py-2.5 px-4 font-bold text-slate-800">{row.title}</td>
 
                   {/* Free */}
-                  <td className="py-2.5 px-3 text-center">
+                  <td className="py-2.5 px-3 text-center text-slate-600">
                     {typeof row.free === "boolean" ? (
                       row.free ? <Check className="w-4 h-4 text-emerald-600 mx-auto" /> : <X className="w-4 h-4 text-slate-300 mx-auto" />
                     ) : (
@@ -363,7 +403,7 @@ export default function BillingPage() {
                   </td>
 
                   {/* Basic */}
-                  <td className="py-2.5 px-3 text-center bg-emerald-50/20 font-bold text-emerald-800">
+                  <td className="py-2.5 px-3 text-center text-slate-700 font-medium">
                     {typeof row.basic === "boolean" ? (
                       row.basic ? <Check className="w-4 h-4 text-emerald-600 mx-auto" /> : <X className="w-4 h-4 text-slate-300 mx-auto" />
                     ) : (
@@ -372,7 +412,7 @@ export default function BillingPage() {
                   </td>
 
                   {/* Pro */}
-                  <td className="py-2.5 px-3 text-center bg-blue-50/20 font-bold text-blue-800">
+                  <td className="py-2.5 px-3 text-center bg-blue-50/20 font-bold text-blue-900">
                     {typeof row.pro === "boolean" ? (
                       row.pro ? <Check className="w-4 h-4 text-blue-600 mx-auto" /> : <X className="w-4 h-4 text-slate-300 mx-auto" />
                     ) : (
@@ -399,12 +439,19 @@ export default function BillingPage() {
       {selectedPlanToBuy && (
         <PawaPayModal
           isOpen={Boolean(selectedPlanToBuy)}
-          onClose={() => setSelectedPlanToBuy(null)}
+          onClose={() => {
+            setSelectedPlanToBuy(null);
+            if (isRequired) {
+              window.location.href = "/pos";
+            }
+          }}
           plan={selectedPlanToBuy}
           onSuccess={() => {
             setSelectedPlanToBuy(null);
             setSuccessToast(`Félicitations ! Votre forfait ${selectedPlanToBuy} est désormais actif.`);
-            setTimeout(() => setSuccessToast(null), 5000);
+            setTimeout(() => {
+              window.location.href = "/pos";
+            }, 1200);
           }}
         />
       )}
@@ -443,5 +490,20 @@ export default function BillingPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function BillingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center space-y-3">
+          <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+          <p className="text-xs font-bold">Chargement des forfaits...</p>
+        </div>
+      }
+    >
+      <BillingPageContent />
+    </Suspense>
   );
 }

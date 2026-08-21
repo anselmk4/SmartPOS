@@ -157,11 +157,16 @@ export default function RegisterPage() {
         const query = new URLSearchParams();
         if (phone.trim()) query.set("phone", phone.trim());
         if (email.trim()) query.set("email", email.trim());
+        if (selectedPlan) query.set("plan", selectedPlan);
         if (res.verificationMethod) query.set("method", res.verificationMethod);
         if (res.simCode) query.set("simCode", res.simCode);
         router.push(`/auth/verify?${query.toString()}`);
       } else {
-        router.push("/pos");
+        if (selectedPlan && selectedPlan !== "FREE") {
+          window.location.href = `/billing?plan=${selectedPlan}&checkout=true&required=true`;
+        } else {
+          router.push("/pos");
+        }
       }
     } else {
       setErrorMsg(res.message);
