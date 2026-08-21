@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
+import { db } from "@/lib/db/dexie-db";
 import type { SubscriptionPlan, PaymentMethod } from "@/lib/shared/types";
 import {
   PAWAPAY_COUNTRY_CONFIGS,
@@ -139,6 +140,26 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
 
       // If activated instantly (simulation or instant confirmation)
       if (data.activated) {
+        try {
+          const now = new Date().toISOString();
+          const periodEnd = data.planExpiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          await db.subscriptions.put({
+            id: data.transactionId || `sub_${Date.now()}`,
+            tenantId: tenant.id,
+            plan,
+            amount: planAmount,
+            currency: selectedCurrency,
+            paymentMethod: selectedOperator,
+            paymentStatus: "ACTIVE",
+            transactionId: data.transactionId || `SUB-${Date.now()}`,
+            periodStart: now,
+            periodEnd,
+            createdAt: now,
+          });
+        } catch (subErr) {
+          console.warn("[PawaPay] Local subscription save error:", subErr);
+        }
+
         await updateTenantPlan(plan);
         setSuccessMessage(data.message || `Votre forfait ${plan} a été activé avec succès !`);
         setStep("SUCCESS");

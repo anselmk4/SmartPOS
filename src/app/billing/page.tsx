@@ -4,9 +4,11 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/lib/db/dexie-db";
 import { PawaPayModal } from "@/components/billing/pawapay-modal";
 import { getPlanPriceInfo } from "@/lib/constants/plans";
-import type { SubscriptionPlan } from "@/lib/shared/types";
+import type { SubscriptionPlan, Subscription } from "@/lib/shared/types";
 import {
   CreditCard,
   CheckCircle2,
@@ -30,6 +32,9 @@ import {
   RefreshCw,
   Users,
   Flame,
+  History,
+  Clock,
+  Download,
 } from "lucide-react";
 
 function BillingPageContent() {
@@ -47,6 +52,42 @@ function BillingPageContent() {
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   const [displayCurrency, setDisplayCurrency] = useState<string>(rawCurrency || "CDF");
+  const [cloudSubscriptions, setCloudSubscriptions] = useState<Subscription[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  // Local Dexie subscriptions for reactive offline-first tracking
+  const localSubscriptions =
+    useLiveQuery(
+      async () => {
+        if (!tenant?.id) return [];
+        return await db.subscriptions
+          .where("tenantId")
+          .equals(tenant.id)
+          .reverse()
+          .sortBy("createdAt");
+      },
+      [tenant?.id]
+    ) || [];
+
+  // Fetch Cloud Subscriptions from PostgreSQL on mount
+  useEffect(() => {
+    if (tenant?.id) {
+      setIsLoadingHistory(true);
+      fetch(`/api/v1/payments/subscriptions?tenantId=${tenant.id}`)
+        .then((res) => res.json())
+        .then(async (data) => {
+          if (data.success && data.subscriptions) {
+            setCloudSubscriptions(data.subscriptions);
+            // Save to Dexie
+            for (const sub of data.subscriptions) {
+              await db.subscriptions.put(sub);
+            }
+          }
+        })
+        .catch((err) => console.warn("[Billing] Subscriptions fetch error:", err))
+        .finally(() => setIsLoadingHistory(false));
+    }
+  }, [tenant?.id]);
 
   // Auto open checkout modal if coming from registration with a paid plan
   useEffect(() => {
@@ -59,6 +100,16 @@ function BillingPageContent() {
   const planStatus = tenant?.planStatus || "ACTIVE";
   const isPaidPlan = currentPlan === "BASIC" || currentPlan === "PRO" || currentPlan === "BUSINESS";
   const isCancelled = planStatus === "CANCELLED";
+
+  // Merge subscriptions (Dexie + Cloud deduplicated)
+  const allSubscriptionsMap = new Map<string, any>();
+  [...localSubscriptions, ...cloudSubscriptions].forEach((s) => {
+    if (s.id) allSubscriptionsMap.set(s.id, s);
+    else if (s.transactionId) allSubscriptionsMap.set(s.transactionId, s);
+  });
+  const allSubscriptions = Array.from(allSubscriptionsMap.values()).sort(
+    (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+  );
 
   const plans = [
     {
@@ -193,7 +244,7 @@ function BillingPageContent() {
               Règlement du Forfait {planParam === "BASIC" ? "Commerçant Basic" : planParam === "PRO" ? "Commerçant Pro" : planParam === "BUSINESS" ? "Business Multi-Magasins" : "Sélectionné"}
             </h3>
             <p className="text-xs text-blue-100 max-w-2xl leading-relaxed">
-              Votre compte a été vérifié par SMS avec succès ! Pour débloquer l'accès complet à votre caisse tactile et à votre tableau de bord, veuillez régler votre forfait par Mobile Money (M-Pesa, Airtel, Orange, Afrimoney).
+              Votre compte a été vérifié par SMS avec succès ! Pour débloquer l'accès complet à votre caisse tactile et à votre tableau de bord, veuillez régler votre forfait par Mobile Money.
             </p>
           </div>
 
@@ -252,6 +303,149 @@ function BillingPageContent() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* ========================================================= */}
+      {/* 📜 HISTORIQUE DES PAIEMENTS & SOUSCRIPTIONS EFFECTUÉS */}
+      {/* ========================================================= */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+              <History className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-lg sm:text-xl font-black text-slate-900">
+                Historique de vos Paiements & Souscriptions
+              </h3>
+              <p className="text-xs text-slate-500">
+                Retrouvez tous les règlements Mobile Money effectués pour votre compte.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              if (tenant?.id) {
+                fetch(`/api/v1/payments/subscriptions?tenantId=${tenant.id}`)
+                  .then((res) => res.json())
+                  .then((d) => d.success && setCloudSubscriptions(d.subscriptions));
+              }
+            }}
+            className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 text-xs font-bold flex items-center gap-1.5 transition-colors"
+            title="Actualiser l'historique"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingHistory ? "animate-spin text-blue-600" : ""}`} />
+            <span>Actualiser</span>
+          </button>
+        </div>
+
+        {allSubscriptions.length === 0 ? (
+          <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
+            <Receipt className="w-8 h-8 text-slate-300 mx-auto" />
+            <h4 className="text-xs font-bold text-slate-700">Aucun paiement enregistré pour l'instant</h4>
+            <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+              Lorsque vous effectuez un paiement par Mobile Money pour activer un forfait, votre reçu et l'historique complet s'afficheront ici.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                  <th className="py-3 px-3">Date</th>
+                  <th className="py-3 px-3">Forfait Activé</th>
+                  <th className="py-3 px-3">Montant Réglé</th>
+                  <th className="py-3 px-3">Opérateur & Mode</th>
+                  <th className="py-3 px-3">Réf. Transaction</th>
+                  <th className="py-3 px-3">Période de Validité</th>
+                  <th className="py-3 px-3 text-center">Statut</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {allSubscriptions.map((sub, idx) => {
+                  const dateStr = sub.createdAt
+                    ? new Date(sub.createdAt).toLocaleDateString("fr-FR", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "—";
+
+                  const startStr = sub.periodStart
+                    ? new Date(sub.periodStart).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })
+                    : "—";
+
+                  const endStr = sub.periodEnd
+                    ? new Date(sub.periodEnd).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })
+                    : "—";
+
+                  const planLabel =
+                    sub.plan === "BASIC"
+                      ? "Commerçant Basic"
+                      : sub.plan === "PRO"
+                      ? "Commerçant Pro"
+                      : sub.plan === "BUSINESS"
+                      ? "Business Multi-Magasins"
+                      : "Découverte";
+
+                  return (
+                    <tr key={sub.id || idx} className="hover:bg-slate-50/70 transition-colors">
+                      {/* Date */}
+                      <td className="py-3.5 px-3 font-semibold text-slate-700 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>{dateStr}</span>
+                        </div>
+                      </td>
+
+                      {/* Plan */}
+                      <td className="py-3.5 px-3">
+                        <span className="font-bold text-slate-900 block">{planLabel}</span>
+                        <span className="text-[10px] text-slate-400 font-medium">30 Jours d'accès</span>
+                      </td>
+
+                      {/* Amount */}
+                      <td className="py-3.5 px-3 font-mono font-black text-slate-900 whitespace-nowrap">
+                        {Number(sub.amount || 0).toLocaleString("fr-FR")} {sub.currency || "CDF"}
+                      </td>
+
+                      {/* Operator */}
+                      <td className="py-3.5 px-3">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-bold border border-slate-200">
+                          <Smartphone className="w-3 h-3 text-blue-600" />
+                          <span>{sub.paymentMethod || "Mobile Money"}</span>
+                        </span>
+                      </td>
+
+                      {/* Ref */}
+                      <td className="py-3.5 px-3 font-mono text-[11px] text-slate-500">
+                        <span className="truncate max-w-[120px] block" title={sub.transactionId}>
+                          {sub.transactionId || "—"}
+                        </span>
+                      </td>
+
+                      {/* Period */}
+                      <td className="py-3.5 px-3 text-slate-600 text-[11px] whitespace-nowrap">
+                        Du <b>{startStr}</b> au <b>{endStr}</b>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Payé & Actif</span>
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Pricing Header */}

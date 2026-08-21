@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/lib/db/dexie-db";
 import { getPlanPriceInfo } from "@/lib/constants/plans";
 import { PLAN_CONFIGS, type SubscriptionPlan } from "@/lib/shared/types";
 import { PawaPayModal } from "@/components/billing/pawapay-modal";
@@ -30,6 +32,27 @@ export function PlanPaymentGate({ children }: { children: React.ReactNode }) {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isDowngrading, setIsDowngrading] = useState(false);
 
+  // Check if active subscription exists in Dexie
+  const activeSubscription = useLiveQuery(
+    async () => {
+      if (!tenant?.id) return null;
+      const now = new Date().toISOString();
+      return await db.subscriptions
+        .where("tenantId")
+        .equals(tenant.id)
+        .filter((s) => s.paymentStatus === "ACTIVE" && (!s.periodEnd || s.periodEnd >= now))
+        .first();
+    },
+    [tenant?.id]
+  );
+
+  // If active subscription found locally, ensure tenant planStatus is synced to ACTIVE
+  useEffect(() => {
+    if (activeSubscription && tenant && tenant.planStatus !== "ACTIVE") {
+      updateTenantPlan(activeSubscription.plan || tenant.plan);
+    }
+  }, [activeSubscription, tenant, updateTenantPlan]);
+
   // Exempt public pages, admin, auth, and billing
   const isExemptPath =
     pathname === "/" ||
@@ -41,7 +64,8 @@ export function PlanPaymentGate({ children }: { children: React.ReactNode }) {
   const currentPlan = tenant?.plan || "FREE";
   const planStatus = tenant?.planStatus || "ACTIVE";
   const isPaidPlan = currentPlan === "BASIC" || currentPlan === "PRO" || currentPlan === "BUSINESS";
-  const isPaymentPending = isPaidPlan && planStatus !== "ACTIVE";
+  const hasActivePayment = Boolean(activeSubscription);
+  const isPaymentPending = isPaidPlan && planStatus !== "ACTIVE" && !hasActivePayment;
 
   const handleDowngradeToFree = async () => {
     if (!tenant) return;

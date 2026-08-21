@@ -784,9 +784,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateTenantPlan = async (newPlan: SubscriptionPlan) => {
     if (!tenant) return;
-    const updated = { ...tenant, plan: newPlan, updatedAt: new Date().toISOString() };
+    const now = new Date().toISOString();
+    const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const updated: Tenant = {
+      ...tenant,
+      plan: newPlan,
+      planStatus: "ACTIVE",
+      planExpiresAt: newPlan === "FREE" ? undefined : periodEnd,
+      updatedAt: now,
+    };
     await db.tenants.put(updated);
     setTenant(updated);
+
+    if (typeof navigator !== "undefined" && navigator.onLine) {
+      try {
+        await fetch("/api/v1/billing/update-plan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tenantId: tenant.id,
+            plan: newPlan,
+            planStatus: "ACTIVE",
+          }),
+        });
+      } catch (e) {
+        console.warn("[Auth] Cloud plan update fallback:", e);
+      }
+    }
 
     await enqueueSync({
       tenantId: tenant.id,
