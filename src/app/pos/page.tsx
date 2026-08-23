@@ -92,6 +92,24 @@ export default function POSPage() {
     return allSales.filter((s) => s.createdAt.startsWith(currentMonthStr)).length;
   }, [allSales, currentMonthStr]);
 
+  const isHoreca = useMemo(() => {
+    const bt = authStore?.businessType || tenant?.businessType || "";
+    const lower = bt.toLowerCase();
+    return (
+      lower.includes("restaurant") ||
+      lower.includes("bar") ||
+      lower.includes("lounge") ||
+      lower.includes("pub") ||
+      lower.includes("terrasse") ||
+      lower.includes("café") ||
+      lower.includes("cafe") ||
+      lower.includes("snack") ||
+      lower.includes("fastfood") ||
+      lower.includes("fast-food") ||
+      lower.includes("traiteur")
+    );
+  }, [authStore?.businessType, tenant?.businessType]);
+
   // Quota Découverte: 100 sales / month
   const isFreeQuotaReached = plan === "FREE" && monthSalesCount >= 100;
 
@@ -766,7 +784,11 @@ export default function POSPage() {
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900 truncate">
-                          <Utensils className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                          {isHoreca ? (
+                            <Utensils className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                          ) : (
+                            <Receipt className="w-3.5 h-3.5 text-blue-700 shrink-0" />
+                          )}
                           <span>{order.label}</span>
                           {order.customerName && (
                             <span className="text-[10px] text-blue-700 font-semibold truncate">
@@ -877,15 +899,23 @@ export default function POSPage() {
 
           {/* Invoicing Action Tools (Hold, Proforma, Discount) */}
           <div className="grid grid-cols-3 gap-1.5">
-            {/* Hold Button */}
+            {/* Hold / Unpaid Invoice Button */}
             <button
               onClick={() => setIsHoldModalOpen(true)}
               disabled={cart.length === 0}
-              className="py-2 px-1.5 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Mettre la commande en attente (Hold / Table)"
+              className={`py-2 px-1.5 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                isHoreca
+                  ? "border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800"
+                  : "border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800"
+              }`}
+              title={
+                isHoreca
+                  ? "Mettre la commande en attente (Hold / Table)"
+                  : "Mettre la facture de côté (Non payée / En attente)"
+              }
             >
-              <PauseCircle className="w-4 h-4 text-amber-600" />
-              <span>Hold (Pause)</span>
+              <PauseCircle className={`w-4 h-4 ${isHoreca ? "text-amber-600" : "text-blue-600"}`} />
+              <span>{isHoreca ? "Hold (Table)" : "Non Payée"}</span>
             </button>
 
             {/* Proforma / Addition Pre-bill Button */}
@@ -893,10 +923,14 @@ export default function POSPage() {
               onClick={() => setIsProformaModalOpen(true)}
               disabled={cart.length === 0}
               className="py-2 px-1.5 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Imprimer ou présenter l'addition provisoire au client"
+              title={
+                isHoreca
+                  ? "Imprimer ou présenter l'addition provisoire au client"
+                  : "Imprimer ou partager la facture proforma"
+              }
             >
               <FileText className="w-4 h-4 text-indigo-600" />
-              <span>Addition Note</span>
+              <span>{isHoreca ? "Addition Note" : "Proforma"}</span>
             </button>
 
             {/* Discount Button */}
@@ -961,6 +995,7 @@ export default function POSPage() {
         canSaveCurrent={cart.length > 0}
         formatMoney={formatMoney}
         selectedCustomer={selectedCustomer}
+        businessType={authStore?.businessType || tenant?.businessType}
       />
 
       {/* 2. DISCOUNT MODAL */}
@@ -994,7 +1029,11 @@ export default function POSPage() {
         onSaveAsHoldAndClose={async () => {
           const labelToUse =
             tableOrLabel.trim() ||
-            (selectedCustomer ? `Client ${selectedCustomer.name}` : `Table ${heldOrders.length + 1}`);
+            (selectedCustomer
+              ? `Client ${selectedCustomer.name}`
+              : isHoreca
+              ? `Table ${heldOrders.length + 1}`
+              : `Facture #${heldOrders.length + 1}`);
           await handleSaveCurrentAsHold(labelToUse);
           setIsProformaModalOpen(false);
         }}

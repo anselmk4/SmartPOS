@@ -1,8 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import type { HeldOrder, Customer } from "@/lib/shared/types";
-import { Clock, Trash2, ArrowRight, Play, Utensils, X, Plus, AlertCircle } from "lucide-react";
+import {
+  Clock,
+  Trash2,
+  ArrowRight,
+  Play,
+  Utensils,
+  X,
+  Plus,
+  AlertCircle,
+  FileText,
+  Bookmark,
+  Receipt,
+  Store,
+} from "lucide-react";
 
 interface HoldOrdersModalProps {
   isOpen: boolean;
@@ -14,6 +27,7 @@ interface HoldOrdersModalProps {
   canSaveCurrent: boolean;
   formatMoney: (amount: number) => string;
   selectedCustomer?: Customer | null;
+  businessType?: string;
 }
 
 export function HoldOrdersModal({
@@ -26,37 +40,73 @@ export function HoldOrdersModal({
   canSaveCurrent,
   formatMoney,
   selectedCustomer,
+  businessType,
 }: HoldOrdersModalProps) {
   const [activeTab, setActiveTab] = useState<"LIST" | "NEW">("LIST");
   const [tableLabel, setTableLabel] = useState("");
   const [holdNotes, setHoldNotes] = useState("");
 
+  const isHoreca = useMemo(() => {
+    if (!businessType) return false;
+    const lower = businessType.toLowerCase();
+    return (
+      lower.includes("restaurant") ||
+      lower.includes("bar") ||
+      lower.includes("lounge") ||
+      lower.includes("pub") ||
+      lower.includes("terrasse") ||
+      lower.includes("café") ||
+      lower.includes("cafe") ||
+      lower.includes("snack") ||
+      lower.includes("fastfood") ||
+      lower.includes("fast-food") ||
+      lower.includes("traiteur")
+    );
+  }, [businessType]);
+
   if (!isOpen) return null;
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tableLabel.trim()) return;
-    onSaveCurrentAsHold(tableLabel.trim(), holdNotes.trim() || undefined);
+  const defaultGeneratedLabel = selectedCustomer
+    ? `Facture Client ${selectedCustomer.name}`
+    : isHoreca
+    ? `Table ${heldOrders.length + 1}`
+    : `Facture #${heldOrders.length + 1}`;
+
+  const handleSave = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const finalLabel = tableLabel.trim() || defaultGeneratedLabel;
+    onSaveCurrentAsHold(finalLabel, holdNotes.trim() || undefined);
     setTableLabel("");
     setHoldNotes("");
     setActiveTab("LIST");
     onClose();
   };
 
-  const quickTableSuggestions = [
-    "Table 1",
-    "Table 2",
-    "Table 3",
-    "Table 4",
-    "Table 5",
-    "Table 6",
-    "Table 7",
-    "Table 8",
-    "Comptoir",
-    "Terrasse",
-    "VIP Lounge",
-    "À Emporter",
-  ];
+  const quickSuggestions = isHoreca
+    ? [
+        "Table 1",
+        "Table 2",
+        "Table 3",
+        "Table 4",
+        "Table 5",
+        "Table 6",
+        "Table 7",
+        "Table 8",
+        "Comptoir",
+        "Terrasse",
+        "VIP Lounge",
+        "À Emporter",
+      ]
+    : [
+        "Client Comptoir",
+        "Commande Rapide",
+        "Livraison",
+        "Devis / En Attente",
+        "Client Fidélisé",
+        "À Préparer",
+        "Réservation",
+        "Grossiste",
+      ];
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in">
@@ -64,15 +114,24 @@ export function HoldOrdersModal({
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center shadow-xs">
-              <Utensils className="w-5 h-5" />
+            <div
+              className={`w-10 h-10 rounded-2xl border flex items-center justify-center shadow-xs ${
+                isHoreca
+                  ? "bg-amber-50 text-amber-600 border-amber-200"
+                  : "bg-blue-50 text-blue-600 border-blue-200"
+              }`}
+            >
+              {isHoreca ? <Utensils className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-base sm:text-lg">
-                Tickets & Tables en Attente (Hold)
+                {isHoreca
+                  ? "Tickets & Tables en Attente (Hold)"
+                  : "Factures & Commandes en Attente (Non payées)"}
               </h3>
               <p className="text-xs text-slate-500">
-                {heldOrders.length} commande{heldOrders.length > 1 ? "s" : ""} en cours
+                {heldOrders.length} {isHoreca ? "commande" : "facture non payée"}
+                {heldOrders.length > 1 ? "s" : ""} en cours
               </p>
             </div>
           </div>
@@ -94,7 +153,9 @@ export function HoldOrdersModal({
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
-            Commandes en Attente ({heldOrders.length})
+            {isHoreca
+              ? `Commandes en Attente (${heldOrders.length})`
+              : `Factures Non Payées (${heldOrders.length})`}
           </button>
           <button
             onClick={() => setActiveTab("NEW")}
@@ -108,7 +169,7 @@ export function HoldOrdersModal({
             }`}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Mettre le panier en attente</span>
+            <span>{isHoreca ? "Mettre en attente (Table)" : "Sauvegarder non payée"}</span>
           </button>
         </div>
 
@@ -118,16 +179,24 @@ export function HoldOrdersModal({
             heldOrders.length === 0 ? (
               <div className="text-center py-10 px-4">
                 <Clock className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                <p className="text-sm font-bold text-slate-700">Aucune commande en attente</p>
+                <p className="text-sm font-bold text-slate-700">
+                  {isHoreca ? "Aucune commande en attente" : "Aucune facture non payée en attente"}
+                </p>
                 <p className="text-xs text-slate-400 mt-1">
-                  Mettez un panier en pause pour servir un autre client ou gérer une table de restaurant.
+                  {isHoreca
+                    ? "Mettez un panier en pause pour servir un autre client ou gérer une table de restaurant."
+                    : "Conservez un panier non payé de côté pour continuer à encaisser d'autres clients."}
                 </p>
                 {canSaveCurrent && (
                   <button
                     onClick={() => setActiveTab("NEW")}
-                    className="mt-4 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/20"
+                    className={`mt-4 px-4 py-2 text-white rounded-xl text-xs font-bold shadow-md ${
+                      isHoreca
+                        ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20"
+                        : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
+                    }`}
                   >
-                    Mettre le panier actuel en attente
+                    {isHoreca ? "Mettre le panier actuel en attente" : "Sauvegarder cette facture non payée"}
                   </button>
                 )}
               </div>
@@ -142,12 +211,21 @@ export function HoldOrdersModal({
                 return (
                   <div
                     key={order.id}
-                    className="bg-slate-50 hover:bg-amber-50/40 border border-slate-200 hover:border-amber-300 rounded-2xl p-3.5 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
+                    className={`border rounded-2xl p-3.5 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs ${
+                      isHoreca
+                        ? "bg-slate-50 hover:bg-amber-50/40 border-slate-200 hover:border-amber-300"
+                        : "bg-slate-50 hover:bg-blue-50/40 border-slate-200 hover:border-blue-300"
+                    }`}
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-extrabold text-sm text-slate-900 bg-white px-2.5 py-0.5 rounded-lg border border-slate-200 shadow-2xs">
-                          {order.label}
+                        <span className="font-extrabold text-sm text-slate-900 bg-white px-2.5 py-0.5 rounded-lg border border-slate-200 shadow-2xs flex items-center gap-1.5">
+                          {isHoreca ? (
+                            <Utensils className="w-3.5 h-3.5 text-amber-600" />
+                          ) : (
+                            <Receipt className="w-3.5 h-3.5 text-blue-600" />
+                          )}
+                          <span>{order.label}</span>
                         </span>
                         {order.customerName && (
                           <span className="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md font-semibold">
@@ -163,8 +241,15 @@ export function HoldOrdersModal({
                         {order.items.map((it) => `${it.product.name} (x${it.quantity})`).join(", ")}
                       </div>
 
-                      <div className="text-xs font-bold text-amber-700 mt-1">
-                        Total : {formatMoney(order.totalAmount)} • <span className="text-slate-500 font-normal">{totalQty} article{totalQty > 1 ? "s" : ""}</span>
+                      <div
+                        className={`text-xs font-bold mt-1 ${
+                          isHoreca ? "text-amber-700" : "text-blue-700"
+                        }`}
+                      >
+                        Total : {formatMoney(order.totalAmount)} •{" "}
+                        <span className="text-slate-500 font-normal">
+                          {totalQty} article{totalQty > 1 ? "s" : ""}
+                        </span>
                       </div>
                     </div>
 
@@ -183,7 +268,7 @@ export function HoldOrdersModal({
                         }}
                         className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-blue-600/20"
                       >
-                        <span>Reprendre</span>
+                        <span>Encaisser</span>
                         <Play className="w-3.5 h-3.5 fill-current" />
                       </button>
                     </div>
@@ -195,15 +280,22 @@ export function HoldOrdersModal({
             <form onSubmit={handleSave} className="space-y-4 py-1">
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                  Nom de la Table ou Référence du Ticket *
+                  {isHoreca
+                    ? "Nom de la Table ou Référence du Ticket (Optionnel)"
+                    : "Référence ou Intitulé de la Facture (Optionnel)"}
                 </label>
                 <input
                   type="text"
-                  required
-                  placeholder="Ex: Table 4, Terrasse, M. Amadou..."
+                  placeholder={
+                    isHoreca
+                      ? `Ex: Table 4, Terrasse... (défaut: ${defaultGeneratedLabel})`
+                      : `Ex: M. Amadou, Commande #12... (défaut: ${defaultGeneratedLabel})`
+                  }
                   value={tableLabel}
                   onChange={(e) => setTableLabel(e.target.value)}
-                  className="w-full p-3 bg-slate-50 rounded-xl text-sm font-semibold border border-slate-200 focus:ring-2 focus:ring-amber-500 focus:bg-white outline-none"
+                  className={`w-full p-3 bg-slate-50 rounded-xl text-sm font-semibold border border-slate-200 focus:bg-white outline-none ${
+                    isHoreca ? "focus:ring-2 focus:ring-amber-500" : "focus:ring-2 focus:ring-blue-500"
+                  }`}
                   autoFocus
                 />
               </div>
@@ -214,14 +306,16 @@ export function HoldOrdersModal({
                   Suggestions Rapides
                 </label>
                 <div className="flex flex-wrap gap-1.5">
-                  {quickTableSuggestions.map((sug) => (
+                  {quickSuggestions.map((sug) => (
                     <button
                       key={sug}
                       type="button"
                       onClick={() => setTableLabel(sug)}
                       className={`text-xs px-2.5 py-1 rounded-lg border font-semibold transition-all ${
                         tableLabel === sug
-                          ? "bg-amber-500 text-white border-amber-500 shadow-xs"
+                          ? isHoreca
+                            ? "bg-amber-500 text-white border-amber-500 shadow-xs"
+                            : "bg-blue-600 text-white border-blue-600 shadow-xs"
                           : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
                       }`}
                     >
@@ -237,17 +331,25 @@ export function HoldOrdersModal({
                 </label>
                 <input
                   type="text"
-                  placeholder="Ex: Servir après l'entrée, sans piment..."
+                  placeholder={
+                    isHoreca
+                      ? "Ex: Servir après l'entrée, sans piment..."
+                      : "Ex: À livrer à 14h, client repassera payer..."
+                  }
                   value={holdNotes}
                   onChange={(e) => setHoldNotes(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:ring-2 focus:ring-amber-500 focus:bg-white outline-none"
+                  className={`w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white outline-none ${
+                    isHoreca ? "focus:ring-2 focus:ring-amber-500" : "focus:ring-2 focus:ring-blue-500"
+                  }`}
                 />
               </div>
 
               {selectedCustomer && (
                 <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0 text-blue-600" />
-                  <span>Le client <b>{selectedCustomer.name}</b> sera rattaché à ce ticket.</span>
+                  <span>
+                    Le client <b>{selectedCustomer.name}</b> sera rattaché à cette facture.
+                  </span>
                 </div>
               )}
 
@@ -261,10 +363,14 @@ export function HoldOrdersModal({
                 </button>
                 <button
                   type="submit"
-                  disabled={!tableLabel.trim()}
-                  className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-md shadow-amber-500/25 disabled:bg-slate-300 disabled:cursor-not-allowed"
+                  disabled={!canSaveCurrent}
+                  className={`flex-1 py-2.5 rounded-xl text-white text-xs font-bold shadow-md disabled:bg-slate-300 disabled:cursor-not-allowed ${
+                    isHoreca
+                      ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/25"
+                      : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/25"
+                  }`}
                 >
-                  Mettre en Attente
+                  {isHoreca ? "Mettre en Attente" : "Sauvegarder Non Payée"}
                 </button>
               </div>
             </form>

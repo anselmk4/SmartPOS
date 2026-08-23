@@ -42,6 +42,12 @@ export function ProformaInvoiceModal({
 
   if (!isOpen) return null;
 
+  const isHoreca = Boolean(
+    (store?.businessType || tenant?.businessType || "")
+      .toLowerCase()
+      .match(/restaurant|bar|lounge|pub|terrasse|café|cafe|snack|fastfood|fast-food|traiteur/)
+  );
+
   const now = new Date();
   const dateStr = now.toLocaleDateString("fr-FR", {
     day: "2-digit",
@@ -57,6 +63,9 @@ export function ProformaInvoiceModal({
     .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}-${Math.floor(
     1000 + Math.random() * 9000
   )}`;
+
+  const badgeText = isHoreca ? "*** ADDITION / NOTE PROVISOIRE ***" : "*** FACTURE PROFORMA / EN ATTENTE ***";
+  const docTitle = isHoreca ? "Addition / Note Provisoire" : "Facture Proforma / Devis";
 
   const handlePrint = async () => {
     const storeName = store?.name || tenant?.name || "Kuettu Global POS";
@@ -79,16 +88,16 @@ export function ProformaInvoiceModal({
         ${address}
         ${phone}
         <div class="divider"></div>
-        <div class="badge uppercase">*** ADDITION / NOTE PROVISOIRE ***</div>
+        <div class="badge uppercase">${badgeText}</div>
       </div>
 
       <div class="divider"></div>
       <div style="font-size: 10px; line-height: 1.3;">
         <div class="flex justify-between"><span>Note N° :</span><b>${proformaNumber}</b></div>
         <div class="flex justify-between"><span>Date :</span><span>${dateStr} ${timeStr}</span></div>
-        ${tableOrLabel ? `<div class="flex justify-between font-bold"><span>Table / Ref :</span><span>${tableOrLabel}</span></div>` : ""}
+        ${tableOrLabel ? `<div class="flex justify-between font-bold"><span>${isHoreca ? "Table / Ref :" : "Réf / Note :"}</span><span>${tableOrLabel}</span></div>` : ""}
         ${selectedCustomer ? `<div class="flex justify-between"><span>Client :</span><b>${selectedCustomer.name}</b></div>` : ""}
-        ${cashierName ? `<div class="flex justify-between"><span>Caissier :</span><span>${cashierName}</span></div>` : ""}
+        ${cashierName ? `<div class="flex justify-between"><span>${isHoreca ? "Serveur / Caissier :" : "Caissier / Vendeur :"}</span><span>${cashierName}</span></div>` : ""}
       </div>
 
       <div class="divider"></div>
@@ -109,7 +118,10 @@ export function ProformaInvoiceModal({
         <div class="flex justify-between"><span>Sous-total Brut :</span><span>${formatMoney(subtotalAmount)}</span></div>
         ${discountAmount > 0 ? `<div class="flex justify-between font-bold"><span>Remise déduite :</span><span>-${formatMoney(discountAmount)}</span></div>` : ""}
         <div class="divider"></div>
-        <div class="flex justify-between font-black text-sm" style="font-size: 13px;"><span>NET À PAYER :</span><span>${formatMoney(totalAmount)}</span></div>
+        <div class="flex justify-between font-black text-sm" style="font-size: 13px;">
+          <span>NET À PAYER :</span>
+          <span>${formatMoney(totalAmount)}</span>
+        </div>
       </div>
 
       <div class="divider"></div>
@@ -121,7 +133,7 @@ export function ProformaInvoiceModal({
     `;
 
     await printIsolatedDocument({
-      title: `Addition_${proformaNumber}`,
+      title: `${isHoreca ? "Addition" : "Proforma"}_${proformaNumber}`,
       width: "80mm",
       bodyHtml,
     });
@@ -132,9 +144,9 @@ export function ProformaInvoiceModal({
     const phoneToUse = selectedCustomer?.phone?.replace(/\D/g, "");
     if (!phoneToUse) return;
 
-    let msg = `🧾 *${store?.name || "Global POS"} - ADDITION / NOTE À PAYER*\n`;
+    let msg = `🧾 *${store?.name || "Global POS"} - ${isHoreca ? "ADDITION / NOTE À PAYER" : "FACTURE PROFORMA / EN ATTENTE"}*\n`;
     msg += `N° Note : ${proformaNumber}\n`;
-    if (tableOrLabel) msg += `📍 Table / Ref : ${tableOrLabel}\n`;
+    if (tableOrLabel) msg += `📍 ${isHoreca ? "Table / Ref" : "Réf / Client"} : ${tableOrLabel}\n`;
     msg += `📅 Date : ${dateStr} à ${timeStr}\n\n`;
     msg += `*DÉTAIL DES ARTICLES :*\n`;
     items.forEach((it) => {
@@ -158,7 +170,7 @@ export function ProformaInvoiceModal({
               <FileText className="w-4 h-4" />
             </div>
             <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-              Addition / Note Provisoire
+              {docTitle}
             </h3>
           </div>
           <button
@@ -182,7 +194,7 @@ export function ProformaInvoiceModal({
             {store?.address && <p className="text-[10px] text-slate-500">{store.address}</p>}
             {store?.phone && <p className="text-[10px] text-slate-500">Tél: {store.phone}</p>}
             <div className="mt-1.5 inline-block px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-black text-[10px] uppercase tracking-wider">
-              *** ADDITION / NOTE PROVISOIRE ***
+              {badgeText}
             </div>
           </div>
 
@@ -198,7 +210,7 @@ export function ProformaInvoiceModal({
             </div>
             {tableOrLabel && (
               <div className="flex justify-between font-bold text-blue-700">
-                <span>Table / Emplacement :</span>
+                <span>{isHoreca ? "Table / Emplacement :" : "Réf / Intitulé :"}</span>
                 <span>{tableOrLabel}</span>
               </div>
             )}
@@ -210,7 +222,7 @@ export function ProformaInvoiceModal({
             )}
             {cashierName && (
               <div className="flex justify-between">
-                <span>Serveur / Caissier :</span>
+                <span>{isHoreca ? "Serveur / Caissier :" : "Caissier / Vendeur :"}</span>
                 <span>{cashierName}</span>
               </div>
             )}
