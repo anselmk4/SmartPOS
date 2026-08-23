@@ -94,6 +94,32 @@ export default function CustomersPage() {
       []
     ) || [];
 
+  const products =
+    useLiveQuery(
+      async () => {
+        return await db.products.toArray();
+      },
+      []
+    ) || [];
+
+  const productsMap = useMemo(() => {
+    const map = new Map<string, string>();
+    products.forEach((p) => {
+      if (p.id && p.name) map.set(p.id, p.name);
+    });
+    return map;
+  }, [products]);
+
+  const getProductName = (it: SaleItem) => {
+    if (it.productName && it.productName !== "Article" && it.productName !== "Produit synchronisé") {
+      return it.productName;
+    }
+    if (it.productId && productsMap.has(it.productId)) {
+      return productsMap.get(it.productId)!;
+    }
+    return it.productName || "Article";
+  };
+
   const debtPayments =
     useLiveQuery(
       async () => {
@@ -805,7 +831,7 @@ export default function CustomersPage() {
                         <div className="pt-1 text-[11px] text-slate-600 space-y-0.5 border-t border-slate-200/60">
                           {items.map((it, idx) => (
                             <div key={idx} className="flex justify-between">
-                              <span className="truncate max-w-[200px]">• {it.productName} (x{it.quantity})</span>
+                              <span className="truncate max-w-[200px]">• {getProductName(it)} (x{it.quantity})</span>
                               <span>{formatMoney(it.quantity * it.unitPrice)}</span>
                             </div>
                           ))}

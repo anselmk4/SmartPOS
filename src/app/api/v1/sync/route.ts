@@ -495,7 +495,13 @@ export async function POST(req: NextRequest) {
             }),
             prisma.sale.findMany({
               where: { tenantId, storeId, updatedAt: { gt: pullSince } },
-              include: { items: true },
+              include: {
+                items: {
+                  include: {
+                    product: { select: { name: true } },
+                  },
+                },
+              },
             }),
             prisma.debtPayment.findMany({
               where: { tenantId, storeId, updatedAt: { gt: pullSince } },
@@ -513,10 +519,20 @@ export async function POST(req: NextRequest) {
             createdAt: c.createdAt.toISOString(),
             updatedAt: c.updatedAt.toISOString(),
           })),
-          sales: updatedSales.map((s) => ({
+          sales: updatedSales.map((s: any) => ({
             ...s,
             createdAt: s.createdAt.toISOString(),
             updatedAt: s.updatedAt.toISOString(),
+            items: s.items?.map((it: any) => ({
+              id: it.id,
+              saleId: it.saleId,
+              productId: it.productId,
+              quantity: it.quantity,
+              unitPrice: it.unitPrice,
+              costPrice: it.costPrice,
+              productName: it.product?.name || it.productName || "Article",
+              createdAt: it.createdAt.toISOString(),
+            })),
           })),
           debtPayments: updatedPayments.map((dp) => ({
             ...dp,

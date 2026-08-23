@@ -52,11 +52,50 @@ export default function SalesHistoryPage() {
       return await db.saleItems.toArray();
     }, []) || [];
 
+  const products =
+    useLiveQuery(async () => {
+      return await db.products.toArray();
+    }, []) || [];
+
   const customers =
     useLiveQuery(async () => {
       if (!currentStoreId) return [];
       return await db.customers.filter((c) => c.storeId === currentStoreId).toArray();
     }, [currentStoreId]) || [];
+
+  // Build product ID -> Name lookup map
+  const productsMap = useMemo(() => {
+    const map = new Map<string, string>();
+    products.forEach((p) => {
+      if (p.id && p.name) map.set(p.id, p.name);
+    });
+    return map;
+  }, [products]);
+
+  const getProductName = (it: SaleItem) => {
+    if (it.productName && it.productName !== "Article" && it.productName !== "Produit synchronisé") {
+      return it.productName;
+    }
+    if (it.productId && productsMap.has(it.productId)) {
+      return productsMap.get(it.productId)!;
+    }
+    return it.productName || "Article";
+  };
+
+  // Auto-backfill missing productNames in Dexie saleItems
+  React.useEffect(() => {
+    if (products.length === 0 || saleItems.length === 0) return;
+    (async () => {
+      for (const item of saleItems) {
+        if ((!item.productName || item.productName === "Article" || item.productName === "Produit synchronisé") && item.productId) {
+          const foundProd = productsMap.get(item.productId);
+          if (foundProd) {
+            await db.saleItems.update(item.id, { productName: foundProd }).catch(() => {});
+          }
+        }
+      }
+    })();
+  }, [products.length, saleItems.length, productsMap]);
 
   // Filter States
   const [timeFilter, setTimeFilter] = useState<"TODAY" | "WEEK" | "MONTH" | "YEAR" | "ALL">("TODAY");
@@ -78,7 +117,6 @@ export default function SalesHistoryPage() {
   const filteredSales = useMemo(() => {
     return sales.filter((sale) => {
       const saleDate = sale.createdAt.split("T")[0];
-      const saleDateObj = new Date(sale.createdAt);
 
       // 1. Time Filter
       if (timeFilter === "TODAY") {
@@ -88,6 +126,7 @@ export default function SalesHistoryPage() {
           if (saleDate !== todayStr) return false;
         }
       } else if (timeFilter === "WEEK") {
+        const saleDateObj = new Date(sale.createdAt);
         const diffDays = (today.getTime() - saleDateObj.getTime()) / (1000 * 3600 * 24);
         if (diffDays > 7 || diffDays < 0) return false;
       } else if (timeFilter === "MONTH") {
@@ -135,6 +174,7 @@ export default function SalesHistoryPage() {
     methodFilter,
     searchQuery,
     customers,
+    today,
     todayStr,
     currentMonthStr,
     currentYearStr,
@@ -183,7 +223,7 @@ export default function SalesHistoryPage() {
       .map(
         (it) => `
       <tr>
-        <td><b>${it.productName || "Article"}</b><br/><span style="font-size: 9px; color: #444;">${it.quantity} x ${formatMoney(it.unitPrice)}</span></td>
+        <td><b>${getProductName(it)}</b><br/><span style="font-size: 9px; color: #444;">${it.quantity} x ${formatMoney(it.unitPrice)}</span></td>
         <td class="text-right font-black" style="vertical-align: middle;">${formatMoney(it.quantity * it.unitPrice)}</td>
       </tr>`
       )
@@ -264,7 +304,7 @@ export default function SalesHistoryPage() {
     text += `--------------------------------\n`;
 
     items.forEach((it) => {
-      text += `• ${it.productName || "Article"} x${it.quantity} = ${formatMoney(it.quantity * it.unitPrice)}\n`;
+      text += `• ${getProductName(it)} x${it.quantity} = ${formatMoney(it.quantity * it.unitPrice)}\n`;
     });
 
     text += `--------------------------------\n`;
@@ -682,7 +722,7 @@ export default function SalesHistoryPage() {
                 {selectedSaleItems.map((it) => (
                   <div key={it.id} className="flex justify-between items-start text-slate-800">
                     <div className="flex-1 pr-2">
-                      <div className="font-bold truncate">{it.productName || "Article"}</div>
+                      <div className="font-bold truncate">{getProductName(it)}</div>
                       <div className="text-[10px] text-slate-500">
                         {it.quantity} × {formatMoney(it.unitPrice)}
                       </div>

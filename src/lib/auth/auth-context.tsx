@@ -229,7 +229,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await db.sales.put({ ...saleRecord, isSynced: true });
           if (items && Array.isArray(items)) {
             for (const it of items) {
-              await db.saleItems.put(it);
+              let resolvedName = it.productName;
+              if ((!resolvedName || resolvedName === "Article" || resolvedName === "Produit synchronisé") && it.productId) {
+                const prod = await db.products.get(it.productId);
+                if (prod?.name) resolvedName = prod.name;
+              }
+              await db.saleItems.put({
+                ...it,
+                productName: resolvedName || it.productName || "Article",
+              });
             }
           }
         }
