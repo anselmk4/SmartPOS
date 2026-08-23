@@ -9,7 +9,6 @@ import { PinLockScreen } from "@/components/auth/pin-lock-screen";
 import { UpgradePromptModal } from "@/components/plans/upgrade-prompt-modal";
 import { HoldOrdersModal } from "@/components/pos/hold-orders-modal";
 import { DiscountModal } from "@/components/pos/discount-modal";
-import { ProformaInvoiceModal } from "@/components/pos/proforma-invoice-modal";
 import { PaymentModal } from "@/components/pos/payment-modal";
 import type {
   Product,
@@ -92,21 +91,24 @@ export default function POSPage() {
     return allSales.filter((s) => s.createdAt.startsWith(currentMonthStr)).length;
   }, [allSales, currentMonthStr]);
 
-  const isHoreca = useMemo(() => {
-    const bt = authStore?.businessType || tenant?.businessType || "";
-    const lower = bt.toLowerCase();
+  const isHorecaOrDepot = useMemo(() => {
+    const bt = (authStore?.businessType || tenant?.businessType || "").toLowerCase();
     return (
-      lower.includes("restaurant") ||
-      lower.includes("bar") ||
-      lower.includes("lounge") ||
-      lower.includes("pub") ||
-      lower.includes("terrasse") ||
-      lower.includes("café") ||
-      lower.includes("cafe") ||
-      lower.includes("snack") ||
-      lower.includes("fastfood") ||
-      lower.includes("fast-food") ||
-      lower.includes("traiteur")
+      bt.includes("restaurant") ||
+      bt.includes("bar") ||
+      bt.includes("lounge") ||
+      bt.includes("pub") ||
+      bt.includes("terrasse") ||
+      bt.includes("café") ||
+      bt.includes("cafe") ||
+      bt.includes("snack") ||
+      bt.includes("fastfood") ||
+      bt.includes("fast-food") ||
+      bt.includes("traiteur") ||
+      bt.includes("boisson") ||
+      bt.includes("depot") ||
+      bt.includes("dépôt") ||
+      bt.includes("brasserie")
     );
   }, [authStore?.businessType, tenant?.businessType]);
 
@@ -126,7 +128,6 @@ export default function POSPage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
   const [isHoldModalOpen, setIsHoldModalOpen] = useState<boolean>(false);
   const [isDiscountModalOpen, setIsDiscountModalOpen] = useState<boolean>(false);
-  const [isProformaModalOpen, setIsProformaModalOpen] = useState<boolean>(false);
   const [isNewCustomerModalOpen, setIsNewCustomerModalOpen] = useState<boolean>(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState<boolean>(false);
   const [completedSale, setCompletedSale] = useState<{ sale: Sale; items: SaleItem[] } | null>(null);
@@ -232,7 +233,7 @@ export default function POSPage() {
     setDiscountValue(0);
   };
 
-  // Hold orders management
+  // Hold orders & Pre-bill invoice management
   const handleSaveCurrentAsHold = async (label: string, notes?: string) => {
     if (cart.length === 0) return;
 
@@ -254,6 +255,107 @@ export default function POSPage() {
     };
 
     await db.heldOrders.add(newHold);
+    clearCart();
+  };
+
+  const handleSaveAndPrintPrebill = async (label: string, notes?: string) => {
+    if (cart.length === 0) return;
+
+    const cust = customers.find((c) => c.id === selectedCustomerId);
+    const newHold: HeldOrder = {
+      id: generateUUID(),
+      storeId: currentStoreId,
+      label,
+      customerId: selectedCustomerId || null,
+      customerName: cust?.name,
+      items: cart,
+      subtotalAmount,
+      discountAmount,
+      discountType,
+      discountValue,
+      totalAmount,
+      notes,
+      createdAt: new Date().toISOString(),
+    };
+
+    await db.heldOrders.add(newHold);
+
+    // Print pre-bill invoice for customer to pay
+    const storeName = authStore?.name || tenant?.name || "Kuettu Global POS";
+    const address = authStore?.address ? `<p class="text-xs">${authStore.address}</p>` : "";
+    const phone = authStore?.phone ? `<p class="text-xs">Tél: ${authStore.phone}</p>` : "";
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("fr-FR");
+    const timeStr = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    const billNum = `FAC-${now.getFullYear().toString().slice(-2)}${(now.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const itemsHtml = cart
+      .map(
+        (it) => `
+      <tr>
+        <td><b>${it.product.name}</b><br/><span style="font-size: 9px; color: #444;">${it.quantity} x ${formatMoney(it.unitPrice)}</span></td>
+        <td class="text-right font-black" style="vertical-align: middle;">${formatMoney(it.subtotal)}</td>
+      </tr>`
+      )
+      .join("");
+
+    const bodyHtml = `
+      <div class="text-center">
+        <div class="font-black text-base uppercase">${storeName}</div>
+        ${address}
+        ${phone}
+        <div class="divider"></div>
+        <div class="badge uppercase">*** FACTURE À PAYER ***</div>
+      </div>
+
+      <div class="divider"></div>
+      <div style="font-size: 10px; line-height: 1.3;">
+        <div class="flex justify-between"><span>Note N° :</span><b>${billNum}</b></div>
+        <div class="flex justify-between"><span>Date :</span><span>${dateStr} à ${timeStr}</span></div>
+        ${label ? `<div class="flex justify-between font-bold"><span>Table / Ref :</span><span>${label}</span></div>` : ""}
+        ${cust ? `<div class="flex justify-between"><span>Client :</span><b>${cust.name}</b></div>` : ""}
+        <div class="flex justify-between"><span>Caissier :</span><span>${user?.name || "Caisse"}</span></div>
+      </div>
+
+      <div class="divider"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Article</th>
+            <th class="text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+      </table>
+
+      <div class="divider"></div>
+      <div style="font-size: 11px;">
+        ${discountAmount > 0 ? `<div class="flex justify-between"><span>Sous-total Brut :</span><span>${formatMoney(subtotalAmount)}</span></div>
+        <div class="flex justify-between font-bold"><span>Remise :</span><span>-${formatMoney(discountAmount)}</span></div>` : ""}
+        <div class="divider"></div>
+        <div class="flex justify-between font-black text-sm" style="font-size: 13px;"><span>TOTAL À PAYER :</span><span>${formatMoney(totalAmount)}</span></div>
+      </div>
+
+      ${notes ? `<div class="divider"></div><div style="font-size: 9px; color: #333;"><b>Note :</b> ${notes}</div>` : ""}
+
+      <div class="divider"></div>
+      <div class="text-center text-xs" style="color: #444; font-size: 9px; line-height: 1.3;">
+        <p>Facture de consommation en attente de règlement</p>
+        <p>Merci pour votre visite !</p>
+        <p style="margin-top: 3px; font-weight: bold;">Kuettu Global POS</p>
+      </div>
+    `;
+
+    await printIsolatedDocument({
+      title: `Facture_A_Payer_${billNum}`,
+      width: "80mm",
+      bodyHtml,
+    });
+
     clearCart();
   };
 
@@ -784,7 +886,7 @@ export default function POSPage() {
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900 truncate">
-                          {isHoreca ? (
+                          {isHorecaOrDepot ? (
                             <Utensils className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                           ) : (
                             <Receipt className="w-3.5 h-3.5 text-blue-700 shrink-0" />
@@ -897,61 +999,61 @@ export default function POSPage() {
             </div>
           </div>
 
-          {/* Invoicing Action Tools (Hold, Proforma, Discount) */}
-          <div className="grid grid-cols-3 gap-1.5">
-            {/* Hold / Unpaid Invoice Button */}
-            <button
-              onClick={() => setIsHoldModalOpen(true)}
-              disabled={cart.length === 0}
-              className={`py-2 px-1.5 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                isHoreca
-                  ? "border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800"
-                  : "border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800"
-              }`}
-              title={
-                isHoreca
-                  ? "Mettre la commande en attente (Hold / Table)"
-                  : "Mettre la facture de côté (Non payée / En attente)"
-              }
-            >
-              <PauseCircle className={`w-4 h-4 ${isHoreca ? "text-amber-600" : "text-blue-600"}`} />
-              <span>{isHoreca ? "Hold (Table)" : "Non Payée"}</span>
-            </button>
+          {/* Invoicing Action Tools: Facture à Payer (HORECA/Dépôts) vs Remise simple (Commerce général) */}
+          {isHorecaOrDepot ? (
+            <div className="grid grid-cols-2 gap-2">
+              {/* Facture à Payer (Sauver & Imprimer) */}
+              <button
+                onClick={() => setIsHoldModalOpen(true)}
+                disabled={cart.length === 0}
+                className="py-2.5 px-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs"
+                title="Générer et imprimer la facture à payer pour le client"
+              >
+                <Printer className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Facture à Payer</span>
+              </button>
 
-            {/* Proforma / Addition Pre-bill Button */}
-            <button
-              onClick={() => setIsProformaModalOpen(true)}
-              disabled={cart.length === 0}
-              className="py-2 px-1.5 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              title={
-                isHoreca
-                  ? "Imprimer ou présenter l'addition provisoire au client"
-                  : "Imprimer ou partager la facture proforma"
-              }
-            >
-              <FileText className="w-4 h-4 text-indigo-600" />
-              <span>{isHoreca ? "Addition Note" : "Proforma"}</span>
-            </button>
-
-            {/* Discount Button */}
-            <button
-              onClick={() => setIsDiscountModalOpen(true)}
-              disabled={cart.length === 0}
-              className={`py-2 px-1.5 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                discountAmount > 0
-                  ? "border-emerald-500 bg-emerald-500 text-white shadow-xs"
-                  : "border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800"
-              }`}
-              title="Appliquer une réduction"
-            >
-              <Tag className="w-4 h-4" />
-              <span>
-                {discountAmount > 0
-                  ? `-${discountType === "PERCENT" ? `${discountValue}%` : formatMoney(discountAmount)}`
-                  : "Remise"}
-              </span>
-            </button>
-          </div>
+              {/* Remise */}
+              <button
+                onClick={() => setIsDiscountModalOpen(true)}
+                disabled={cart.length === 0}
+                className={`py-2.5 px-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs ${
+                  discountAmount > 0
+                    ? "border-emerald-500 bg-emerald-500 text-white shadow-xs"
+                    : "border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800"
+                }`}
+                title="Appliquer une réduction"
+              >
+                <Tag className="w-4 h-4 shrink-0" />
+                <span>
+                  {discountAmount > 0
+                    ? `-${discountType === "PERCENT" ? `${discountValue}%` : formatMoney(discountAmount)}`
+                    : "Remise"}
+                </span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              {/* Remise for General Commerce */}
+              <button
+                onClick={() => setIsDiscountModalOpen(true)}
+                disabled={cart.length === 0}
+                className={`w-full py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs ${
+                  discountAmount > 0
+                    ? "border-emerald-500 bg-emerald-500 text-white shadow-xs"
+                    : "border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700"
+                }`}
+                title="Appliquer une réduction sur le panier"
+              >
+                <Tag className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>
+                  {discountAmount > 0
+                    ? `Remise appliquée : -${discountType === "PERCENT" ? `${discountValue}%` : formatMoney(discountAmount)}`
+                    : "Appliquer une Remise"}
+                </span>
+              </button>
+            </div>
+          )}
 
           {/* Primary Checkout Button */}
           <button
@@ -984,7 +1086,7 @@ export default function POSPage() {
       {/* MODALS                                                                    */}
       {/* ========================================================================= */}
 
-      {/* 1. HOLD ORDERS MODAL */}
+      {/* 1. FACTURE À PAYER & HOLD ORDERS MODAL */}
       <HoldOrdersModal
         isOpen={isHoldModalOpen}
         onClose={() => setIsHoldModalOpen(false)}
@@ -992,6 +1094,7 @@ export default function POSPage() {
         onRestoreHeldOrder={handleRestoreHeldOrder}
         onDeleteHeldOrder={handleDeleteHeldOrder}
         onSaveCurrentAsHold={handleSaveCurrentAsHold}
+        onSaveAndPrint={handleSaveAndPrintPrebill}
         canSaveCurrent={cart.length > 0}
         formatMoney={formatMoney}
         selectedCustomer={selectedCustomer}
@@ -1009,34 +1112,6 @@ export default function POSPage() {
         onRemoveDiscount={handleRemoveDiscount}
         formatMoney={formatMoney}
         currency={currency}
-      />
-
-      {/* 3. PROFORMA / ADDITION INVOICE MODAL */}
-      <ProformaInvoiceModal
-        isOpen={isProformaModalOpen}
-        onClose={() => setIsProformaModalOpen(false)}
-        items={cart}
-        subtotalAmount={subtotalAmount}
-        discountAmount={discountAmount}
-        totalAmount={totalAmount}
-        tableOrLabel={tableOrLabel}
-        selectedCustomer={selectedCustomer}
-        store={authStore}
-        tenant={tenant}
-        cashierName={user?.name}
-        formatMoney={formatMoney}
-        currency={currency}
-        onSaveAsHoldAndClose={async () => {
-          const labelToUse =
-            tableOrLabel.trim() ||
-            (selectedCustomer
-              ? `Client ${selectedCustomer.name}`
-              : isHoreca
-              ? `Table ${heldOrders.length + 1}`
-              : `Facture #${heldOrders.length + 1}`);
-          await handleSaveCurrentAsHold(labelToUse);
-          setIsProformaModalOpen(false);
-        }}
       />
 
       {/* 4. ENHANCED PAYMENT MODAL (SINGLE + SPLIT) */}
