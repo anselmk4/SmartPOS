@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { BUSINESS_ACTIVITIES } from "@/lib/constants/business-activities";
 import { getPlanPriceInfo } from "@/lib/constants/plans";
@@ -28,8 +28,9 @@ import {
   Check,
 } from "lucide-react";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { registerMerchant } = useAuth();
 
   // Wizard Step: 1, 2, 3, 4
@@ -51,9 +52,15 @@ export default function RegisterPage() {
   const [phone, setPhone] = useState("+243 ");
   const [email, setEmail] = useState("");
 
-  // Step 4: Sécurité & Forfait
+  // Step 4: Sécurité & Forfait (Gratuit par défaut)
   const [pinCode, setPinCode] = useState("");
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>("BASIC");
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(() => {
+    const urlPlan = searchParams?.get("plan")?.toUpperCase();
+    if (urlPlan === "BASIC" || urlPlan === "PRO" || urlPlan === "BUSINESS" || urlPlan === "FREE") {
+      return urlPlan as SubscriptionPlan;
+    }
+    return "FREE";
+  });
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -587,5 +594,13 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Chargement...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

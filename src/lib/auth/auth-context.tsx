@@ -513,27 +513,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updatedAt: now,
       };
 
-      // 1. Add locally to Dexie
-      await db.tenants.add(newTenant);
-      await db.stores.add(newStore);
-      await db.users.add(newUser);
-
-      const cashierUser: User = {
-        id: generateUUID(),
-        tenantId,
-        name: "Caissier (Principal)",
-        pinCode: "0000",
-        role: "CASHIER",
-        isActive: true,
-        createdAt: now,
-        updatedAt: now,
-      };
-      await db.users.add(cashierUser);
-
-      let requiresVerification = false;
+      let requiresVerification = true;
       let verificationMethod = "SMS";
       let simCode: string | undefined;
       let targetIdentifier = data.phone;
+      let sessionToken: string | undefined;
 
       // 2. Direct Cloud Registration API call (so the account is immediately active across all devices)
       if (typeof navigator !== "undefined" && navigator.onLine) {
@@ -565,16 +549,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
 
           const regData = await regRes.json();
-          if (regData.success && regData.requiresVerification) {
-            requiresVerification = true;
+          if (regData.success) {
+            requiresVerification = Boolean(regData.requiresVerification);
             verificationMethod = regData.verificationMethod || "SMS";
             simCode = regData.otp?.simulatedCode;
             targetIdentifier = regData.otp?.identifier || data.phone;
+            sessionToken = regData.token;
           }
         } catch (cloudRegErr) {
           console.warn("[Auth] Cloud register background fallback:", cloudRegErr);
         }
       }
+
+      // Update Dexie user and tenant active status based on verification requirement
+      if (requiresVerification) {
+        newUser.isActive = false;
+        newTenant.isActive = false;
+      }
+
+      // 1. Add locally to Dexie
+      await db.tenants.put(newTenant);
+      await db.stores.put(newStore);
+      await db.users.put(newUser);
+
+      const cashierUser: User = {
+        id: generateUUID(),
+        tenantId,
+        name: "Caissier (Principal)",
+        pinCode: "0000",
+        role: "CASHIER",
+        isActive: !requiresVerification,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await db.users.put(cashierUser);
 
       await enqueueSync({
         tenantId,
@@ -584,15 +592,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         payload: JSON.stringify(newTenant),
       });
 
-      setUser(newUser);
-      setTenant(newTenant);
-      setStore(newStore);
-      setStores([newStore]);
+      if (!requiresVerification) {
+        setUser(newUser);
+        setTenant(newTenant);
+        setStore(newStore);
+        setStores([newStore]);
 
-      if (typeof window !== "undefined") {
-        localStorage.setItem(AUTH_USER_KEY, userId);
-        localStorage.setItem(AUTH_TENANT_KEY, tenantId);
-        localStorage.setItem(AUTH_STORE_KEY, storeId);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(AUTH_USER_KEY, userId);
+          localStorage.setItem(AUTH_TENANT_KEY, tenantId);
+          localStorage.setItem(AUTH_STORE_KEY, storeId);
+          if (sessionToken) {
+            localStorage.setItem("kuettu_session_token", sessionToken);
+          }
+        }
       }
 
       return {

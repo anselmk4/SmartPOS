@@ -4,6 +4,7 @@ import type { SubscriptionPlan } from "@/lib/shared/types";
 import { hashPinCode } from "@/lib/security/password";
 import { triggerRegistrationOtp } from "@/lib/services/otp-service";
 import { getSystemVerificationConfig } from "@/lib/services/system-settings";
+import { createSessionToken } from "@/lib/security/jwt";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
       countryCode = "CD",
       currency = "CDF",
       pinCode = "1234",
-      plan = "PRO",
+      plan = "FREE",
     } = body;
 
     if (!storeName || !ownerName || !phone) {
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
         phone: phone.trim(),
         countryCode,
         currency,
-        plan: (plan as SubscriptionPlan) || "PRO",
+        plan: (plan as SubscriptionPlan) || "FREE",
         planStatus: requiresVerification ? "TRIAL" : "ACTIVE",
         planExpiresAt: periodEnd,
         isActive: !requiresVerification,
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
         phone: phone.trim(),
         countryCode,
         currency,
-        plan: (plan as SubscriptionPlan) || "PRO",
+        plan: (plan as SubscriptionPlan) || "FREE",
         planStatus: requiresVerification ? "TRIAL" : "ACTIVE",
         planExpiresAt: periodEnd,
         isActive: !requiresVerification,
@@ -124,6 +125,8 @@ export async function POST(req: NextRequest) {
 
     // 4. Trigger OTP verification (SMS Twilio / Supabase Email)
     let otpData = null;
+    let token: string | undefined = undefined;
+
     if (requiresVerification) {
       otpData = await triggerRegistrationOtp({
         tenantId: tenant.id,
@@ -133,6 +136,12 @@ export async function POST(req: NextRequest) {
         storeName: storeName.trim(),
         ownerName: ownerName.trim(),
       });
+    } else {
+      token = createSessionToken({
+        userId: user.id,
+        tenantId: tenant.id,
+        role: user.role,
+      });
     }
 
     return NextResponse.json({
@@ -140,6 +149,7 @@ export async function POST(req: NextRequest) {
       requiresVerification,
       verificationMethod: config.verificationMethod,
       otp: otpData,
+      token,
       tenant,
       store,
       user,
