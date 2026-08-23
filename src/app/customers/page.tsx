@@ -120,6 +120,21 @@ export default function CustomersPage() {
     return it.productName || "Article";
   };
 
+  // Auto-backfill missing productNames in Dexie saleItems
+  React.useEffect(() => {
+    if (products.length === 0 || saleItems.length === 0) return;
+    (async () => {
+      for (const item of saleItems) {
+        if ((!item.productName || item.productName === "Article" || item.productName === "Produit synchronisé") && item.productId) {
+          const foundProd = productsMap.get(item.productId);
+          if (foundProd) {
+            await db.saleItems.update(item.id, { productName: foundProd }).catch(() => {});
+          }
+        }
+      }
+    })();
+  }, [products.length, saleItems.length, productsMap]);
+
   const debtPayments =
     useLiveQuery(
       async () => {
@@ -807,34 +822,51 @@ export default function CustomersPage() {
                 <span>Historique Chronologique des Achats</span>
               </h3>
 
-              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                 {selectedCustomerPurchases.map((sale) => {
                   const items = saleItems.filter((it) => it.saleId === sale.id);
                   return (
                     <div
                       key={sale.id}
-                      className="p-3 rounded-2xl border border-slate-200/80 bg-slate-50/50 space-y-1.5 text-xs font-mono"
+                      className="p-3.5 rounded-2xl border border-slate-200/90 bg-white hover:border-blue-300 space-y-2 text-xs font-mono shadow-2xs transition-all"
                     >
                       <div className="flex items-center justify-between text-slate-800 font-bold">
-                        <span className="font-sans text-[11px] text-blue-600">
-                          Ticket N° {sale.receiptNumber}
+                        <span className="font-sans text-[11px] font-extrabold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">
+                          {sale.receiptNumber ? `Ticket N° ${sale.receiptNumber}` : `Facture #${sale.id.slice(-6).toUpperCase()}`}
                         </span>
-                        <span>{formatMoney(sale.totalAmount)}</span>
+                        <span className="text-slate-900 font-black text-sm">{formatMoney(sale.totalAmount)}</span>
                       </div>
 
-                      <div className="flex items-center justify-between text-[10px] text-slate-500 font-sans">
-                        <span>{new Date(sale.createdAt).toLocaleDateString("fr-FR")} à {new Date(sale.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
-                        <span>Mode : {sale.paymentMethod}</span>
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 font-sans">
+                        <span>
+                          📅 {new Date(sale.createdAt).toLocaleDateString("fr-FR")} à {new Date(sale.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md text-[10px]">
+                          Mode : {sale.paymentMethod}
+                        </span>
                       </div>
 
-                      {items.length > 0 && (
-                        <div className="pt-1 text-[11px] text-slate-600 space-y-0.5 border-t border-slate-200/60">
+                      {items.length > 0 ? (
+                        <div className="pt-2 text-[11px] text-slate-700 space-y-1 border-t border-slate-100 font-sans">
                           {items.map((it, idx) => (
-                            <div key={idx} className="flex justify-between">
-                              <span className="truncate max-w-[200px]">• {getProductName(it)} (x{it.quantity})</span>
-                              <span>{formatMoney(it.quantity * it.unitPrice)}</span>
+                            <div key={idx} className="flex justify-between items-center text-slate-700">
+                              <span className="font-semibold truncate max-w-[240px]">
+                                • {getProductName(it)} <span className="text-slate-400 font-normal">(x{it.quantity})</span>
+                              </span>
+                              <span className="font-bold text-slate-900">{formatMoney(it.quantity * it.unitPrice)}</span>
                             </div>
                           ))}
+                        </div>
+                      ) : (
+                        <div className="pt-1 text-[10px] text-slate-400 font-sans italic">
+                          Détails des articles non disponibles
+                        </div>
+                      )}
+
+                      {sale.debtAmount > 0 && (
+                        <div className="flex justify-between items-center text-[10px] font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-100 font-sans">
+                          <span>Reste en Dette :</span>
+                          <span className="font-black">{formatMoney(sale.debtAmount)}</span>
                         </div>
                       )}
                     </div>
@@ -842,7 +874,7 @@ export default function CustomersPage() {
                 })}
 
                 {selectedCustomerPurchases.length === 0 && (
-                  <div className="p-4 text-center text-slate-400 text-xs">
+                  <div className="p-6 text-center text-slate-400 text-xs">
                     Aucun achat enregistré pour ce client pour le moment.
                   </div>
                 )}
