@@ -606,20 +606,20 @@ export default function DashboardPage() {
       {/* HERO DUAL CARDS (Weekly Stats Wave Chart + Top Products & Sellers Table) */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* LEFT CARD: Weekly Stats & Wave Chart (Matches Reference Image) */}
-        <div className="lg:col-span-5 bg-white rounded-3xl p-6 border border-slate-100/90 shadow-modern flex flex-col justify-between space-y-6">
+        {/* LEFT CARD: Weekly Stats & Wave Chart with Clear X & Y Axes */}
+        <div className="lg:col-span-5 bg-white rounded-3xl p-6 border border-slate-100/90 shadow-modern flex flex-col justify-between space-y-5">
           <div>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-extrabold text-slate-900 text-lg sm:text-xl">Weekly Stats</h3>
+                <h3 className="font-extrabold text-slate-900 text-lg sm:text-xl">Évolution des Ventes</h3>
                 <p className="text-xs text-slate-400 font-medium mt-0.5">
                   {timeRange === "7_DAYS"
-                    ? "Moyenne & Ventes des 7 derniers jours"
+                    ? "7 derniers jours (Chiffre d'Affaires)"
                     : timeRange === "30_DAYS"
-                    ? "Moyenne & Ventes des 30 derniers jours"
+                    ? "30 derniers jours (Chiffre d'Affaires)"
                     : timeRange === "HOURLY"
-                    ? "Activité heure par heure d'aujourd'hui"
-                    : "Évolution globale de l'année"}
+                    ? "Heure par heure aujourd'hui"
+                    : "Évolution annuelle"}
                 </p>
               </div>
               <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
@@ -627,31 +627,100 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            {/* Smooth Dynamic SVG Wave Sparkline Based on Real Data */}
-            <div className="relative h-36 w-full mt-4">
-              <svg viewBox="0 0 300 100" className="w-full h-full overflow-visible" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="waveGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                {/* Area Fill */}
-                <path
-                  d={areaPath}
-                  fill="url(#waveGrad)"
-                  className="transition-all duration-500"
-                />
-                {/* Smooth Wave Line */}
-                <path
-                  d={wavePath}
-                  fill="none"
-                  stroke="#3b82f6"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                  className="transition-all duration-500"
-                />
-              </svg>
+            {/* Complete Legible Financial Chart with X & Y Axes */}
+            <div className="relative pt-4 pb-2">
+              {/* Top/Max Y-Axis Indicator */}
+              <div className="flex items-center justify-between text-[10px] font-semibold text-slate-400 pb-1">
+                <span>Ordonnée (Y) : Montants</span>
+                <span className="font-bold text-slate-600">Max : {formatMoney(Math.max(...chartData.map((d) => d.revenue), 1000))}</span>
+              </div>
+
+              {/* Chart Container with Gridlines & Y-Axis */}
+              <div className="relative h-44 w-full flex">
+                {/* Y-Axis Labels Column */}
+                <div className="w-16 h-full flex flex-col justify-between pr-2 text-right text-[9px] font-bold text-slate-400 shrink-0 select-none">
+                  <span>{formatMoney(Math.max(...chartData.map((d) => d.revenue), 1000))}</span>
+                  <span>{formatMoney(Math.round(Math.max(...chartData.map((d) => d.revenue), 1000) * 0.5))}</span>
+                  <span>0</span>
+                </div>
+
+                {/* Main Graph Area */}
+                <div className="relative flex-1 h-full border-l border-b border-slate-200">
+                  {/* Horizontal Gridlines */}
+                  <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                    <div className="border-b border-dashed border-slate-200/80 w-full" />
+                    <div className="border-b border-dashed border-slate-200/80 w-full" />
+                    <div className="border-b border-solid border-slate-300 w-full" />
+                  </div>
+
+                  {/* SVG Wave Curve */}
+                  <svg viewBox="0 0 300 100" className="absolute inset-0 w-full h-full overflow-visible" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="waveGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.28" />
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
+                    <path d={areaPath} fill="url(#waveGrad)" className="transition-all duration-500" />
+                    <path d={wavePath} fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" className="transition-all duration-500" />
+                  </svg>
+
+                  {/* Interactive Columns & Dots */}
+                  <div className="absolute inset-0 flex items-end justify-between px-1">
+                    {chartData.map((d, idx) => {
+                      const maxVal = Math.max(...chartData.map((it) => it.revenue), 1000);
+                      const heightPct = maxVal > 0 ? Math.max(8, (d.revenue / maxVal) * 100) : 8;
+                      const isHovered = hoveredPointIndex === idx;
+
+                      return (
+                        <div
+                          key={d.label}
+                          onMouseEnter={() => setHoveredPointIndex(idx)}
+                          onMouseLeave={() => setHoveredPointIndex(null)}
+                          className="flex-1 h-full flex flex-col justify-end items-center relative group cursor-pointer"
+                        >
+                          {/* Tooltip on Hover */}
+                          {isHovered && (
+                            <div className="absolute bottom-full mb-3 z-30 bg-slate-900 text-white p-2.5 rounded-2xl shadow-xl text-left text-xs whitespace-nowrap pointer-events-none animate-in fade-in zoom-in-95 duration-150">
+                              <div className="font-bold text-slate-300 pb-1 border-b border-slate-700">
+                                {d.label}
+                              </div>
+                              <div className="mt-1 space-y-0.5 text-[11px]">
+                                <div className="text-blue-400 font-bold">Ventes : {formatMoney(d.revenue)} ({d.count} fac.)</div>
+                                {canViewMargins && (
+                                  <div className="text-emerald-400 font-semibold">Marge : +{formatMoney(d.margin || 0)}</div>
+                                )}
+                                {d.expenses !== undefined && d.expenses > 0 && (
+                                  <div className="text-red-400 font-semibold">Dépenses : -{formatMoney(d.expenses)}</div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Interactive Bar */}
+                          <div
+                            style={{ height: `${heightPct}%` }}
+                            className={`w-full max-w-[20px] rounded-t-lg transition-all ${
+                              isHovered
+                                ? "bg-blue-600 shadow-md shadow-blue-500/40 scale-x-110"
+                                : "bg-blue-500/20 hover:bg-blue-500/50"
+                            }`}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* X-Axis Labels (Abscisses / Dates & Heures) */}
+              <div className="flex justify-between pl-16 pt-2 text-[10px] font-semibold text-slate-500">
+                {chartData.map((d) => (
+                  <span key={d.label} className="truncate text-center flex-1 px-0.5">
+                    {d.label}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 

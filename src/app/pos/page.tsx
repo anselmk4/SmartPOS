@@ -282,8 +282,9 @@ export default function POSPage() {
 
     // Print pre-bill invoice for customer to pay
     const storeName = authStore?.name || tenant?.name || "Kuettu Global POS";
-    const address = authStore?.address ? `<p class="text-xs">${authStore.address}</p>` : "";
-    const phone = authStore?.phone ? `<p class="text-xs">Tél: ${authStore.phone}</p>` : "";
+    const storeLogo = authStore?.logoUrl || tenant?.logoUrl;
+    const address = authStore?.address ? `<p class="text-xs" style="margin: 2px 0; color: #333;">${authStore.address}</p>` : "";
+    const phone = authStore?.phone ? `<p class="text-xs" style="margin: 2px 0; color: #333;">Tél : ${authStore.phone}</p>` : "";
     const now = new Date();
     const dateStr = now.toLocaleDateString("fr-FR");
     const timeStr = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
@@ -303,12 +304,13 @@ export default function POSPage() {
 
     const bodyHtml = `
       <div class="text-center">
-        <div style="margin-bottom: 4px;">
-          <img src="/images/logo.png" alt="Logo" style="max-height: 42px; max-width: 120px; margin: 0 auto 4px auto; display: block; object-fit: contain;" />
-        </div>
-        <div class="font-black text-base uppercase" style="font-size: 15px; letter-spacing: 0.5px;">${storeName}</div>
-        ${address ? `<p class="text-xs" style="margin: 2px 0; color: #333;">${authStore?.address}</p>` : ""}
-        ${phone ? `<p class="text-xs" style="margin: 2px 0; color: #333;">Tél : ${authStore?.phone}</p>` : ""}
+        ${storeLogo ? `
+        <div style="margin-bottom: 6px;">
+          <img src="${storeLogo}" alt="${storeName}" style="max-height: 50px; max-width: 140px; margin: 0 auto 4px auto; display: block; object-fit: contain;" />
+        </div>` : ""}
+        <div class="font-black text-base uppercase" style="font-size: 16px; letter-spacing: 0.5px;">${storeName}</div>
+        ${address}
+        ${phone}
         ${tenant?.email ? `<p style="font-size: 9px; color: #666; margin: 1px 0;">Email : ${tenant.email}</p>` : ""}
         <div class="divider"></div>
         <div class="badge uppercase" style="font-weight: 800; font-size: 10px; padding: 2px 6px; border: 1px dashed #000; display: inline-block; margin-top: 4px;">
@@ -350,10 +352,10 @@ export default function POSPage() {
       ${notes ? `<div class="divider"></div><div style="font-size: 9px; color: #333;"><b>Instructions / Note :</b> ${notes}</div>` : ""}
 
       <div class="divider"></div>
-      <div class="text-center text-xs" style="color: #444; font-size: 9px; line-height: 1.35;">
-        <p>Facture de consommation avant règlement en caisse</p>
-        <p style="font-weight: bold; margin-top: 2px;">Merci pour votre visite !</p>
-        <p style="margin-top: 3px; color: #777;">Kuettu Global POS • https://globalpos.app</p>
+      <div class="text-center" style="margin-top: 6px;">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https%3A%2F%2Fglobalpos.app" alt="QR Code Global POS" style="width: 55px; height: 55px; margin: 0 auto 3px auto; display: block;" />
+        <p style="font-size: 8px; color: #555; margin: 0;">Vérification : https://globalpos.app</p>
+        <p style="font-size: 9px; font-weight: bold; margin-top: 3px;">Merci pour votre visite !</p>
       </div>
     `;
 
@@ -468,8 +470,9 @@ export default function POSPage() {
   // Printing & WhatsApp Receipt Helpers
   const handlePrintSaleReceipt = async (sale: Sale, items: SaleItem[]) => {
     const storeName = authStore?.name || tenant?.name || "Kuettu Global POS";
-    const address = authStore?.address ? `<p class="text-xs">${authStore.address}</p>` : "";
-    const phone = authStore?.phone ? `<p class="text-xs">Tél: ${authStore.phone}</p>` : "";
+    const storeLogo = authStore?.logoUrl || tenant?.logoUrl;
+    const address = authStore?.address ? `<p class="text-xs" style="margin: 2px 0; color: #333;">${authStore.address}</p>` : "";
+    const phone = authStore?.phone ? `<p class="text-xs" style="margin: 2px 0; color: #333;">Tél : ${authStore.phone}</p>` : "";
     const cust = customers.find((c) => c.id === sale.customerId);
     const dateStr = new Date(sale.createdAt).toLocaleDateString("fr-FR");
     const timeStr = new Date(sale.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
@@ -495,12 +498,13 @@ export default function POSPage() {
 
     const bodyHtml = `
       <div class="text-center">
-        <div style="margin-bottom: 4px;">
-          <img src="/images/logo.png" alt="Logo" style="max-height: 42px; max-width: 120px; margin: 0 auto 4px auto; display: block; object-fit: contain;" />
-        </div>
-        <div class="font-black text-base uppercase" style="font-size: 15px; letter-spacing: 0.5px;">${storeName}</div>
-        ${address ? `<p class="text-xs" style="margin: 2px 0; color: #333;">${authStore?.address}</p>` : ""}
-        ${phone ? `<p class="text-xs" style="margin: 2px 0; color: #333;">Tél : ${authStore?.phone}</p>` : ""}
+        ${storeLogo ? `
+        <div style="margin-bottom: 6px;">
+          <img src="${storeLogo}" alt="${storeName}" style="max-height: 50px; max-width: 140px; margin: 0 auto 4px auto; display: block; object-fit: contain;" />
+        </div>` : ""}
+        <div class="font-black text-base uppercase" style="font-size: 16px; letter-spacing: 0.5px;">${storeName}</div>
+        ${address}
+        ${phone}
         ${tenant?.email ? `<p style="font-size: 9px; color: #666; margin: 1px 0;">Email : ${tenant.email}</p>` : ""}
         <div class="divider"></div>
         <div class="badge uppercase" style="font-weight: 800; font-size: 10px; padding: 2px 6px; border: 1px solid #000; display: inline-block; margin-top: 4px;">
@@ -544,9 +548,10 @@ export default function POSPage() {
       ${splitsHtml}
 
       <div class="divider"></div>
-      <div class="text-center text-xs" style="color: #444; font-size: 9px; line-height: 1.35;">
-        <p style="font-weight: bold;">Merci pour votre confiance !</p>
-        <p style="margin-top: 3px; color: #777;">Kuettu Global POS • https://globalpos.app</p>
+      <div class="text-center" style="margin-top: 6px;">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https%3A%2F%2Fglobalpos.app" alt="QR Code Global POS" style="width: 55px; height: 55px; margin: 0 auto 3px auto; display: block;" />
+        <p style="font-size: 8px; color: #555; margin: 0;">Vérification : https://globalpos.app</p>
+        <p style="font-size: 9px; font-weight: bold; margin-top: 3px;">Merci pour votre confiance !</p>
       </div>
     `;
 

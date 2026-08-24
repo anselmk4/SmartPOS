@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Clock,
   Printer,
+  FileText,
   MessageCircle,
   Eye,
   X,
@@ -209,9 +210,10 @@ export default function SalesHistoryPage() {
     return customers.find((c) => c.id === selectedSale.customerId);
   }, [selectedSale, customers]);
 
-  // Print helper for historic ticket
+  // Print helper for historic POS ticket (80mm)
   const handlePrintHistoricSale = async (sale: Sale, items: SaleItem[]) => {
     const storeName = store?.name || tenant?.name || "Kuettu Global POS";
+    const storeLogo = store?.logoUrl || tenant?.logoUrl;
     const cust = customers.find((c) => c.id === sale.customerId);
     const dateStr = new Date(sale.createdAt).toLocaleDateString("fr-FR");
     const timeStr = new Date(sale.createdAt).toLocaleTimeString("fr-FR", {
@@ -240,10 +242,11 @@ export default function SalesHistoryPage() {
 
     const bodyHtml = `
       <div class="text-center">
-        <div style="margin-bottom: 4px;">
-          <img src="/images/logo.png" alt="Logo" style="max-height: 42px; max-width: 120px; margin: 0 auto 4px auto; display: block; object-fit: contain;" />
-        </div>
-        <div class="font-black text-base uppercase" style="font-size: 15px; letter-spacing: 0.5px;">${storeName}</div>
+        ${storeLogo ? `
+        <div style="margin-bottom: 6px;">
+          <img src="${storeLogo}" alt="${storeName}" style="max-height: 50px; max-width: 140px; margin: 0 auto 4px auto; display: block; object-fit: contain;" />
+        </div>` : ""}
+        <div class="font-black text-base uppercase" style="font-size: 16px; letter-spacing: 0.5px;">${storeName}</div>
         ${store?.address ? `<p class="text-xs" style="margin: 2px 0; color: #333;">${store.address}</p>` : ""}
         ${store?.phone ? `<p class="text-xs" style="margin: 2px 0; color: #333;">Tél : ${store.phone}</p>` : ""}
         ${tenant?.email ? `<p style="font-size: 9px; color: #666; margin: 1px 0;">Email : ${tenant.email}</p>` : ""}
@@ -280,7 +283,7 @@ export default function SalesHistoryPage() {
         ${sale.subtotalAmount && sale.subtotalAmount !== sale.totalAmount ? `<div class="flex justify-between"><span>Sous-total Brut :</span><span>${formatMoney(sale.subtotalAmount)}</span></div>` : ""}
         ${sale.discountAmount && sale.discountAmount > 0 ? `<div class="flex justify-between font-bold"><span>Remise déduite :</span><span>-${formatMoney(sale.discountAmount)}</span></div>` : ""}
         <div class="divider"></div>
-        <div class="flex justify-between font-black text-sm" style="font-size: 13px;"><span>TOTAL NET :</span><span>${formatMoney(sale.totalAmount)}</span></div>
+        <div class="flex justify-between font-black text-sm" style="font-size: 14px;"><span>TOTAL NET :</span><span>${formatMoney(sale.totalAmount)}</span></div>
         <div class="flex justify-between font-bold" style="margin-top: 2px;"><span>Montant Payé (${sale.paymentMethod}) :</span><span>${formatMoney(sale.amountPaid)}</span></div>
         ${sale.debtAmount > 0 ? `<div class="flex justify-between font-bold" style="color: #b91c1c; margin-top: 2px;"><span>Reste Dû (Dette) :</span><span>${formatMoney(sale.debtAmount)}</span></div>` : ""}
       </div>
@@ -288,15 +291,162 @@ export default function SalesHistoryPage() {
       ${splitsHtml}
 
       <div class="divider"></div>
-      <div class="text-center text-xs" style="color: #444; font-size: 9px; line-height: 1.3;">
-        <p>Merci pour votre confiance !</p>
-        <p style="margin-top: 3px; font-weight: bold;">Kuettu Global POS • https://globalpos.app</p>
+      <div class="text-center" style="margin-top: 6px;">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https%3A%2F%2Fglobalpos.app" alt="QR Code Global POS" style="width: 55px; height: 55px; margin: 0 auto 3px auto; display: block;" />
+        <p style="font-size: 8px; color: #555; margin: 0;">Vérification : https://globalpos.app</p>
+        <p style="font-size: 9px; font-weight: bold; margin-top: 3px;">Merci pour votre confiance !</p>
       </div>
     `;
 
     await printIsolatedDocument({
       title: `Ticket_${sale.receiptNumber}`,
       width: "80mm",
+      bodyHtml,
+    });
+  };
+
+  // Print A4 Pro PDF Invoice
+  const handlePrintA4Invoice = async (sale: Sale, items: SaleItem[]) => {
+    const storeName = store?.name || tenant?.name || "Kuettu Global POS";
+    const storeLogo = store?.logoUrl || tenant?.logoUrl;
+    const cust = customers.find((c) => c.id === sale.customerId);
+    const dateStr = new Date(sale.createdAt).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+    const timeStr = new Date(sale.createdAt).toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    const itemsRows = items
+      .map(
+        (it, idx) => `
+      <tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding: 10px 8px; text-align: center; color: #64748b;">${idx + 1}</td>
+        <td style="padding: 10px 8px;">
+          <b style="color: #0f172a;">${getProductName(it)}</b>
+        </td>
+        <td style="padding: 10px 8px; text-align: center;">${it.quantity}</td>
+        <td style="padding: 10px 8px; text-align: right;">${formatMoney(it.unitPrice)}</td>
+        <td style="padding: 10px 8px; text-align: right; font-weight: bold; color: #0f172a;">${formatMoney(it.quantity * it.unitPrice)}</td>
+      </tr>`
+      )
+      .join("");
+
+    const bodyHtml = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #0f172a; max-width: 800px; margin: 0 auto; padding: 20px;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2563eb; padding-bottom: 16px; margin-bottom: 20px;">
+          <div>
+            ${storeLogo ? `<img src="${storeLogo}" alt="${storeName}" style="max-height: 55px; max-width: 180px; object-fit: contain; margin-bottom: 8px;" />` : ""}
+            <h1 style="font-size: 22px; font-weight: 900; margin: 0; text-transform: uppercase; color: #1e3a8a;">${storeName}</h1>
+            ${store?.address ? `<p style="margin: 3px 0; font-size: 11px; color: #475569;">📍 ${store.address}</p>` : ""}
+            ${store?.phone ? `<p style="margin: 3px 0; font-size: 11px; color: #475569;">📞 Tél : ${store.phone}</p>` : ""}
+            ${tenant?.email ? `<p style="margin: 3px 0; font-size: 11px; color: #475569;">✉️ Email : ${tenant.email}</p>` : ""}
+          </div>
+          <div style="text-align: right;">
+            <div style="background: #eff6ff; color: #1d4ed8; padding: 6px 14px; border-radius: 8px; font-weight: 900; font-size: 14px; display: inline-block; margin-bottom: 6px; border: 1px solid #bfdbfe;">
+              FACTURE N° ${sale.receiptNumber}
+            </div>
+            <p style="margin: 2px 0; font-size: 11px; color: #64748b;">Date d'émission : <b>${dateStr} à ${timeStr}</b></p>
+            <p style="margin: 2px 0; font-size: 11px; color: #64748b;">Statut : <b style="color: ${sale.debtAmount > 0 ? '#b91c1c' : '#15803d'};">${sale.debtAmount > 0 ? 'PARTIELLEMENT PAYÉE (DETTE)' : 'RÉGLÉE / ACQUITTÉE'}</b></p>
+            ${sale.tableOrLabel ? `<p style="margin: 2px 0; font-size: 11px; color: #b45309;">Emplacement / Ref : <b>${sale.tableOrLabel}</b></p>` : ""}
+          </div>
+        </div>
+
+        <!-- Client & Facturation Info Box -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 20px;">
+          <div>
+            <span style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Facturé à :</span>
+            <div style="font-size: 14px; font-weight: bold; color: #0f172a; margin-top: 4px;">${cust?.name || "Client Comptant (Passager)"}</div>
+            ${cust?.phone ? `<div style="font-size: 11px; color: #475569; margin-top: 2px;">Tél : ${cust.phone}</div>` : ""}
+            ${cust?.address ? `<div style="font-size: 11px; color: #475569; margin-top: 2px;">Adresse : ${cust.address}</div>` : ""}
+          </div>
+          <div>
+            <span style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Modalités & Caisse :</span>
+            <div style="font-size: 11px; color: #334155; margin-top: 4px;">Mode de règlement : <b>${sale.paymentMethod}</b></div>
+            <div style="font-size: 11px; color: #334155; margin-top: 2px;">Vendeur / Caissier : <b>${user?.name || "Caisse Principale"}</b></div>
+            ${sale.notes ? `<div style="font-size: 10px; color: #64748b; margin-top: 2px;">Note : ${sale.notes}</div>` : ""}
+          </div>
+        </div>
+
+        <!-- Articles Table -->
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px;">
+          <thead>
+            <tr style="background: #1e3a8a; color: #ffffff; text-align: left;">
+              <th style="padding: 10px 8px; width: 40px; text-align: center; border-top-left-radius: 6px;">#</th>
+              <th style="padding: 10px 8px;">Désignation de l'article</th>
+              <th style="padding: 10px 8px; width: 80px; text-align: center;">Qté</th>
+              <th style="padding: 10px 8px; width: 110px; text-align: right;">Prix Unitaire</th>
+              <th style="padding: 10px 8px; width: 120px; text-align: right; border-top-right-radius: 6px;">Montant Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsRows}
+          </tbody>
+        </table>
+
+        <!-- Totals & Payment Summary -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 30px;">
+          <div style="width: 300px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; font-size: 12px;">
+            ${sale.subtotalAmount && sale.subtotalAmount !== sale.totalAmount ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #475569;">
+                <span>Sous-total Brut :</span>
+                <span>${formatMoney(sale.subtotalAmount)}</span>
+              </div>` : ""}
+            ${sale.discountAmount && sale.discountAmount > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #15803d; font-weight: bold;">
+                <span>Remise déduite :</span>
+                <span>-${formatMoney(sale.discountAmount)}</span>
+              </div>` : ""}
+            <div style="display: flex; justify-content: space-between; margin-top: 6px; padding-top: 6px; border-top: 2px solid #cbd5e1; font-size: 15px; font-weight: 900; color: #1e3a8a;">
+              <span>TOTAL NET :</span>
+              <span>${formatMoney(sale.totalAmount)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 6px; font-weight: bold; color: #047857;">
+              <span>Montant Payé (${sale.paymentMethod}) :</span>
+              <span>${formatMoney(sale.amountPaid)}</span>
+            </div>
+            ${sale.debtAmount > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-top: 6px; padding-top: 4px; border-top: 1px solid #fecdd3; font-weight: 900; color: #b91c1c;">
+                <span>Reste en Dette :</span>
+                <span>${formatMoney(sale.debtAmount)}</span>
+              </div>` : ""}
+          </div>
+        </div>
+
+        <!-- Signatures & Official Validation Stamp -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 30px; padding-top: 20px; border-top: 1px dashed #cbd5e1;">
+          <div style="text-align: center; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; height: 100px; display: flex; flex-direction: column; justify-content: space-between;">
+            <span style="font-size: 11px; font-weight: bold; color: #64748b;">Signature & Cachet Client</span>
+            <div style="border-bottom: 1px dashed #cbd5e1; width: 60%; margin: 0 auto;"></div>
+          </div>
+          <div style="text-align: center; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; height: 100px; display: flex; flex-direction: column; justify-content: space-between;">
+            <span style="font-size: 11px; font-weight: bold; color: #64748b;">Signature & Cachet Caisse / Direction</span>
+            <div style="border-bottom: 1px dashed #cbd5e1; width: 60%; margin: 0 auto;"></div>
+          </div>
+        </div>
+
+        <!-- Footer with QR Code & Platform Verification -->
+        <div style="border-top: 2px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #64748b;">
+          <div>
+            <p style="margin: 0; font-weight: bold; color: #0f172a;">Facture générée numériquement par Kuettu Global POS</p>
+            <p style="margin: 2px 0;">Vérification d'authenticité et gestion : <a href="https://globalpos.app" target="_blank" style="color: #2563eb; text-decoration: none;">https://globalpos.app</a></p>
+            <p style="margin: 2px 0;">Merci pour votre confiance !</p>
+          </div>
+          <div style="text-align: center;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=https%3A%2F%2Fglobalpos.app" alt="QR Code Global POS" style="width: 60px; height: 60px; display: block; margin: 0 auto 2px auto;" />
+            <span style="font-size: 8px; color: #94a3b8;">Scanner pour vérifier</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    await printIsolatedDocument({
+      title: `Facture_A4_${sale.receiptNumber}`,
+      width: "a4",
       bodyHtml,
     });
   };
@@ -791,22 +941,33 @@ export default function SalesHistoryPage() {
 
             {/* Modal Actions */}
             <div className="pt-3 space-y-2 border-t border-slate-100 mt-2">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => handlePrintHistoricSale(selectedSale, selectedSaleItems)}
-                  className="py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-slate-900/20"
+                  className="py-2.5 px-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] flex flex-col sm:flex-row items-center justify-center gap-1 shadow-md shadow-slate-900/20 text-center"
+                  title="Imprimer ticket de caisse thermique (80mm)"
                 >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Réimprimer</span>
+                  <Printer className="w-3.5 h-3.5 shrink-0" />
+                  <span>Ticket POS</span>
+                </button>
+
+                <button
+                  onClick={() => handlePrintA4Invoice(selectedSale, selectedSaleItems)}
+                  className="py-2.5 px-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] flex flex-col sm:flex-row items-center justify-center gap-1 shadow-md shadow-blue-600/20 text-center"
+                  title="Générer et imprimer facture format A4 / PDF"
+                >
+                  <FileText className="w-3.5 h-3.5 shrink-0" />
+                  <span>Facture A4</span>
                 </button>
 
                 <a
                   href={getWhatsAppShareUrl(selectedSale, selectedSaleItems, selectedSaleCustomer)}
                   target="_blank"
                   rel="noreferrer"
-                  className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20"
+                  className="py-2.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex flex-col sm:flex-row items-center justify-center gap-1 shadow-md shadow-emerald-600/20 text-center"
+                  title="Partager le reçu par WhatsApp"
                 >
-                  <MessageCircle className="w-3.5 h-3.5" />
+                  <MessageCircle className="w-3.5 h-3.5 shrink-0" />
                   <span>WhatsApp</span>
                 </a>
               </div>
