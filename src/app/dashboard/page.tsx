@@ -33,6 +33,7 @@ import {
   BarChart2,
   ChevronRight,
   Percent,
+  Settings,
 } from "lucide-react";
 
 type TimeRange = "HOURLY" | "7_DAYS" | "30_DAYS" | "MONTHLY";
