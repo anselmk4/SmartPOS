@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const rawData = parseResult.data;
     const storeId: string = rawData.storeId;
     let tenantId: string = rawData.tenantId || "00000000-0000-4000-8000-000000000000";
 
