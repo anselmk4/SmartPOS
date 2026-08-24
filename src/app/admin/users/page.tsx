@@ -425,11 +425,11 @@ export default function AdminUsersPage() {
                       </td>
 
                       <td className="px-4 py-3.5">
-                        <span className="font-semibold text-slate-200 block">
+                        <span className="font-bold text-slate-900 block text-xs">
                           {u.tenant?.name || "Non affilié"}
                         </span>
-                        <span className="text-[10px] text-slate-500 font-mono">
-                          {u.tenantId}
+                        <span className="text-[10px] text-slate-500 font-mono inline-block max-w-[140px] truncate" title={u.tenantId}>
+                          ID: {u.tenantId.substring(0, 8)}...
                         </span>
                       </td>
 
@@ -437,10 +437,10 @@ export default function AdminUsersPage() {
                         <span
                           className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase inline-block ${
                             u.role === "OWNER"
-                              ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                              ? "bg-purple-50 text-purple-700 border border-purple-200"
                               : u.role === "MANAGER"
-                              ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
-                              : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                              ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                              : "bg-blue-50 text-blue-700 border border-blue-200"
                           }`}
                         >
                           {u.role === "OWNER"
@@ -451,17 +451,18 @@ export default function AdminUsersPage() {
                         </span>
                       </td>
 
-                      <td className="px-4 py-3.5">
+                      <td className="px-4 py-3.5 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-black text-emerald-400 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">
-                            {u.pinCode || "1234"}
+                          <span className="font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 text-xs inline-flex items-center gap-1">
+                            <Lock className="w-3 h-3 text-emerald-600" />
+                            <span>{u.pinCode && !u.pinCode.startsWith("pbkdf2:") ? u.pinCode : "••••"}</span>
                           </span>
                           <button
                             onClick={() => handleOpenPin(u)}
-                            className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 border border-slate-200 transition-colors"
                             title="Modifier le code PIN"
                           >
-                            <KeyRound className="w-3.5 h-3.5 text-blue-400" />
+                            <KeyRound className="w-3.5 h-3.5 text-blue-600" />
                           </button>
                         </div>
                       </td>
