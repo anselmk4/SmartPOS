@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { BUSINESS_ACTIVITIES } from "@/lib/constants/business-activities";
 import { getPlanPriceInfo } from "@/lib/constants/plans";
 import { PLAN_CONFIGS, type SubscriptionPlan } from "@/lib/shared/types";
+import { CaptchaChallenge, type CaptchaValidationState } from "@/components/auth/captcha-challenge";
 import {
   Store,
   CheckCircle2,
@@ -52,7 +53,7 @@ function RegisterForm() {
   const [phone, setPhone] = useState("+243 ");
   const [email, setEmail] = useState("");
 
-  // Step 4: Sécurité & Forfait (Gratuit par défaut)
+  // Step 4: Sécurité, Anti-Bot & Forfait (Gratuit par défaut)
   const [pinCode, setPinCode] = useState("");
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(() => {
     const urlPlan = searchParams?.get("plan")?.toUpperCase();
@@ -60,6 +61,12 @@ function RegisterForm() {
       return urlPlan as SubscriptionPlan;
     }
     return "FREE";
+  });
+  const [captchaState, setCaptchaState] = useState<CaptchaValidationState>({
+    isValid: false,
+    captchaToken: "",
+    captchaAnswer: "",
+    honeypot: "",
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -144,6 +151,11 @@ function RegisterForm() {
       return;
     }
 
+    if (!captchaState.isValid) {
+      setErrorMsg("Veuillez résoudre le calcul de sécurité anti-robot pour valider la création de votre boutique.");
+      return;
+    }
+
     setIsLoading(true);
     const res = await registerMerchant({
       storeName: storeName.trim(),
@@ -156,6 +168,9 @@ function RegisterForm() {
       currency,
       pinCode: pinCode.trim(),
       plan: selectedPlan,
+      captchaToken: captchaState.captchaToken,
+      captchaAnswer: captchaState.captchaAnswer,
+      honeypot: captchaState.honeypot,
     });
     setIsLoading(false);
 
@@ -534,6 +549,9 @@ function RegisterForm() {
                   })}
                 </div>
               </div>
+
+              {/* Field 3: Anti-Bot Security Captcha */}
+              <CaptchaChallenge onValidationChange={setCaptchaState} className="mt-2" />
             </div>
           )}
 

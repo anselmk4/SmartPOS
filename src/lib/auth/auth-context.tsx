@@ -69,6 +69,9 @@ interface AuthContextType {
     currency?: string;
     pinCode?: string;
     plan?: SubscriptionPlan;
+    captchaToken?: string;
+    captchaAnswer?: string;
+    honeypot?: string;
   }) => Promise<{
     success: boolean;
     message: string;
@@ -463,6 +466,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     currency?: string;
     pinCode?: string;
     plan?: SubscriptionPlan;
+    captchaToken?: string;
+    captchaAnswer?: string;
+    honeypot?: string;
   }): Promise<{
     success: boolean;
     message: string;
@@ -553,6 +559,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               currency: data.currency,
               pinCode: data.pinCode,
               plan: data.plan,
+              captchaToken: data.captchaToken,
+              captchaAnswer: data.captchaAnswer,
+              honeypot: data.honeypot,
             }),
           });
 

@@ -26,7 +26,36 @@ export async function POST(req: NextRequest) {
       currency = "CDF",
       pinCode = "1234",
       plan = "FREE",
+      captchaToken,
+      captchaAnswer,
+      honeypot,
     } = body;
+
+    // 1. Anti-Bot Honeypot validation
+    if (honeypot && String(honeypot).trim().length > 0) {
+      return NextResponse.json(
+        { success: false, error: "Requête automatisée rejetée par la sécurité anti-bot." },
+        { status: 400 }
+      );
+    }
+
+    // 2. Anti-Bot Captcha Token validation (if token supplied)
+    if (captchaToken && captchaAnswer !== undefined) {
+      try {
+        const decoded = JSON.parse(Buffer.from(captchaToken, "base64").toString("utf-8"));
+        if (decoded && typeof decoded.expected === "number") {
+          const userAns = parseInt(String(captchaAnswer).trim(), 10);
+          if (isNaN(userAns) || userAns !== decoded.expected) {
+            return NextResponse.json(
+              { success: false, error: "Le calcul de sécurité anti-robot est incorrect." },
+              { status: 400 }
+            );
+          }
+        }
+      } catch (err) {
+        console.warn("[Register API] Captcha token decode warning:", err);
+      }
+    }
 
     if (!storeName || !ownerName || !phone) {
       return NextResponse.json(
