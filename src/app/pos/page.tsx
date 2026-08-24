@@ -689,7 +689,7 @@ export default function POSPage() {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-3 sm:gap-4">
               {filteredProducts.map((p) => {
                 const inCart = cart.find((item) => item.product.id === p.id);
                 const isOutOfStock = p.stockQuantity <= 0;
@@ -698,7 +698,7 @@ export default function POSPage() {
                   <button
                     key={p.id}
                     onClick={() => addToCart(p)}
-                    className={`bg-white rounded-2xl p-2.5 sm:p-3 border text-left flex flex-col justify-between transition-all relative overflow-hidden shadow-2xs hover:shadow-md touch-press group ${
+                    className={`bg-white rounded-2xl p-3 sm:p-3.5 border text-left flex flex-col justify-between transition-all relative overflow-hidden shadow-2xs hover:shadow-md touch-press group ${
                       inCart
                         ? "border-blue-500 ring-2 ring-blue-500/20"
                         : "border-slate-200/80 hover:border-blue-300"
