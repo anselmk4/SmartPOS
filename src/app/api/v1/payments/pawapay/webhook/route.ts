@@ -57,57 +57,77 @@ export async function POST(req: NextRequest) {
     }
 
     const body = JSON.parse(rawBody);
-    const { depositId, status, metadata, customData } = body;
+    const { depositId, payoutId, refundId, checkoutId, paymentId, status, metadata, customData, eventType, event } = body;
+    const transactionId = depositId || payoutId || refundId || checkoutId || paymentId || body.id;
 
-    console.log("[PawaPay Webhook Received]:", { depositId, status, metadata });
+    console.log("[PawaPay Webhook Received]:", {
+      transactionId,
+      status: status || event,
+      eventType,
+      metadata: metadata || customData,
+    });
 
     const tenantId = metadata?.tenantId || customData?.tenantId;
     const plan = (metadata?.plan || customData?.plan || "PRO") as SubscriptionPlan;
 
-    if (!tenantId) {
-      return NextResponse.json({ received: true, warning: "No tenantId in metadata" });
+    // If it's a deposit or checkout completion
+    const currentStatus = String(status || event || "").toUpperCase();
+
+    if (tenantId) {
+      const now = new Date();
+      const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+      if (currentStatus === "COMPLETED" || currentStatus === "SUCCESS" || currentStatus === "DEPOSIT_COMPLETED") {
+        // Activate tenant plan
+        await prisma.tenant.update({
+          where: { id: tenantId },
+          data: {
+            plan,
+            planStatus: "ACTIVE",
+            planExpiresAt: periodEnd,
+            updatedAt: now,
+          },
+        });
+
+        // Update subscription status if transactionId exists
+        if (transactionId) {
+          await prisma.subscription.updateMany({
+            where: {
+              tenantId,
+              transactionId,
+            },
+            data: {
+              paymentStatus: "ACTIVE",
+              periodStart: now,
+              periodEnd,
+            },
+          });
+        }
+      } else if (
+        currentStatus === "FAILED" ||
+        currentStatus === "REJECTED" ||
+        currentStatus === "EXPIRED" ||
+        currentStatus === "CANCELLED"
+      ) {
+        if (transactionId) {
+          await prisma.subscription.updateMany({
+            where: {
+              tenantId,
+              transactionId,
+            },
+            data: {
+              paymentStatus: "PAST_DUE",
+            },
+          });
+        }
+      }
     }
 
-    const now = new Date();
-    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-    if (status === "COMPLETED") {
-      // Activate tenant plan
-      await prisma.tenant.update({
-        where: { id: tenantId },
-        data: {
-          plan,
-          planStatus: "ACTIVE",
-          planExpiresAt: periodEnd,
-          updatedAt: now,
-        },
-      });
-
-      // Update subscription status
-      await prisma.subscription.updateMany({
-        where: {
-          tenantId,
-          transactionId: depositId,
-        },
-        data: {
-          paymentStatus: "ACTIVE",
-          periodStart: now,
-          periodEnd,
-        },
-      });
-    } else if (status === "FAILED" || status === "REJECTED") {
-      await prisma.subscription.updateMany({
-        where: {
-          tenantId,
-          transactionId: depositId,
-        },
-        data: {
-          paymentStatus: "PAST_DUE",
-        },
-      });
-    }
-
-    return NextResponse.json({ received: true, processedStatus: status });
+    return NextResponse.json({
+      received: true,
+      processedStatus: currentStatus,
+      transactionId,
+    });
   } catch (error: any) {
     console.error("[PawaPay Webhook Error]:", error);
     return NextResponse.json(
