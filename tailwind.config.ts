@@ -36,11 +36,13 @@ const config: Config = {
         }
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        sans: ["'Plus Jakarta Sans'", "var(--font-jakarta)", "Inter", "system-ui", "sans-serif"],
       },
       boxShadow: {
         soft: "0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)",
-        card: "0 4px 20px 0 rgba(0, 0, 0, 0.05)",
+        card: "0 4px 20px 0 rgba(0, 0, 0, 0.03)",
+        modern: "0 8px 30px rgba(0, 0, 0, 0.04)",
+        floating: "0 10px 30px -5px rgba(37, 99, 235, 0.4)",
       },
     },
   },

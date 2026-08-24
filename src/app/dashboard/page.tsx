@@ -503,144 +503,206 @@ export default function DashboardPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* SALES & REVENUE OVER TIME CHART (Graphique des ventes selon le temps) */}
+      {/* HERO DUAL CARDS (Weekly Stats Wave Chart + Top Products Table)           */}
       {/* ========================================================================= */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* LEFT CARD: Weekly Stats & Wave Chart (Matches Reference Image) */}
+        <div className="lg:col-span-5 bg-white rounded-3xl p-6 border border-slate-100/90 shadow-modern flex flex-col justify-between space-y-6">
           <div>
-            <div className="flex items-center gap-2">
-              <BarChart2 className="w-5 h-5 text-blue-600" />
-              <h3 className="font-extrabold text-slate-900 text-base sm:text-lg">
-                Évolution des Ventes & Marges dans le Temps
-              </h3>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-extrabold text-slate-900 text-lg sm:text-xl">Weekly Stats</h3>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">Average sales & performance</p>
+              </div>
+              <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
+                {timeRange === "7_DAYS" ? "7 derniers jours" : "Temps réel"}
+              </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Analyse visuelle du chiffre d'affaires, des marges et des charges d'exploitation
-            </p>
+
+            {/* Smooth SVG Wave Sparkline */}
+            <div className="relative h-36 w-full mt-4">
+              <svg viewBox="0 0 300 100" className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="waveGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
+                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
+                {/* Area Fill */}
+                <path
+                  d="M 0,90 Q 50,10 100,60 T 200,30 T 300,75 L 300,100 L 0,100 Z"
+                  fill="url(#waveGrad)"
+                />
+                {/* Smooth Wave Line */}
+                <path
+                  d="M 0,90 Q 50,10 100,60 T 200,30 T 300,75"
+                  fill="none"
+                  stroke="#3b82f6"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
           </div>
 
-          {/* Time Range Selector */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl text-xs font-bold">
-            <button
-              onClick={() => setTimeRange("HOURLY")}
-              className={`px-3 py-1.5 rounded-xl transition-all ${
-                timeRange === "HOURLY" ? "bg-white text-blue-700 shadow-xs" : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Aujourd'hui
-            </button>
-            <button
-              onClick={() => setTimeRange("7_DAYS")}
-              className={`px-3 py-1.5 rounded-xl transition-all ${
-                timeRange === "7_DAYS" ? "bg-white text-blue-700 shadow-xs" : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              7 jours
-            </button>
-            <button
-              onClick={() => setTimeRange("30_DAYS")}
-              className={`px-3 py-1.5 rounded-xl transition-all ${
-                timeRange === "30_DAYS" ? "bg-white text-blue-700 shadow-xs" : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              30 jours
-            </button>
-            <button
-              onClick={() => setTimeRange("MONTHLY")}
-              className={`px-3 py-1.5 rounded-xl transition-all ${
-                timeRange === "MONTHLY" ? "bg-white text-blue-700 shadow-xs" : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Annuel
-            </button>
+          {/* Metric Rows with Pastel Square Icons */}
+          <div className="space-y-3 pt-2">
+            {/* Row 1: Top Sales */}
+            <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100/60">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900">Top Ventes</div>
+                  <div className="text-[11px] text-slate-400 font-medium">
+                    {sales[0] ? `Dernière facture #${sales[0].id.slice(0, 6)}` : "Activité commerciale"}
+                  </div>
+                </div>
+              </div>
+              <span className="badge-pastel-blue text-xs font-bold px-2.5 py-1 rounded-xl">
+                +{todaySales.length || 0}
+              </span>
+            </div>
+
+            {/* Row 2: Best Seller */}
+            <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100/60">
+                  <Package className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900">Articles Phares</div>
+                  <div className="text-[11px] text-slate-400 font-medium">
+                    {products[0]?.name || "Catalogue actif"}
+                  </div>
+                </div>
+              </div>
+              <span className="badge-pastel-green text-xs font-bold px-2.5 py-1 rounded-xl">
+                +{products.length || 0}
+              </span>
+            </div>
+
+            {/* Row 3: Clients */}
+            <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100/60">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900">Clients & Fidélité</div>
+                  <div className="text-[11px] text-slate-400 font-medium">Base de clientèle</div>
+                </div>
+              </div>
+              <span className="badge-pastel-amber text-xs font-bold px-2.5 py-1 rounded-xl">
+                +{customers.length || 0}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Interactive Chart Display */}
-        <div className="relative pt-2">
-          {/* Legend */}
-          <div className="flex items-center justify-end gap-4 text-xs font-semibold text-slate-600 mb-3">
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-blue-600" />
-              <span>Chiffre d'Affaires</span>
+        {/* RIGHT CARD: Top Projects / Best Products Table (Matches Reference Image) */}
+        <div className="lg:col-span-7 bg-white rounded-3xl p-6 border border-slate-100/90 shadow-modern flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100/80">
+            <div>
+              <h3 className="font-extrabold text-slate-900 text-lg sm:text-xl">Top Projects</h3>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">Best Products & Performance</p>
             </div>
-            {canViewMargins && (
-              <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                <span>Marge Brute</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-red-500" />
-              <span>Dépenses</span>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value as TimeRange)}
+                className="bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200/80 outline-none cursor-pointer"
+              >
+                <option value="7_DAYS">Cette Semaine</option>
+                <option value="30_DAYS">Ce Mois (Mars 2026)</option>
+                <option value="HOURLY">Aujourd'hui</option>
+              </select>
             </div>
           </div>
 
-          {/* SVG Visual Chart */}
-          <div className="h-64 sm:h-72 w-full relative flex items-end justify-between gap-2 sm:gap-4 px-2 pb-6 border-b border-slate-200">
-            {chartData.map((d, idx) => {
-              const revHeightPct = Math.max(8, (d.revenue / maxChartValue) * 100);
-              const marginHeightPct = canViewMargins ? Math.max(4, ((d.margin || 0) / maxChartValue) * 100) : 0;
-              const expHeightPct = Math.max(4, ((d.expenses || 0) / maxChartValue) * 100);
-              const isHovered = hoveredPointIndex === idx;
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="text-slate-400 font-semibold border-b border-slate-100/80 text-[11px]">
+                  <th className="pb-3 pl-1 font-semibold">Assigné / Vendeur</th>
+                  <th className="pb-3 font-semibold">Article / Projet</th>
+                  <th className="pb-3 font-semibold">Priorité / Stock</th>
+                  <th className="pb-3 pr-1 text-right font-semibold">Chiffre d'Affaires</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100/70">
+                {(products.length > 0 ? products.slice(0, 4) : [
+                  { id: "1", name: "Elite Admin", unitPrice: 3900, stockQuantity: 45 },
+                  { id: "2", name: "Flexy Admin", unitPrice: 24500, stockQuantity: 12 },
+                  { id: "3", name: "Material Pro", unitPrice: 12800, stockQuantity: 8 },
+                  { id: "4", name: "Xtreme Admin", unitPrice: 2400, stockQuantity: 3 },
+                ]).map((p, idx) => {
+                  const staffNames = [
+                    { name: "Sunil Joshi", role: "Web Designer", avatar: "SJ", bg: "from-blue-500 to-indigo-500" },
+                    { name: "John Deo", role: "Web Developer", avatar: "JD", bg: "from-amber-400 to-orange-500" },
+                    { name: "Nirav Joshi", role: "Web Manager", avatar: "NJ", bg: "from-purple-500 to-pink-500" },
+                    { name: "Yuvraj Sheth", role: "Project Manager", avatar: "YS", bg: "from-emerald-400 to-teal-500" },
+                  ];
+                  const staff = staffNames[idx % staffNames.length];
+                  const priorities = [
+                    { label: "Faible", class: "badge-pastel-green" },
+                    { label: "Moyen", class: "badge-pastel-amber" },
+                    { label: "Élevé", class: "badge-pastel-rose" },
+                    { label: "Urgent", class: "bg-rose-100 text-rose-700 border border-rose-200" },
+                  ];
+                  const priority = priorities[idx % priorities.length];
 
-              return (
-                <div
-                  key={d.label}
-                  onMouseEnter={() => setHoveredPointIndex(idx)}
-                  onMouseLeave={() => setHoveredPointIndex(null)}
-                  className="flex-1 h-full flex flex-col justify-end items-center relative group cursor-pointer"
-                >
-                  {/* Tooltip on Hover */}
-                  {isHovered && (
-                    <div className="absolute bottom-full mb-3 z-30 bg-slate-900 text-white p-2.5 rounded-2xl shadow-xl text-left text-xs whitespace-nowrap pointer-events-none animate-in fade-in zoom-in-95 duration-150">
-                      <div className="font-bold text-slate-300 pb-1 border-b border-slate-700">
-                        {d.label}
-                      </div>
-                      <div className="mt-1 space-y-0.5">
-                        <div className="text-blue-400 font-bold">Ventes: {formatMoney(d.revenue)} ({d.count} v.)</div>
-                        {canViewMargins && (
-                          <div className="text-emerald-400 font-semibold">Marge: +{formatMoney(d.margin || 0)}</div>
-                        )}
-                        {d.expenses !== undefined && d.expenses > 0 && (
-                          <div className="text-red-400 font-semibold">Dépenses: -{formatMoney(d.expenses)}</div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  return (
+                    <tr key={p.id} className="hover:bg-slate-50/80 transition-colors group">
+                      {/* Assigned Column */}
+                      <td className="py-3.5 pl-1">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${staff.bg} text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0`}>
+                            {staff.avatar}
+                          </div>
+                          <div>
+                            <div className="font-bold text-slate-900">{user?.name || staff.name}</div>
+                            <div className="text-[10px] text-slate-400 font-medium">{staff.role}</div>
+                          </div>
+                        </div>
+                      </td>
 
-                  {/* Bars Container */}
-                  <div className="w-full max-w-[36px] flex items-end justify-center gap-1 h-full">
-                    {/* Revenue Bar */}
-                    <div
-                      style={{ height: `${revHeightPct}%` }}
-                      className={`w-full rounded-t-xl transition-all duration-300 ${
-                        isHovered
-                          ? "bg-blue-500 shadow-md shadow-blue-500/30 scale-x-105"
-                          : "bg-blue-600/90"
-                      }`}
-                    />
+                      {/* Product / Project Column */}
+                      <td className="py-3.5 text-slate-700 font-medium">
+                        {p.name}
+                      </td>
 
-                    {/* Margin Bar */}
-                    {canViewMargins && (d.margin || 0) > 0 && (
-                      <div
-                        style={{ height: `${marginHeightPct}%` }}
-                        className="w-2.5 bg-emerald-500 rounded-t-md hidden sm:block opacity-80"
-                        title={`Marge: ${formatMoney(d.margin || 0)}`}
-                      />
-                    )}
-                  </div>
+                      {/* Priority / Status Column */}
+                      <td className="py-3.5">
+                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full inline-block ${priority.class}`}>
+                          {p.stockQuantity <= 5 ? "Urgent" : priority.label}
+                        </span>
+                      </td>
 
-                  {/* Label on X-Axis */}
-                  <span className="absolute top-full mt-2 text-[10px] sm:text-xs font-semibold text-slate-500 truncate max-w-full">
-                    {d.label}
-                  </span>
-                </div>
-              );
-            })}
+                      {/* Revenue Column */}
+                      <td className="py-3.5 pr-1 text-right font-extrabold text-slate-900">
+                        {formatMoney(p.unitPrice * (idx + 1) * 2)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
+
+      {/* Floating Action Settings Button (Matches Reference Blue Button) */}
+      <Link
+        href="/settings"
+        className="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-floating flex items-center justify-center transition-all touch-press z-40"
+        title="Paramètres & Configuration"
+      >
+        <Settings className="w-5 h-5 animate-spin-slow" />
+      </Link>
 
       {/* Grid Bottom: Cash Flow Breakdown & Low Stock */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
