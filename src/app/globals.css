@@ -158,3 +158,99 @@ input, textarea, select {
     box-shadow: none !important;
   }
 }
+
+/* ========================================================================= */
+/* SUPER ADMIN THEME MODES (Light Mode & Dark Mode Support)                 */
+/* ========================================================================= */
+.admin-theme-dark {
+  color-scheme: dark;
+}
+
+.admin-theme-light {
+  color-scheme: light;
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.admin-theme-light .bg-slate-950 {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.admin-theme-light .bg-slate-900 {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.admin-theme-light .bg-slate-900\/90,
+.admin-theme-light .bg-slate-900\/95,
+.admin-theme-light .bg-slate-900\/80,
+.admin-theme-light .bg-slate-900\/70,
+.admin-theme-light .bg-slate-900\/60 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+.admin-theme-light .bg-slate-950\/75,
+.admin-theme-light .bg-slate-950\/60 {
+  background-color: rgba(15, 23, 42, 0.5) !important;
+}
+
+.admin-theme-light .bg-slate-800,
+.admin-theme-light .bg-slate-800\/60,
+.admin-theme-light .bg-slate-800\/50,
+.admin-theme-light .bg-slate-800\/40,
+.admin-theme-light .bg-slate-800\/30 {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+  border-color: #e2e8f0 !important;
+}
+
+.admin-theme-light .bg-slate-800:hover,
+.admin-theme-light .bg-slate-800\/70:hover {
+  background-color: #e2e8f0 !important;
+}
+
+.admin-theme-light .border-slate-800,
+.admin-theme-light .border-slate-800\/80,
+.admin-theme-light .border-slate-800\/60,
+.admin-theme-light .border-slate-700,
+.admin-theme-light .border-slate-700\/80,
+.admin-theme-light .border-slate-700\/60,
+.admin-theme-light .border-slate-700\/50 {
+  border-color: #e2e8f0 !important;
+}
+
+.admin-theme-light .text-white {
+  color: #0f172a !important;
+}
+
+.admin-theme-light .text-slate-100,
+.admin-theme-light .text-slate-200,
+.admin-theme-light .text-slate-300 {
+  color: #334155 !important;
+}
+
+.admin-theme-light .text-slate-400 {
+  color: #64748b !important;
+}
+
+.admin-theme-light .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+.admin-theme-light input,
+.admin-theme-light select,
+.admin-theme-light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.admin-theme-light input::placeholder {
+  color: #94a3b8 !important;
+}
+
