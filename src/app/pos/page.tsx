@@ -57,7 +57,7 @@ import { printIsolatedDocument } from "@/lib/native/print-service";
 
 export default function POSPage() {
   const { user, tenant, store: authStore, isAuthenticated, isLoading, plan } = useAuth();
-  const { formatMoney, currency } = useSync();
+  const { formatMoney, currency, syncNow } = useSync();
 
   const currentStoreId = authStore?.id || DEFAULT_STORE_ID;
 
