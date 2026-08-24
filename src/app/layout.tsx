@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { SyncProvider } from "@/lib/sync/sync-context";
@@ -9,6 +10,13 @@ import { Navbar } from "@/components/navigation/navbar";
 import { PWARegister } from "@/components/pwa/pwa-register";
 import { PlanMotivationCapsule } from "@/components/plans/plan-motivation-capsule";
 import { PlanPaymentGate } from "@/components/auth/plan-payment-gate";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-jakarta",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://globalpos.app"),
@@ -132,7 +140,7 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="fr" className="h-full">
+    <html lang="fr" className={`h-full ${plusJakartaSans.variable}`}>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -144,12 +152,12 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="h-full bg-slate-50 text-slate-900 antialiased">
+      <body className="h-full bg-[#f6f8fc] text-slate-900 font-sans antialiased">
         <AdminAuthProvider>
           <AuthProvider>
             <SyncProvider>
               <SidebarProvider>
-                <div className="flex min-h-screen bg-slate-50">
+                <div className="flex min-h-screen bg-[#f6f8fc]">
                   {/* Left Retractable Dashboard Sidebar */}
                   <Sidebar />
 
