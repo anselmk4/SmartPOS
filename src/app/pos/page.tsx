@@ -434,6 +434,9 @@ export default function POSPage() {
       setCompletedSale(result);
       setIsPaymentModalOpen(false);
       clearCart();
+
+      // Trigger instantaneous background sync to cloud Supabase
+      syncNow().catch((e) => console.warn("[POS] Instant sync triggered:", e));
     } catch (err: any) {
       alert("Erreur lors de l'enregistrement de la vente: " + err.message);
     } finally {

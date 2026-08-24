@@ -56,10 +56,10 @@ export async function GET(req: NextRequest) {
       `);
 
       await prisma.$executeRawUnsafe(`
-        UPDATE "Customer" c
-        SET "tenantId" = st."tenantId"
-        FROM "Store" st
-        WHERE c."storeId" = st.id AND (c."tenantId" IS NULL OR c."tenantId" != st."tenantId");
+        UPDATE "Sale" s
+        SET "tenantId" = u."tenantId"
+        FROM "User" u
+        WHERE s."userId" = u.id AND (s."tenantId" IS NULL OR s."tenantId" != u."tenantId");
       `);
     } catch (reconcileErr) {
       console.warn("[Admin Tenants Reconcile Warning]:", reconcileErr);
