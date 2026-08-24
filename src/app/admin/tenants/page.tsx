@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { adminFetch } from "@/lib/admin/admin-api";
+import { TenantDetailsSidebar } from "@/components/admin/tenant-details-sidebar";
 import type { SubscriptionPlan } from "@/lib/shared/types";
 import {
   Store as StoreIcon,
@@ -22,6 +23,8 @@ import {
   RefreshCw,
   AlertCircle,
   Database,
+  ExternalLink,
+  ChevronRight,
 } from "lucide-react";
 
 interface TenantWithDetails {
@@ -29,6 +32,9 @@ interface TenantWithDetails {
   name: string;
   slug: string;
   phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  businessType?: string | null;
   countryCode: string;
   currency: string;
   plan: SubscriptionPlan;
@@ -37,8 +43,9 @@ interface TenantWithDetails {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  stores?: Array<{ id: string; name: string; address?: string | null; ownerName?: string | null }>;
-  users?: Array<{ id: string; name: string; phone?: string | null; email?: string | null; role: string; isActive: boolean }>;
+  stores?: Array<{ id: string; name: string; address?: string | null; ownerName?: string | null; currency?: string }>;
+  users?: Array<{ id: string; name: string; phone?: string | null; email?: string | null; role: string; isActive: boolean; lastLoginAt?: string | null }>;
+  subscriptions?: Array<{ id: string; plan: string; amount: number; currency: string; paymentMethod: string; paymentStatus: string; periodStart: string; periodEnd: string; createdAt: string }>;
   _count?: {
     products: number;
     sales: number;
@@ -58,11 +65,13 @@ export default function AdminTenantsPage() {
   const [planFilter, setPlanFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
-  // Modals state
+  // Modals & Drawer state
   const [isAddTenantModalOpen, setIsAddTenantModalOpen] = useState(false);
   const [isEditTenantModalOpen, setIsEditTenantModalOpen] = useState(false);
   const [isChangePlanModalOpen, setIsChangePlanModalOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<TenantWithDetails | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarTenant, setSidebarTenant] = useState<TenantWithDetails | null>(null);
 
   // Form State for new boutique
   const [formName, setFormName] = useState("");
@@ -231,6 +240,11 @@ export default function AdminTenantsPage() {
     }
   };
 
+  const handleOpenSidebar = (t: TenantWithDetails) => {
+    setSidebarTenant(t);
+    setIsSidebarOpen(true);
+  };
+
   const handleToggleStatus = async (t: TenantWithDetails) => {
     const nextStatus = !t.isActive;
     const actionName = nextStatus ? "activer" : "suspendre";
@@ -246,6 +260,7 @@ export default function AdminTenantsPage() {
 
     if (res.success) {
       showToast(`Boutique "${t.name}" ${nextStatus ? "activée" : "suspendue"} avec succès.`);
+      setSidebarTenant((prev) => (prev && prev.id === t.id ? { ...prev, isActive: nextStatus } : prev));
       loadTenants();
     } else {
       alert(res.error || "Erreur lors du changement de statut");
@@ -411,9 +426,17 @@ export default function AdminTenantsPage() {
                   {/* Top Bar inside Card */}
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-black text-white text-base truncate">{t.name}</h3>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenSidebar(t)}
+                        className="text-left group flex items-center gap-1.5 transition-colors focus:outline-none w-full"
+                        title="Cliquer pour ouvrir la fiche détaillée"
+                      >
+                        <h3 className="font-black text-white text-base truncate group-hover:text-blue-400 transition-colors">
+                          {t.name}
+                        </h3>
+                        <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                      </button>
                       <span className="text-[11px] text-slate-400 font-mono block truncate">
                         ID: {t.id}
                       </span>
@@ -425,6 +448,8 @@ export default function AdminTenantsPage() {
                           ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
                           : t.plan === "PRO"
                           ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                          : t.plan === "BASIC"
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                           : "bg-slate-800 text-slate-400 border border-slate-700"
                       }`}
                     >
@@ -433,7 +458,11 @@ export default function AdminTenantsPage() {
                   </div>
 
                   {/* Boutique Details */}
-                  <div className="space-y-1.5 text-xs text-slate-300 my-3 bg-slate-800/40 p-3 rounded-2xl border border-slate-800">
+                  <div
+                    onClick={() => handleOpenSidebar(t)}
+                    className="space-y-1.5 text-xs text-slate-300 my-3 bg-slate-800/40 hover:bg-slate-800/70 p-3 rounded-2xl border border-slate-800 hover:border-slate-700 transition-all cursor-pointer group"
+                    title="Cliquer pour afficher la fiche complète"
+                  >
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400">Gérant :</span>
                       <span className="font-bold text-white truncate max-w-[150px]">{mainOwner}</span>
@@ -793,6 +822,24 @@ export default function AdminTenantsPage() {
           </div>
         </div>
       )}
+
+      {/* 4. RETRACTABLE RIGHT SIDEBAR (TENANT DETAILS DRAWER) */}
+      <TenantDetailsSidebar
+        tenant={sidebarTenant}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        onEdit={(t) => {
+          setIsSidebarOpen(false);
+          handleOpenEditModal(t);
+        }}
+        onChangePlan={(t) => {
+          setIsSidebarOpen(false);
+          handleOpenChangePlanModal(t);
+        }}
+        onToggleStatus={(t) => {
+          handleToggleStatus(t);
+        }}
+      />
     </div>
   );
 }

@@ -55,6 +55,10 @@ export async function GET(req: NextRequest) {
             lastLoginAt: true,
           },
         },
+        subscriptions: {
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        },
         _count: {
           select: {
             products: true,
