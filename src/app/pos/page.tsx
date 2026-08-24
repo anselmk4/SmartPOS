@@ -303,20 +303,27 @@ export default function POSPage() {
 
     const bodyHtml = `
       <div class="text-center">
-        <div class="font-black text-base uppercase">${storeName}</div>
-        ${address}
-        ${phone}
+        <div style="margin-bottom: 4px;">
+          <img src="/images/logo.png" alt="Logo" style="max-height: 42px; max-width: 120px; margin: 0 auto 4px auto; display: block; object-fit: contain;" />
+        </div>
+        <div class="font-black text-base uppercase" style="font-size: 15px; letter-spacing: 0.5px;">${storeName}</div>
+        ${address ? `<p class="text-xs" style="margin: 2px 0; color: #333;">${authStore?.address}</p>` : ""}
+        ${phone ? `<p class="text-xs" style="margin: 2px 0; color: #333;">Tél : ${authStore?.phone}</p>` : ""}
+        ${tenant?.email ? `<p style="font-size: 9px; color: #666; margin: 1px 0;">Email : ${tenant.email}</p>` : ""}
         <div class="divider"></div>
-        <div class="badge uppercase">*** FACTURE À PAYER ***</div>
+        <div class="badge uppercase" style="font-weight: 800; font-size: 10px; padding: 2px 6px; border: 1px dashed #000; display: inline-block; margin-top: 4px;">
+          *** FACTURE À PAYER (ADDITION) ***
+        </div>
       </div>
 
       <div class="divider"></div>
-      <div style="font-size: 10px; line-height: 1.3;">
-        <div class="flex justify-between"><span>Note N° :</span><b>${billNum}</b></div>
+      <div style="font-size: 10px; line-height: 1.35;">
+        <div class="flex justify-between"><span>Note / Ref N° :</span><b>${billNum}</b></div>
         <div class="flex justify-between"><span>Date :</span><span>${dateStr} à ${timeStr}</span></div>
-        ${label ? `<div class="flex justify-between font-bold"><span>Table / Ref :</span><span>${label}</span></div>` : ""}
-        ${cust ? `<div class="flex justify-between"><span>Client :</span><b>${cust.name}</b></div>` : ""}
+        ${label ? `<div class="flex justify-between font-bold"><span>Table / Emplacement :</span><span>${label}</span></div>` : ""}
+        ${cust ? `<div class="flex justify-between"><span>Client :</span><b>${cust.name} ${cust.phone ? `(${cust.phone})` : ""}</b></div>` : ""}
         <div class="flex justify-between"><span>Caissier :</span><span>${user?.name || "Caisse"}</span></div>
+        <div class="flex justify-between font-bold" style="color: #b45309; margin-top: 2px;"><span>Statut :</span><span>EN ATTENTE DE PAIEMENT</span></div>
       </div>
 
       <div class="divider"></div>
@@ -335,18 +342,18 @@ export default function POSPage() {
       <div class="divider"></div>
       <div style="font-size: 11px;">
         ${discountAmount > 0 ? `<div class="flex justify-between"><span>Sous-total Brut :</span><span>${formatMoney(subtotalAmount)}</span></div>
-        <div class="flex justify-between font-bold"><span>Remise :</span><span>-${formatMoney(discountAmount)}</span></div>` : ""}
+        <div class="flex justify-between font-bold"><span>Remise déduite :</span><span>-${formatMoney(discountAmount)}</span></div>` : ""}
         <div class="divider"></div>
-        <div class="flex justify-between font-black text-sm" style="font-size: 13px;"><span>TOTAL À PAYER :</span><span>${formatMoney(totalAmount)}</span></div>
+        <div class="flex justify-between font-black text-sm" style="font-size: 14px;"><span>TOTAL À RÉGLER :</span><span>${formatMoney(totalAmount)}</span></div>
       </div>
 
-      ${notes ? `<div class="divider"></div><div style="font-size: 9px; color: #333;"><b>Note :</b> ${notes}</div>` : ""}
+      ${notes ? `<div class="divider"></div><div style="font-size: 9px; color: #333;"><b>Instructions / Note :</b> ${notes}</div>` : ""}
 
       <div class="divider"></div>
-      <div class="text-center text-xs" style="color: #444; font-size: 9px; line-height: 1.3;">
-        <p>Facture de consommation en attente de règlement</p>
-        <p>Merci pour votre visite !</p>
-        <p style="margin-top: 3px; font-weight: bold;">Kuettu Global POS</p>
+      <div class="text-center text-xs" style="color: #444; font-size: 9px; line-height: 1.35;">
+        <p>Facture de consommation avant règlement en caisse</p>
+        <p style="font-weight: bold; margin-top: 2px;">Merci pour votre visite !</p>
+        <p style="margin-top: 3px; color: #777;">Kuettu Global POS • https://globalpos.app</p>
       </div>
     `;
 
@@ -488,20 +495,27 @@ export default function POSPage() {
 
     const bodyHtml = `
       <div class="text-center">
-        <div class="font-black text-base uppercase">${storeName}</div>
-        ${address}
-        ${phone}
+        <div style="margin-bottom: 4px;">
+          <img src="/images/logo.png" alt="Logo" style="max-height: 42px; max-width: 120px; margin: 0 auto 4px auto; display: block; object-fit: contain;" />
+        </div>
+        <div class="font-black text-base uppercase" style="font-size: 15px; letter-spacing: 0.5px;">${storeName}</div>
+        ${address ? `<p class="text-xs" style="margin: 2px 0; color: #333;">${authStore?.address}</p>` : ""}
+        ${phone ? `<p class="text-xs" style="margin: 2px 0; color: #333;">Tél : ${authStore?.phone}</p>` : ""}
+        ${tenant?.email ? `<p style="font-size: 9px; color: #666; margin: 1px 0;">Email : ${tenant.email}</p>` : ""}
         <div class="divider"></div>
-        <div class="badge uppercase">*** TICKET DE CAISSE ***</div>
+        <div class="badge uppercase" style="font-weight: 800; font-size: 10px; padding: 2px 6px; border: 1px solid #000; display: inline-block; margin-top: 4px;">
+          *** TICKET DE CAISSE (ACQUITTÉ) ***
+        </div>
       </div>
 
       <div class="divider"></div>
-      <div style="font-size: 10px; line-height: 1.3;">
+      <div style="font-size: 10px; line-height: 1.35;">
         <div class="flex justify-between"><span>Facture N° :</span><b>${sale.receiptNumber}</b></div>
         <div class="flex justify-between"><span>Date :</span><span>${dateStr} à ${timeStr}</span></div>
-        ${sale.tableOrLabel ? `<div class="flex justify-between font-bold"><span>Table / Ref :</span><span>${sale.tableOrLabel}</span></div>` : ""}
-        ${cust ? `<div class="flex justify-between"><span>Client :</span><b>${cust.name}</b></div>` : ""}
+        ${sale.tableOrLabel ? `<div class="flex justify-between font-bold"><span>Table / Emplacement :</span><span>${sale.tableOrLabel}</span></div>` : ""}
+        ${cust ? `<div class="flex justify-between"><span>Client :</span><b>${cust.name} ${cust.phone ? `(${cust.phone})` : ""}</b></div>` : ""}
         <div class="flex justify-between"><span>Caissier :</span><span>${user?.name || "Caisse"}</span></div>
+        <div class="flex justify-between font-bold" style="color: #047857; margin-top: 2px;"><span>Statut :</span><span>PAYÉ & ENCAISSÉ</span></div>
       </div>
 
       <div class="divider"></div>
@@ -522,17 +536,17 @@ export default function POSPage() {
         ${sale.subtotalAmount && sale.subtotalAmount !== sale.totalAmount ? `<div class="flex justify-between"><span>Sous-total Brut :</span><span>${formatMoney(sale.subtotalAmount)}</span></div>` : ""}
         ${sale.discountAmount && sale.discountAmount > 0 ? `<div class="flex justify-between font-bold"><span>Remise déduite :</span><span>-${formatMoney(sale.discountAmount)}</span></div>` : ""}
         <div class="divider"></div>
-        <div class="flex justify-between font-black text-sm" style="font-size: 13px;"><span>TOTAL NET :</span><span>${formatMoney(sale.totalAmount)}</span></div>
+        <div class="flex justify-between font-black text-sm" style="font-size: 14px;"><span>TOTAL NET :</span><span>${formatMoney(sale.totalAmount)}</span></div>
         <div class="flex justify-between font-bold" style="margin-top: 2px;"><span>Montant Payé (${sale.paymentMethod}) :</span><span>${formatMoney(sale.amountPaid)}</span></div>
-        ${sale.debtAmount > 0 ? `<div class="flex justify-between font-bold" style="color: #000; margin-top: 2px;"><span>Reste Dû (Dette) :</span><span>${formatMoney(sale.debtAmount)}</span></div>` : ""}
+        ${sale.debtAmount > 0 ? `<div class="flex justify-between font-bold" style="color: #dc2626; margin-top: 2px;"><span>Reste Dû (Dette) :</span><span>${formatMoney(sale.debtAmount)}</span></div>` : ""}
       </div>
 
       ${splitsHtml}
 
       <div class="divider"></div>
-      <div class="text-center text-xs" style="color: #444; font-size: 9px; line-height: 1.3;">
-        <p>Merci pour votre confiance !</p>
-        <p style="margin-top: 3px; font-weight: bold;">Kuettu Global POS • https://globalpos.app</p>
+      <div class="text-center text-xs" style="color: #444; font-size: 9px; line-height: 1.35;">
+        <p style="font-weight: bold;">Merci pour votre confiance !</p>
+        <p style="margin-top: 3px; color: #777;">Kuettu Global POS • https://globalpos.app</p>
       </div>
     `;
 

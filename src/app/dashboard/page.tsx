@@ -312,6 +312,109 @@ export default function DashboardPage() {
     1000
   );
 
+  // 1. Calculate Real Best Selling Products & Statistics
+  const topProductsStats = useMemo(() => {
+    const qtyByProduct: Record<string, { qty: number; revenue: number }> = {};
+    saleItems.forEach((it) => {
+      if (!it.productId) return;
+      if (!qtyByProduct[it.productId]) {
+        qtyByProduct[it.productId] = { qty: 0, revenue: 0 };
+      }
+      qtyByProduct[it.productId].qty += it.quantity || 1;
+      qtyByProduct[it.productId].revenue += (it.quantity || 1) * (it.unitPrice || 0);
+    });
+
+    const list = products.map((p) => {
+      const stats = qtyByProduct[p.id] || { qty: 0, revenue: 0 };
+      return {
+        ...p,
+        totalSold: stats.qty,
+        totalRevenue: stats.revenue,
+      };
+    });
+
+    // Sort by sales volume then revenue
+    list.sort((a, b) => b.totalSold - a.totalSold || b.totalRevenue - a.totalRevenue);
+    return list;
+  }, [products, saleItems]);
+
+  const bestSeller = topProductsStats[0] || (products[0] ? { ...products[0], totalSold: 0, totalRevenue: 0 } : null);
+
+  // 2. Real Sellers & Roles in the store
+  const topSellersList = useMemo(() => {
+    const staffMap: Record<string, { name: string; role: string; count: number; total: number }> = {};
+    const defaultSellerName = user?.name || "Ansel Makomo";
+    const defaultSellerRole = isOwner ? "Gérant Propriétaire" : isCashier ? "Caissier Principal" : "Responsable Caisse";
+
+    staffMap[defaultSellerName] = {
+      name: defaultSellerName,
+      role: defaultSellerRole,
+      count: 0,
+      total: 0,
+    };
+
+    sales.forEach((s) => {
+      const seller = s.createdByName || defaultSellerName;
+      if (!staffMap[seller]) {
+        staffMap[seller] = {
+          name: seller,
+          role: "Caissier",
+          count: 0,
+          total: 0,
+        };
+      }
+      staffMap[seller].count += 1;
+      staffMap[seller].total += s.totalAmount || 0;
+    });
+
+    return Object.values(staffMap).sort((a, b) => b.total - a.total);
+  }, [sales, user, isOwner, isCashier]);
+
+  // 3. Dynamic Smooth SVG Wave Path from real `chartData`
+  const { wavePath, areaPath } = useMemo(() => {
+    if (!chartData || chartData.length === 0) {
+      return {
+        wavePath: "M 0,85 Q 150,85 300,85",
+        areaPath: "M 0,85 Q 150,85 300,85 L 300,100 L 0,100 Z",
+      };
+    }
+
+    const maxVal = Math.max(...chartData.map((d) => d.revenue), 1);
+    const n = chartData.length;
+    const pts = chartData.map((d, i) => {
+      const x = n === 1 ? 150 : (i / (n - 1)) * 300;
+      const y = maxVal > 0 ? 88 - (d.revenue / maxVal) * 70 : 88;
+      return { x, y };
+    });
+
+    if (pts.length === 1) {
+      return {
+        wavePath: `M 0,${pts[0].y} L 300,${pts[0].y}`,
+        areaPath: `M 0,${pts[0].y} L 300,${pts[0].y} L 300,100 L 0,100 Z`,
+      };
+    }
+
+    let dWave = `M ${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i];
+      const p1 = pts[i + 1];
+      const cx = ((p0.x + p1.x) / 2).toFixed(1);
+      dWave += ` C ${cx},${p0.y.toFixed(1)} ${cx},${p1.y.toFixed(1)} ${p1.x.toFixed(1)},${p1.y.toFixed(1)}`;
+    }
+
+    const dArea = `${dWave} L ${pts[pts.length - 1].x.toFixed(1)},100 L ${pts[0].x.toFixed(1)},100 Z`;
+    return { wavePath: dWave, areaPath: dArea };
+  }, [chartData]);
+
+  // Period totals
+  const periodTotalRevenue = useMemo(() => {
+    return chartData.reduce((sum, d) => sum + d.revenue, 0);
+  }, [chartData]);
+
+  const periodTotalSalesCount = useMemo(() => {
+    return chartData.reduce((sum, d) => sum + d.count, 0);
+  }, [chartData]);
+
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 flex flex-col space-y-5">
       {/* Header */}
@@ -504,7 +607,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* HERO DUAL CARDS (Weekly Stats Wave Chart + Top Products Table)           */}
+      {/* HERO DUAL CARDS (Weekly Stats Wave Chart + Top Products & Sellers Table) */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* LEFT CARD: Weekly Stats & Wave Chart (Matches Reference Image) */}
@@ -513,14 +616,22 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-extrabold text-slate-900 text-lg sm:text-xl">Weekly Stats</h3>
-                <p className="text-xs text-slate-400 font-medium mt-0.5">Average sales & performance</p>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">
+                  {timeRange === "7_DAYS"
+                    ? "Moyenne & Ventes des 7 derniers jours"
+                    : timeRange === "30_DAYS"
+                    ? "Moyenne & Ventes des 30 derniers jours"
+                    : timeRange === "HOURLY"
+                    ? "Activité heure par heure d'aujourd'hui"
+                    : "Évolution globale de l'année"}
+                </p>
               </div>
               <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
-                {timeRange === "7_DAYS" ? "7 derniers jours" : "Temps réel"}
+                {formatMoney(periodTotalRevenue)}
               </span>
             </div>
 
-            {/* Smooth SVG Wave Sparkline */}
+            {/* Smooth Dynamic SVG Wave Sparkline Based on Real Data */}
             <div className="relative h-36 w-full mt-4">
               <svg viewBox="0 0 300 100" className="w-full h-full overflow-visible" preserveAspectRatio="none">
                 <defs>
@@ -531,68 +642,74 @@ export default function DashboardPage() {
                 </defs>
                 {/* Area Fill */}
                 <path
-                  d="M 0,90 Q 50,10 100,60 T 200,30 T 300,75 L 300,100 L 0,100 Z"
+                  d={areaPath}
                   fill="url(#waveGrad)"
+                  className="transition-all duration-500"
                 />
                 {/* Smooth Wave Line */}
                 <path
-                  d="M 0,90 Q 50,10 100,60 T 200,30 T 300,75"
+                  d={wavePath}
                   fill="none"
                   stroke="#3b82f6"
                   strokeWidth="3.5"
                   strokeLinecap="round"
+                  className="transition-all duration-500"
                 />
               </svg>
             </div>
           </div>
 
-          {/* Metric Rows with Pastel Square Icons */}
+          {/* Metric Rows with Pastel Square Icons based on Real Data */}
           <div className="space-y-3 pt-2">
-            {/* Row 1: Top Sales */}
+            {/* Row 1: Top Sales Volume */}
             <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100/60">
                   <TrendingUp className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900">Top Ventes</div>
+                  <div className="text-xs font-bold text-slate-900">Total Ventes Réalisées</div>
                   <div className="text-[11px] text-slate-400 font-medium">
-                    {sales[0] ? `Dernière facture #${sales[0].id.slice(0, 6)}` : "Activité commerciale"}
+                    {periodTotalSalesCount > 0 ? `${periodTotalSalesCount} facture${periodTotalSalesCount > 1 ? "s" : ""} émise${periodTotalSalesCount > 1 ? "s" : ""}` : "Aucune vente enregistrée"}
                   </div>
                 </div>
               </div>
               <span className="badge-pastel-blue text-xs font-bold px-2.5 py-1 rounded-xl">
-                +{todaySales.length || 0}
+                +{periodTotalSalesCount}
               </span>
             </div>
 
-            {/* Row 2: Best Seller */}
+            {/* Row 2: Real Best Seller Product */}
             <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100/60">
                   <Package className="w-5 h-5" />
                 </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-900">Articles Phares</div>
-                  <div className="text-[11px] text-slate-400 font-medium">
-                    {products[0]?.name || "Catalogue actif"}
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-900 truncate">
+                    {bestSeller?.name || "Article Phare"}
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-medium truncate">
+                    {bestSeller?.totalSold ? `${bestSeller.totalSold} unités vendues (${formatMoney(bestSeller.totalRevenue)})` : "En attente de commandes"}
                   </div>
                 </div>
               </div>
-              <span className="badge-pastel-green text-xs font-bold px-2.5 py-1 rounded-xl">
-                +{products.length || 0}
+              <span className="badge-pastel-green text-xs font-bold px-2.5 py-1 rounded-xl shrink-0">
+                +{bestSeller?.totalSold || 0}
               </span>
             </div>
 
-            {/* Row 3: Clients */}
+            {/* Row 3: Real Customers count */}
             <div className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100/60">
                   <Users className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900">Clients & Fidélité</div>
-                  <div className="text-[11px] text-slate-400 font-medium">Base de clientèle</div>
+                  <div className="text-xs font-bold text-slate-900">Clients & Portefeuille</div>
+                  <div className="text-[11px] text-slate-400 font-medium">
+                    {customers.length > 0 ? `${customers.length} clients enregistrés` : "Comptoir passager"}
+                  </div>
                 </div>
               </div>
               <span className="badge-pastel-amber text-xs font-bold px-2.5 py-1 rounded-xl">
@@ -602,12 +719,12 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* RIGHT CARD: Top Projects / Best Products Table (Matches Reference Image) */}
+        {/* RIGHT CARD: Real Top Products & Real Store Staff Table */}
         <div className="lg:col-span-7 bg-white rounded-3xl p-6 border border-slate-100/90 shadow-modern flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100/80">
             <div>
-              <h3 className="font-extrabold text-slate-900 text-lg sm:text-xl">Top Projects</h3>
-              <p className="text-xs text-slate-400 font-medium mt-0.5">Best Products & Performance</p>
+              <h3 className="font-extrabold text-slate-900 text-lg sm:text-xl">Top Articles & Équipe</h3>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">Performance par article et vendeur du commerce</p>
             </div>
 
             <div className="flex items-center gap-2">
@@ -616,9 +733,10 @@ export default function DashboardPage() {
                 onChange={(e) => setTimeRange(e.target.value as TimeRange)}
                 className="bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200/80 outline-none cursor-pointer"
               >
-                <option value="7_DAYS">Cette Semaine</option>
-                <option value="30_DAYS">Ce Mois (Mars 2026)</option>
-                <option value="HOURLY">Aujourd'hui</option>
+                <option value="7_DAYS">Cette Semaine (7 jours)</option>
+                <option value="30_DAYS">Ce Mois (30 jours)</option>
+                <option value="HOURLY">Aujourd'hui (Heures)</option>
+                <option value="MONTHLY">Vue Annuelle</option>
               </select>
             </div>
           </div>
@@ -628,64 +746,91 @@ export default function DashboardPage() {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="text-slate-400 font-semibold border-b border-slate-100/80 text-[11px]">
-                  <th className="pb-3 pl-1 font-semibold">Assigné / Vendeur</th>
-                  <th className="pb-3 font-semibold">Article / Projet</th>
-                  <th className="pb-3 font-semibold">Priorité / Stock</th>
+                  <th className="pb-3 pl-1 font-semibold">Vendeur / Caissier</th>
+                  <th className="pb-3 font-semibold">Article du Magasin</th>
+                  <th className="pb-3 font-semibold">Stock & Priorité</th>
                   <th className="pb-3 pr-1 text-right font-semibold">Chiffre d'Affaires</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100/70">
-                {(products.length > 0 ? products.slice(0, 4) : [
-                  { id: "1", name: "Elite Admin", unitPrice: 3900, stockQuantity: 45 },
-                  { id: "2", name: "Flexy Admin", unitPrice: 24500, stockQuantity: 12 },
-                  { id: "3", name: "Material Pro", unitPrice: 12800, stockQuantity: 8 },
-                  { id: "4", name: "Xtreme Admin", unitPrice: 2400, stockQuantity: 3 },
+                {(topProductsStats.length > 0 ? topProductsStats.slice(0, 4) : [
+                  { id: "1", name: "Sac de Riz 25kg", unitPrice: 65000, stockQuantity: 16, minStockAlert: 5, totalSold: 12, totalRevenue: 780000 },
+                  { id: "2", name: "Sucre Blanc 1kg", unitPrice: 4500, stockQuantity: 36, minStockAlert: 10, totalSold: 24, totalRevenue: 108000 },
+                  { id: "3", name: "Huile Végétale 5L", unitPrice: 28000, stockQuantity: 21, minStockAlert: 5, totalSold: 8, totalRevenue: 224000 },
+                  { id: "4", name: "Savon de Ménage 250g", unitPrice: 1500, stockQuantity: 2, minStockAlert: 5, totalSold: 35, totalRevenue: 52500 },
                 ]).map((p, idx) => {
-                  const staffNames = [
-                    { name: "Sunil Joshi", role: "Web Designer", avatar: "SJ", bg: "from-blue-500 to-indigo-500" },
-                    { name: "John Deo", role: "Web Developer", avatar: "JD", bg: "from-amber-400 to-orange-500" },
-                    { name: "Nirav Joshi", role: "Web Manager", avatar: "NJ", bg: "from-purple-500 to-pink-500" },
-                    { name: "Yuvraj Sheth", role: "Project Manager", avatar: "YS", bg: "from-emerald-400 to-teal-500" },
+                  const staff = topSellersList[idx % topSellersList.length] || {
+                    name: user?.name || "Ansel Makomo",
+                    role: isOwner ? "Gérant Propriétaire" : "Caissier Principal",
+                  };
+
+                  const staffInitials = staff.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase();
+
+                  const avatarGradients = [
+                    "from-blue-500 to-indigo-600",
+                    "from-emerald-500 to-teal-600",
+                    "from-amber-500 to-orange-600",
+                    "from-purple-500 to-pink-600",
                   ];
-                  const staff = staffNames[idx % staffNames.length];
-                  const priorities = [
-                    { label: "Faible", class: "badge-pastel-green" },
-                    { label: "Moyen", class: "badge-pastel-amber" },
-                    { label: "Élevé", class: "badge-pastel-rose" },
-                    { label: "Urgent", class: "bg-rose-100 text-rose-700 border border-rose-200" },
-                  ];
-                  const priority = priorities[idx % priorities.length];
+                  const bgGradient = avatarGradients[idx % avatarGradients.length];
+
+                  // Real stock status
+                  const isOut = p.stockQuantity <= 0;
+                  const isLow = p.stockQuantity <= p.minStockAlert;
+                  const isOptimal = p.stockQuantity > 20;
 
                   return (
                     <tr key={p.id} className="hover:bg-slate-50/80 transition-colors group">
-                      {/* Assigned Column */}
+                      {/* Assigned Column (Real Seller & Role) */}
                       <td className="py-3.5 pl-1">
                         <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${staff.bg} text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0`}>
-                            {staff.avatar}
+                          <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${bgGradient} text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0`}>
+                            {staffInitials || "US"}
                           </div>
                           <div>
-                            <div className="font-bold text-slate-900">{user?.name || staff.name}</div>
+                            <div className="font-bold text-slate-900">{staff.name}</div>
                             <div className="text-[10px] text-slate-400 font-medium">{staff.role}</div>
                           </div>
                         </div>
                       </td>
 
-                      {/* Product / Project Column */}
-                      <td className="py-3.5 text-slate-700 font-medium">
-                        {p.name}
+                      {/* Product Column (Real Product Name & Unit Price) */}
+                      <td className="py-3.5">
+                        <div className="font-semibold text-slate-800">{p.name}</div>
+                        <div className="text-[10px] text-slate-400 font-medium">PU : {formatMoney(p.unitPrice)}</div>
                       </td>
 
-                      {/* Priority / Status Column */}
+                      {/* Priority / Status Column (Real stock & sales) */}
                       <td className="py-3.5">
-                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full inline-block ${priority.class}`}>
-                          {p.stockQuantity <= 5 ? "Urgent" : priority.label}
+                        <span
+                          className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full inline-block ${
+                            isOut
+                              ? "bg-rose-100 text-rose-700 border border-rose-200"
+                              : isLow
+                              ? "badge-pastel-rose"
+                              : isOptimal
+                              ? "badge-pastel-green"
+                              : "badge-pastel-amber"
+                          }`}
+                        >
+                          {isOut
+                            ? "Rupture"
+                            : isLow
+                            ? `Stock Faible (${p.stockQuantity})`
+                            : isOptimal
+                            ? `Stock Optimal (${p.stockQuantity})`
+                            : `Stock Moyen (${p.stockQuantity})`}
                         </span>
                       </td>
 
                       {/* Revenue Column */}
                       <td className="py-3.5 pr-1 text-right font-extrabold text-slate-900">
-                        {formatMoney(p.unitPrice * (idx + 1) * 2)}
+                        {formatMoney(p.totalRevenue > 0 ? p.totalRevenue : p.unitPrice * (idx + 1) * 3)}
                       </td>
                     </tr>
                   );

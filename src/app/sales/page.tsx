@@ -240,19 +240,26 @@ export default function SalesHistoryPage() {
 
     const bodyHtml = `
       <div class="text-center">
-        <div class="font-black text-base uppercase">${storeName}</div>
-        ${store?.address ? `<p class="text-xs">${store.address}</p>` : ""}
-        ${store?.phone ? `<p class="text-xs">Tél: ${store.phone}</p>` : ""}
+        <div style="margin-bottom: 4px;">
+          <img src="/images/logo.png" alt="Logo" style="max-height: 42px; max-width: 120px; margin: 0 auto 4px auto; display: block; object-fit: contain;" />
+        </div>
+        <div class="font-black text-base uppercase" style="font-size: 15px; letter-spacing: 0.5px;">${storeName}</div>
+        ${store?.address ? `<p class="text-xs" style="margin: 2px 0; color: #333;">${store.address}</p>` : ""}
+        ${store?.phone ? `<p class="text-xs" style="margin: 2px 0; color: #333;">Tél : ${store.phone}</p>` : ""}
+        ${tenant?.email ? `<p style="font-size: 9px; color: #666; margin: 1px 0;">Email : ${tenant.email}</p>` : ""}
         <div class="divider"></div>
-        <div class="badge uppercase">*** DUPLICATA TICKET DE CAISSE ***</div>
+        <div class="badge uppercase" style="font-weight: 800; font-size: 10px; padding: 2px 6px; border: 1px solid #000; display: inline-block; margin-top: 4px;">
+          *** DUPLICATA TICKET DE CAISSE ***
+        </div>
       </div>
 
       <div class="divider"></div>
-      <div style="font-size: 10px; line-height: 1.3;">
+      <div style="font-size: 10px; line-height: 1.35;">
         <div class="flex justify-between"><span>Facture N° :</span><b>${sale.receiptNumber}</b></div>
         <div class="flex justify-between"><span>Date :</span><span>${dateStr} à ${timeStr}</span></div>
-        ${sale.tableOrLabel ? `<div class="flex justify-between font-bold"><span>Table / Ref :</span><span>${sale.tableOrLabel}</span></div>` : ""}
-        ${cust ? `<div class="flex justify-between"><span>Client :</span><b>${cust.name}</b></div>` : ""}
+        ${sale.tableOrLabel ? `<div class="flex justify-between font-bold"><span>Table / Emplacement :</span><span>${sale.tableOrLabel}</span></div>` : ""}
+        ${cust ? `<div class="flex justify-between"><span>Client :</span><b>${cust.name} ${cust.phone ? `(${cust.phone})` : ""}</b></div>` : ""}
+        <div class="flex justify-between font-bold" style="color: #047857; margin-top: 2px;"><span>Statut :</span><span>ACQUITTÉ (DUPLICATA)</span></div>
       </div>
 
       <div class="divider"></div>
