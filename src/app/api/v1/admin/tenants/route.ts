@@ -39,6 +39,32 @@ export async function GET(req: NextRequest) {
       whereClause.isActive = false;
     }
 
+    // 1. Auto-reconcile any sales, products, and customers whose storeId belongs to a specific tenant
+    try {
+      await prisma.$executeRawUnsafe(`
+        UPDATE "Sale" s
+        SET "tenantId" = st."tenantId"
+        FROM "Store" st
+        WHERE s."storeId" = st.id AND (s."tenantId" IS NULL OR s."tenantId" != st."tenantId");
+      `);
+
+      await prisma.$executeRawUnsafe(`
+        UPDATE "Product" p
+        SET "tenantId" = st."tenantId"
+        FROM "Store" st
+        WHERE p."storeId" = st.id AND (p."tenantId" IS NULL OR p."tenantId" != st."tenantId");
+      `);
+
+      await prisma.$executeRawUnsafe(`
+        UPDATE "Customer" c
+        SET "tenantId" = st."tenantId"
+        FROM "Store" st
+        WHERE c."storeId" = st.id AND (c."tenantId" IS NULL OR c."tenantId" != st."tenantId");
+      `);
+    } catch (reconcileErr) {
+      console.warn("[Admin Tenants Reconcile Warning]:", reconcileErr);
+    }
+
     const tenants = await prisma.tenant.findMany({
       where: whereClause,
       orderBy: { createdAt: "desc" },

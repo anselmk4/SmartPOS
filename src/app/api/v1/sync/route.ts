@@ -61,8 +61,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const rawData = parseResult.data;
-    const tenantId: string = rawData.tenantId || "00000000-0000-4000-8000-000000000000";
+    const storeId: string = rawData.storeId;
+    let tenantId: string = rawData.tenantId || "00000000-0000-4000-8000-000000000000";
+
+    let isDbConnected = true;
+    try {
+      if (!process.env.DATABASE_URL) {
+        isDbConnected = false;
+      } else if (storeId) {
+        // If the store already exists in PostgreSQL, prioritize its real tenant
+        const existingStore = await prisma.store.findUnique({
+          where: { id: storeId },
+          select: { tenantId: true },
+        });
+        if (existingStore?.tenantId) {
+          tenantId = existingStore.tenantId;
+        }
+      }
+    } catch {
+      isDbConnected = false;
+    }
 
     let refreshedToken: string | undefined = undefined;
 
@@ -92,21 +110,12 @@ export async function POST(req: NextRequest) {
         role: "OWNER",
       });
     }
-    const storeId: string = rawData.storeId;
+
     const lastPulledAt = rawData.lastPulledAt || undefined;
     const mutations = rawData.mutations;
     const syncedIds: string[] = [];
     const failedIds: Array<{ id: string; error: string }> = [];
     const now = new Date();
-
-    let isDbConnected = true;
-    try {
-      if (!process.env.DATABASE_URL) {
-        isDbConnected = false;
-      }
-    } catch {
-      isDbConnected = false;
-    }
 
     if (isDbConnected) {
       // Auto-ensure tenant and store exist in database to prevent foreign key violations
@@ -129,7 +138,9 @@ export async function POST(req: NextRequest) {
 
         await prisma.store.upsert({
           where: { id: storeId },
-          update: {},
+          update: {
+            tenantId,
+          },
           create: {
             id: storeId,
             tenantId,
@@ -139,9 +150,10 @@ export async function POST(req: NextRequest) {
             updatedAt: now,
           },
         });
-      } catch (e) {
-        console.warn("[Sync] Ensure tenant/store fallback:", e);
+      } catch (upsertErr) {
+        console.warn("[Sync] Tenant/Store auto-upsert error:", upsertErr);
       }
+    }
 
       for (const mutation of mutations) {
         try {
@@ -235,17 +247,32 @@ export async function POST(req: NextRequest) {
             });
             syncedIds.push(id);
           } else if (entity === "sale" && action === "CREATE") {
+            // Resolve effective tenantId from Store in Postgres
+            const targetStoreId = data.storeId || storeId;
+            let resolvedTenantId = data.tenantId || tenantId;
+            if (targetStoreId) {
+              const storeRecord = await prisma.store.findUnique({
+                where: { id: targetStoreId },
+                select: { tenantId: true },
+              });
+              if (storeRecord?.tenantId) {
+                resolvedTenantId = storeRecord.tenantId;
+              }
+            }
+
             // 1. Ensure customer exists if customerId is provided
             let validCustomerId: string | null = null;
             if (data.customerId) {
               try {
                 const cust = await prisma.customer.upsert({
                   where: { id: data.customerId },
-                  update: {},
+                  update: {
+                    tenantId: resolvedTenantId,
+                  },
                   create: {
                     id: data.customerId,
-                    tenantId: data.tenantId || tenantId,
-                    storeId: data.storeId || storeId,
+                    tenantId: resolvedTenantId,
+                    storeId: targetStoreId,
                     name: data.customerName || "Client",
                     createdAt: new Date(data.createdAt || now),
                     updatedAt: now,
@@ -277,11 +304,13 @@ export async function POST(req: NextRequest) {
                   try {
                     await prisma.product.upsert({
                       where: { id: prodId },
-                      update: {},
+                      update: {
+                        tenantId: resolvedTenantId,
+                      },
                       create: {
                         id: prodId,
-                        tenantId: data.tenantId || tenantId,
-                        storeId: data.storeId || storeId,
+                        tenantId: resolvedTenantId,
+                        storeId: targetStoreId,
                         name: it.productName || it.product?.name || "Produit synchronisé",
                         unitPrice: it.unitPrice || 0,
                         costPrice: it.costPrice || 0,
@@ -315,18 +344,20 @@ export async function POST(req: NextRequest) {
               ? data.paymentMethod
               : "CASH";
 
-            // 5. Upsert the sale
+            // 5. Upsert the sale with guaranteed correct tenantId
             await prisma.sale.upsert({
               where: { id: data.id },
               update: {
+                tenantId: resolvedTenantId,
+                storeId: targetStoreId,
                 status: data.status || "COMPLETED",
                 isSynced: true,
                 updatedAt: now,
               },
               create: {
                 id: data.id,
-                tenantId: data.tenantId || tenantId,
-                storeId: data.storeId || storeId,
+                tenantId: resolvedTenantId,
+                storeId: targetStoreId,
                 customerId: validCustomerId,
                 userId: validUserId,
                 totalAmount: data.totalAmount || 0,
