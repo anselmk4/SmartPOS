@@ -39,7 +39,7 @@ import {
 type TimeRange = "HOURLY" | "7_DAYS" | "30_DAYS" | "MONTHLY";
 
 export default function DashboardPage() {
-  const { user, tenant, store: authStore, stores, isAuthenticated, isLoading, plan, canAccess } = useAuth();
+  const { user, tenant, store: authStore, stores, isAuthenticated, isLoading, isOwner, isCashier, plan, canAccess } = useAuth();
   const { formatMoney, rawCurrency } = useSync();
 
   const currentStoreId = authStore?.id || DEFAULT_STORE_ID;
