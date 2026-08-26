@@ -35,6 +35,7 @@ import {
   History,
   Clock,
   Download,
+  AlertCircle,
 } from "lucide-react";
 
 function BillingPageContent() {
@@ -47,6 +48,7 @@ function BillingPageContent() {
   const isCheckout = searchParams?.get("checkout") === "true";
 
   const [selectedPlanToBuy, setSelectedPlanToBuy] = useState<SubscriptionPlan | null>(null);
+  const [unavailablePlan, setUnavailablePlan] = useState<string | null>(null);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
@@ -97,10 +99,15 @@ function BillingPageContent() {
     }
   }, [tenant?.id]);
 
-  // Auto open checkout modal if coming from registration with a paid plan
+  // Show unavailable modal if redirected with plan parameter
   useEffect(() => {
     if (planParam && (planParam === "BASIC" || planParam === "PRO" || planParam === "BUSINESS")) {
-      setSelectedPlanToBuy(planParam);
+      const names: Record<string, string> = {
+        BASIC: "Commerçant Basic",
+        PRO: "Commerçant Pro",
+        BUSINESS: "Business Multi-Magasins",
+      };
+      setUnavailablePlan(names[planParam] || planParam);
     }
   }, [planParam]);
 
@@ -216,7 +223,12 @@ function BillingPageContent() {
       setTimeout(() => setSuccessToast(null), 4000);
       return;
     }
-    setSelectedPlanToBuy(plan);
+    const names: Record<string, string> = {
+      BASIC: "Commerçant Basic",
+      PRO: "Commerçant Pro",
+      BUSINESS: "Business Multi-Magasins",
+    };
+    setUnavailablePlan(names[plan] || plan);
   };
 
   const handleConfirmCancel = async () => {
@@ -658,6 +670,65 @@ function BillingPageContent() {
             }, 1200);
           }}
         />
+      )}
+
+      {/* Temporarily Unavailable Paid Plan Modal */}
+      {unavailablePlan && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white max-w-md w-full rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-100 space-y-5 text-center relative">
+            <button
+              type="button"
+              onClick={() => setUnavailablePlan(null)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/10">
+              <AlertCircle className="w-7 h-7 text-amber-600" />
+            </div>
+
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                Service Temporairement Indisponible
+              </span>
+              <h3 className="text-lg sm:text-xl font-black text-slate-900 mt-2.5">
+                Paiement du {unavailablePlan} indisponible
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed text-left bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                Le paiement en ligne pour ce forfait est <b>temporairement indisponible</b> en attendant la validation finale des clés API de la passerelle de paiement Mobile Money.
+                <br /><br />
+                Pour éviter tout dysfonctionnement, l'accès payant sans règlement effectif a été désactivé. Vous pouvez continuer d'utiliser librement toutes les fonctions avec le <b>Forfait Gratuit Découverte</b>.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  updateTenantPlan("FREE");
+                  setUnavailablePlan(null);
+                  setSuccessToast("Vous utilisez le Forfait Gratuit Découverte.");
+                  setTimeout(() => {
+                    window.location.href = "/pos";
+                  }, 800);
+                }}
+                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-600/25 flex items-center justify-center gap-2 touch-press"
+              >
+                <span>Continuer avec le Forfait Gratuit Découverte (0 FC)</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setUnavailablePlan(null)}
+                className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Cancel Subscription Confirmation Modal */}

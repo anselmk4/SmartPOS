@@ -44,22 +44,15 @@ export async function initiatePawaPayDeposit(
     metadata,
   } = params;
 
-  // 1. Simulation Mode if no API Token is set yet
+  // 1. Temporarily unavailable if no API Token is set yet (Waiting for official PawaPay keys)
   if (!PAWAPAY_API_TOKEN || PAWAPAY_API_TOKEN.includes("dummy") || PAWAPAY_API_TOKEN.length < 10) {
-    console.log("[PawaPay Client] 🧪 Mode Simulation activé (En attente de clés API réelles):", {
-      depositId,
-      amount,
-      currency,
-      correspondent,
-      phoneNumber,
-    });
+    console.log("[PawaPay Client] ⚠️ Clés API non configurées - Paiement temporairement indisponible.");
 
     return {
       depositId,
-      status: "COMPLETED",
+      status: "FAILED",
       isSimulated: true,
-      pawapayReference: `SIM-PAWA-${Date.now().toString(36).toUpperCase()}`,
-      message: `Paiement Mobile Money simulé avec succès (${amount} ${currency} via ${correspondent})`,
+      error: "Le paiement en ligne des forfaits payants est temporairement indisponible en attendant la validation des clés d'accès de la passerelle. Veuillez utiliser le forfait Gratuit Découverte.",
     };
   }
 

@@ -139,32 +139,27 @@ export function PlanPaymentGate({ children }: { children: React.ReactNode }) {
 
         {/* Actions */}
         <div className="space-y-3 pt-2">
-          {/* Primary: Pay via Mobile Money */}
-          <button
-            type="button"
-            onClick={() => setIsPaymentModalOpen(true)}
-            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-sm shadow-xl shadow-blue-600/30 transition-all flex items-center justify-center gap-2 touch-press"
-          >
-            <span>Payer mon Forfait ({priceInfo.formatted}) par Mobile Money</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          {/* Notice */}
+          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold text-center">
+            Le paiement Mobile Money des forfaits payants est temporairement indisponible. Activez le Forfait Gratuit pour accéder immédiatement à votre caisse.
+          </div>
 
-          {/* Secondary: Downgrade immediately to Free Plan */}
+          {/* Primary: Continue with Free Plan */}
           <button
             type="button"
             onClick={handleDowngradeToFree}
             disabled={isDowngrading}
-            className="w-full py-3 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-bold text-xs border border-slate-800 transition-all flex items-center justify-center gap-2 touch-press"
+            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm shadow-xl shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 touch-press"
           >
             {isDowngrading ? (
               <>
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Rétrogradation en cours...</span>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span>Activation du Forfait Gratuit...</span>
               </>
             ) : (
               <>
-                <ArrowDownCircle className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Ou continuer gratuitement avec le Plan Découverte (0 FC)</span>
+                <ArrowRight className="w-4 h-4" />
+                <span>Continuer Immédiatement avec le Forfait Gratuit (0 FC)</span>
               </>
             )}
           </button>
@@ -172,7 +167,7 @@ export function PlanPaymentGate({ children }: { children: React.ReactNode }) {
 
         <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500 pt-1 text-center">
           <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-          <span>Paiement Mobile Money direct & instantané • Sans engagement</span>
+          <span>Accès immédiat et sécurisé sans frais</span>
         </div>
       </div>
 

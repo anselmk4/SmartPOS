@@ -72,9 +72,13 @@ export async function POST(req: NextRequest) {
         { phone: { contains: cleanInput } },
       ];
       if (cleanDigits.length >= 6) {
-        // Last 9 digits or last 6 digits
-        const subDigits = cleanDigits.slice(-9);
-        userSearchFilters.push({ phone: { contains: subDigits } });
+        userSearchFilters.push({ phone: { contains: cleanDigits } });
+        if (cleanDigits.length >= 9) {
+          userSearchFilters.push({ phone: { contains: cleanDigits.slice(-9) } });
+        }
+        if (cleanDigits.length >= 8) {
+          userSearchFilters.push({ phone: { contains: cleanDigits.slice(-8) } });
+        }
       }
 
       let candidateUsers = await prisma.user.findMany({
@@ -93,7 +97,13 @@ export async function POST(req: NextRequest) {
           { name: { equals: cleanInput, mode: "insensitive" } },
         ];
         if (cleanDigits.length >= 6) {
-          tenantSearchFilters.push({ phone: { contains: cleanDigits.slice(-9) } });
+          tenantSearchFilters.push({ phone: { contains: cleanDigits } });
+          if (cleanDigits.length >= 9) {
+            tenantSearchFilters.push({ phone: { contains: cleanDigits.slice(-9) } });
+          }
+          if (cleanDigits.length >= 8) {
+            tenantSearchFilters.push({ phone: { contains: cleanDigits.slice(-8) } });
+          }
         }
 
         const matchedTenants = await prisma.tenant.findMany({

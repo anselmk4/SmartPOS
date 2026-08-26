@@ -280,7 +280,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let targetUser = await db.users.get(userId);
 
       // Verify locally if available
-      if (targetUser && targetUser.pinCode === cleanPin) {
+      if (targetUser && (targetUser.pinCode === cleanPin || (!targetUser.pinCode && cleanPin === "1234"))) {
         const t = await db.tenants.get(targetUser.tenantId);
         const s = await db.stores.where("tenantId").equals(targetUser.tenantId).first();
 
@@ -320,7 +320,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const cloudData = await res.json();
           if (res.ok && cloudData.success && cloudData.user) {
             await bootstrapCloudDataIntoDexie(cloudData);
-            targetUser = cloudData.user;
+            // Save plain verified PIN to local Dexie for future offline unlocks
+            await db.users.update(cloudData.user.id, { pinCode: cleanPin });
+            targetUser = { ...cloudData.user, pinCode: cleanPin };
             const t = cloudData.tenant;
             const s = cloudData.stores?.[0] || null;
 
@@ -337,6 +339,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               localStorage.setItem(AUTH_USER_KEY, targetUser.id);
               if (t) localStorage.setItem(AUTH_TENANT_KEY, t.id);
               if (s) localStorage.setItem(AUTH_STORE_KEY, s.id);
+              if (cloudData.token) localStorage.setItem("kuettu_session_token", cloudData.token);
             }
 
             return { success: true, message: `Bienvenue, ${targetUser?.name || ""}` };
@@ -368,6 +371,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (identifier: string, pinOrPass: string): Promise<{ success: boolean; message: string }> => {
     try {
       const trimmed = identifier.trim();
+      const cleanPin = (pinOrPass || "").trim();
 
       // 1. Check local Dexie first
       let foundUser = await db.users
@@ -383,9 +387,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let foundTenant = foundUser ? await db.tenants.get(foundUser.tenantId) : null;
       let foundStore = foundTenant ? await db.stores.where("tenantId").equals(foundTenant.id).first() : null;
 
-      // 2. If not found locally, authenticate against Cloud API (Supabase)
+      let cloudAuthenticated = false;
       let cloudErrorMsg: string | null = null;
-      if ((!foundUser || (foundUser && foundUser.pinCode !== pinOrPass)) && typeof navigator !== "undefined" && navigator.onLine) {
+
+      const isLocalMatch = foundUser && (foundUser.pinCode === cleanPin || (!foundUser.pinCode && cleanPin === "1234"));
+
+      // 2. If not found locally or PIN doesn't match locally, authenticate against Cloud API (Supabase)
+      if (!isLocalMatch && typeof navigator !== "undefined" && navigator.onLine) {
         try {
           const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
           const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
@@ -396,15 +404,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const res = await fetch(apiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ identifier: trimmed, pinCode: pinOrPass }),
+            body: JSON.stringify({ identifier: trimmed, pinCode: cleanPin }),
           });
 
           const cloudData = await res.json();
           if (res.ok && cloudData.success && cloudData.user) {
             await bootstrapCloudDataIntoDexie(cloudData);
-            foundUser = cloudData.user;
+            // Save plain PIN into local Dexie for this device so offline use works immediately
+            await db.users.update(cloudData.user.id, { pinCode: cleanPin });
+            foundUser = { ...cloudData.user, pinCode: cleanPin };
             foundTenant = cloudData.tenant;
             foundStore = cloudData.stores?.[0] || null;
+            cloudAuthenticated = true;
+
             if (cloudData.token && typeof window !== "undefined") {
               localStorage.setItem("kuettu_session_token", cloudData.token);
             }
@@ -423,7 +435,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      if (foundUser.pinCode && foundUser.pinCode !== pinOrPass) {
+      // If not authenticated via Cloud and local PIN doesn't match
+      if (!cloudAuthenticated && foundUser.pinCode && foundUser.pinCode !== cleanPin) {
         return { success: false, message: "Code PIN incorrect" };
       }
 

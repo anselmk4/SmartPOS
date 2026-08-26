@@ -368,20 +368,27 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
                   <span>{errorMessage}</span>
                 </div>
               )}
+              {/* Temporary Unavailability Notice */}
+              <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-start gap-2.5">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold block text-amber-950">Paiement en ligne temporairement indisponible</span>
+                  <span>La passerelle Mobile Money est en cours de configuration finale (clés API en attente). Le paiement des forfaits payants est momentanément suspendu. Vous pouvez utiliser le Forfait Gratuit Découverte.</span>
+                </div>
+              </div>
 
-              {/* Action Button */}
+              {/* Submit Button */}
               <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-sm sm:text-base shadow-lg shadow-blue-600/25 transition-all flex items-center justify-center gap-2 touch-press disabled:opacity-50"
+                type="button"
+                onClick={onClose}
+                className="w-full py-4 px-6 rounded-2xl bg-slate-200 text-slate-500 font-black text-sm transition-all flex items-center justify-center gap-2 cursor-not-allowed"
               >
-                <span>Payer {planAmount.toLocaleString("fr-FR")} {currencySymbol} par Mobile Money</span>
-                <ArrowRight className="w-4 h-4" />
+                <span>Paiement Temporairement Indisponible</span>
               </button>
 
               <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500 pt-1">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>Paiement crypté & instantané • Push notification sur votre téléphone</span>
+                <ShieldCheck className="w-4 h-4 text-amber-600" />
+                <span>Service temporairement suspendu en attendant les clés d'accès</span>
               </div>
             </form>
           )}

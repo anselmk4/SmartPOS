@@ -27,6 +27,7 @@ import {
   Crown,
   Zap,
   Check,
+  AlertCircle,
 } from "lucide-react";
 
 function RegisterForm() {
@@ -55,13 +56,8 @@ function RegisterForm() {
 
   // Step 4: Sécurité, Anti-Bot & Forfait (Gratuit par défaut)
   const [pinCode, setPinCode] = useState("");
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(() => {
-    const urlPlan = searchParams?.get("plan")?.toUpperCase();
-    if (urlPlan === "BASIC" || urlPlan === "PRO" || urlPlan === "BUSINESS" || urlPlan === "FREE") {
-      return urlPlan as SubscriptionPlan;
-    }
-    return "FREE";
-  });
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>("FREE");
+  const [planNotice, setPlanNotice] = useState<string | null>(null);
   const [captchaState, setCaptchaState] = useState<CaptchaValidationState>({
     isValid: false,
     captchaToken: "",
@@ -167,7 +163,7 @@ function RegisterForm() {
       countryCode,
       currency,
       pinCode: pinCode.trim(),
-      plan: selectedPlan,
+      plan: "FREE",
       captchaToken: captchaState.captchaToken,
       captchaAnswer: captchaState.captchaAnswer,
       honeypot: captchaState.honeypot,
@@ -179,16 +175,12 @@ function RegisterForm() {
         const query = new URLSearchParams();
         if (phone.trim()) query.set("phone", phone.trim());
         if (email.trim()) query.set("email", email.trim());
-        if (selectedPlan) query.set("plan", selectedPlan);
+        query.set("plan", "FREE");
         if (res.verificationMethod) query.set("method", res.verificationMethod);
         if (res.simCode) query.set("simCode", res.simCode);
         router.push(`/auth/verify?${query.toString()}`);
       } else {
-        if (selectedPlan && selectedPlan !== "FREE") {
-          window.location.href = `/billing?plan=${selectedPlan}&checkout=true&required=true`;
-        } else {
-          router.push("/pos");
-        }
+        router.push("/pos");
       }
     } else {
       setErrorMsg(res.message);
@@ -515,12 +507,20 @@ function RegisterForm() {
                 <label className="text-xs font-bold text-slate-700 block mb-1.5">
                   Sélectionnez votre Forfait de démarrage ({currency})
                 </label>
+
+                {planNotice && (
+                  <div className="mb-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold flex items-center gap-2 animate-in fade-in">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>{planNotice}</span>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
-                    { id: "FREE" as SubscriptionPlan, name: "Gratuit" },
-                    { id: "BASIC" as SubscriptionPlan, name: "Basic", popular: false },
-                    { id: "PRO" as SubscriptionPlan, name: "Pro", popular: true },
-                    { id: "BUSINESS" as SubscriptionPlan, name: "Business" },
+                    { id: "FREE" as SubscriptionPlan, name: "Gratuit", isAvailable: true },
+                    { id: "BASIC" as SubscriptionPlan, name: "Basic", popular: false, isAvailable: false },
+                    { id: "PRO" as SubscriptionPlan, name: "Pro", popular: true, isAvailable: false },
+                    { id: "BUSINESS" as SubscriptionPlan, name: "Business", isAvailable: false },
                   ].map((p) => {
                     const isSelected = selectedPlan === p.id;
                     const priceInfo = getPlanPriceInfo(p.id, currency);
@@ -528,21 +528,36 @@ function RegisterForm() {
                       <button
                         type="button"
                         key={p.id}
-                        onClick={() => setSelectedPlan(p.id)}
+                        onClick={() => {
+                          if (!p.isAvailable) {
+                            setSelectedPlan("FREE");
+                            setPlanNotice("Les forfaits payants sont temporairement indisponibles. Le forfait Gratuit Découverte est sélectionné.");
+                          } else {
+                            setSelectedPlan("FREE");
+                            setPlanNotice(null);
+                          }
+                        }}
                         className={`p-2.5 rounded-2xl border text-center transition-all relative ${
                           isSelected
                             ? "bg-blue-50/70 border-blue-600 ring-2 ring-blue-600/20 text-blue-900 shadow-xs"
-                            : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                            : p.isAvailable
+                            ? "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                            : "bg-slate-50/60 border-slate-200 text-slate-400 hover:bg-slate-100/80"
                         }`}
                       >
-                        {p.popular && (
+                        {!p.isAvailable && (
+                          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-[7px] font-black uppercase px-1.5 py-0.2 rounded-full whitespace-nowrap">
+                            Bientôt
+                          </span>
+                        )}
+                        {p.isAvailable && p.popular && (
                           <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[8px] font-black uppercase px-1.5 py-0.2 rounded-full">
                             Top
                           </span>
                         )}
                         <span className="block text-xs font-black">{p.name}</span>
                         <span className="block text-[10px] text-slate-500 font-bold mt-0.5">
-                          {priceInfo.formatted}
+                          {p.isAvailable ? priceInfo.formatted : "Indisponible"}
                         </span>
                       </button>
                     );
