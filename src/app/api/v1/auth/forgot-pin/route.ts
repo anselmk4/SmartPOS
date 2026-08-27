@@ -39,14 +39,14 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: rateLimit.message }, { status: 429 });
       }
 
-      // Find user by phone, email or name
+      // Find user by phone, email or name strictly
       const searchFilters: any[] = [
         { email: { equals: cleanInput, mode: "insensitive" } },
         { phone: { equals: cleanInput } },
-        { phone: { contains: cleanInput } },
       ];
       if (cleanDigits.length >= 6) {
-        searchFilters.push({ phone: { contains: cleanDigits.slice(-9) } });
+        searchFilters.push({ phone: { equals: `+${cleanDigits}` } });
+        searchFilters.push({ phone: { equals: cleanDigits } });
       }
 
       let user: any = await prisma.user.findFirst({
@@ -59,14 +59,19 @@ export async function POST(req: NextRequest) {
 
       // If not directly found in user table, check Tenant table
       if (!user) {
+        const tenantSearchFilters: any[] = [
+          { phone: { equals: cleanInput } },
+          { name: { equals: cleanInput, mode: "insensitive" } },
+        ];
+        if (cleanDigits.length >= 6) {
+          tenantSearchFilters.push({ phone: { equals: `+${cleanDigits}` } });
+          tenantSearchFilters.push({ phone: { equals: cleanDigits } });
+        }
+
         const tenant = await prisma.tenant.findFirst({
           where: {
             isActive: true,
-            OR: [
-              { phone: { equals: cleanInput } },
-              { phone: { contains: cleanInput } },
-              { name: { equals: cleanInput, mode: "insensitive" } },
-            ],
+            OR: tenantSearchFilters,
           },
           include: { users: true },
         });

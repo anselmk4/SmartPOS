@@ -80,7 +80,6 @@ export async function POST(req: NextRequest) {
       verificationMethod: otpRes.verificationMethod,
       identifier: otpRes.identifier,
       isSimulated: otpRes.isSimulated,
-      simulatedCode: otpRes.simulatedCode,
       message: `Nouveau code envoyé par ${otpRes.verificationMethod === "EMAIL" ? "e-mail" : "SMS"}.`,
     });
   } catch (error: any) {

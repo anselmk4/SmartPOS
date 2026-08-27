@@ -85,31 +85,27 @@ export async function POST(req: NextRequest) {
 
     let refreshedToken: string | undefined = undefined;
 
-    // Resilient JWT session token validation
-    if (token) {
-      const session = verifySessionToken(token);
-      if (session) {
-        if (session.tenantId !== "global-platform-admin" && session.tenantId !== tenantId) {
-          return NextResponse.json(
-            { success: false, error: "Accès refusé : Session non autorisée pour cette boutique" },
-            { status: 403 }
-          );
-        }
-      } else {
-        // Token was expired or secret rotated - generate fresh token
-        refreshedToken = createSessionToken({
-          userId: `pos-sync-${tenantId.substring(0, 8)}`,
-          tenantId,
-          role: "OWNER",
-        });
-      }
-    } else {
-      // Auto-issue session token for POS terminal sync
-      refreshedToken = createSessionToken({
-        userId: `pos-sync-${tenantId.substring(0, 8)}`,
-        tenantId,
-        role: "OWNER",
-      });
+    // Strict JWT session token validation
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: "Non authentifié : Token de session Bearer manquant pour la synchronisation" },
+        { status: 401 }
+      );
+    }
+
+    const session = verifySessionToken(token);
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Session expirée ou invalide : Veuillez vous reconnecter à votre caisse" },
+        { status: 401 }
+      );
+    }
+
+    if (session.tenantId !== "global-platform-admin" && session.tenantId !== tenantId) {
+      return NextResponse.json(
+        { success: false, error: "Accès refusé : Session non autorisée pour cette organisation" },
+        { status: 403 }
+      );
     }
 
     const lastPulledAt = rawData.lastPulledAt || undefined;

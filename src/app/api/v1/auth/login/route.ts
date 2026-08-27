@@ -32,7 +32,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!cleanInput && !cleanPin && !targetUserId) {
+    if (!cleanPin) {
+      return NextResponse.json(
+        { success: false, error: "Code PIN requis pour vous connecter à votre compte." },
+        { status: 400 }
+      );
+    }
+
+    if (!cleanInput && !targetUserId) {
       return NextResponse.json(
         { success: false, error: "Numéro de téléphone, email ou identifiant requis" },
         { status: 400 }
@@ -42,14 +49,14 @@ export async function POST(req: NextRequest) {
     let user: any = null;
 
     // SCENARIO 1: Explicit user login with PIN within an identified Tenant
-    if (targetUserId && cleanPin) {
+    if (targetUserId) {
       const candidate = await prisma.user.findUnique({
         where: { id: targetUserId },
         include: { tenant: true },
       });
 
       if (candidate && candidate.isActive) {
-        if (candidate.pinCode && !verifyPinCode(cleanPin, candidate.pinCode)) {
+        if (!verifyPinCode(cleanPin, candidate.pinCode)) {
           return NextResponse.json(
             {
               success: false,
@@ -63,21 +70,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // SCENARIO 2: Manager / Merchant login by Phone or Email (+ optional PIN)
+    // SCENARIO 2: Manager / Merchant login by Phone or Email + PIN
     if (!user && cleanInput) {
       // 1. Search in Users table
       const userSearchFilters: any[] = [
         { email: { equals: cleanInput, mode: "insensitive" } },
         { phone: { equals: cleanInput } },
-        { phone: { contains: cleanInput } },
       ];
       if (cleanDigits.length >= 6) {
-        userSearchFilters.push({ phone: { contains: cleanDigits } });
+        userSearchFilters.push({ phone: { equals: `+${cleanDigits}` } });
+        userSearchFilters.push({ phone: { equals: cleanDigits } });
         if (cleanDigits.length >= 9) {
           userSearchFilters.push({ phone: { contains: cleanDigits.slice(-9) } });
-        }
-        if (cleanDigits.length >= 8) {
-          userSearchFilters.push({ phone: { contains: cleanDigits.slice(-8) } });
         }
       }
 
@@ -89,20 +93,17 @@ export async function POST(req: NextRequest) {
         include: { tenant: true },
       });
 
-      // 2. Search in Tenants table (by tenant phone or name) if no direct user was found
+      // 2. Search in Tenants table if no direct user was found
       if (candidateUsers.length === 0) {
         const tenantSearchFilters: any[] = [
           { phone: { equals: cleanInput } },
-          { phone: { contains: cleanInput } },
           { name: { equals: cleanInput, mode: "insensitive" } },
         ];
         if (cleanDigits.length >= 6) {
-          tenantSearchFilters.push({ phone: { contains: cleanDigits } });
+          tenantSearchFilters.push({ phone: { equals: `+${cleanDigits}` } });
+          tenantSearchFilters.push({ phone: { equals: cleanDigits } });
           if (cleanDigits.length >= 9) {
             tenantSearchFilters.push({ phone: { contains: cleanDigits.slice(-9) } });
-          }
-          if (cleanDigits.length >= 8) {
-            tenantSearchFilters.push({ phone: { contains: cleanDigits.slice(-8) } });
           }
         }
 
@@ -116,7 +117,6 @@ export async function POST(req: NextRequest) {
 
         if (matchedTenants.length > 0) {
           for (const t of matchedTenants) {
-            // Find owner or manager of this tenant
             const ownerOrMgr = t.users.find((u) => u.role === "OWNER" || u.role === "MANAGER") || t.users[0];
             if (ownerOrMgr) {
               candidateUsers.push({
@@ -128,23 +128,20 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 3. Match candidate users with provided PIN
+      // 3. Match candidate users with provided PIN strictly
       if (candidateUsers.length > 0) {
-        if (cleanPin) {
-          const pinMatched = candidateUsers.find((u) => verifyPinCode(cleanPin, u.pinCode));
-          if (pinMatched) {
-            user = pinMatched;
-          } else {
-            user = candidateUsers[0];
-            if (user.pinCode && !verifyPinCode(cleanPin, user.pinCode)) {
-              return NextResponse.json(
-                { success: false, error: `Code PIN incorrect pour le compte de ${user.name}` },
-                { status: 401 }
-              );
-            }
-          }
+        const pinMatched = candidateUsers.find((u) => verifyPinCode(cleanPin, u.pinCode));
+        if (pinMatched) {
+          user = pinMatched;
         } else {
-          user = candidateUsers[0];
+          return NextResponse.json(
+            {
+              success: false,
+              error: "Code PIN incorrect pour ce compte",
+              remainingAttempts: rateLimit.remaining,
+            },
+            { status: 401 }
+          );
         }
       }
     }

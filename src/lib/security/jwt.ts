@@ -6,9 +6,9 @@ import crypto from "crypto";
 const KNOWN_SECRETS = [
   process.env.JWT_SECRET,
   process.env.NEXTAUTH_SECRET,
-  "kuettu_globalpos_secure_dev_salt_key_2026_x7a9",
-  "kuettu_smartpos_secure_salt_key_2026_x7a9",
 ].filter(Boolean) as string[];
+
+let fallbackDevSecret: string | null = null;
 
 /**
  * Retrieves the primary JWT signing secret.
@@ -17,9 +17,12 @@ function getPrimaryJwtSecret(): string {
   const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
   if (!secret) {
     if (process.env.NODE_ENV === "production") {
-      console.warn("[Security Warning] JWT_SECRET non configuré dans les variables d'environnement.");
+      throw new Error("[Security Critical] Variable JWT_SECRET ou NEXTAUTH_SECRET obligatoire en production.");
     }
-    return "kuettu_globalpos_secure_dev_salt_key_2026_x7a9";
+    if (!fallbackDevSecret) {
+      fallbackDevSecret = crypto.randomBytes(32).toString("hex");
+    }
+    return fallbackDevSecret;
   }
   return secret;
 }
