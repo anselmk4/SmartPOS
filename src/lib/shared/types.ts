@@ -7,8 +7,8 @@ export type TariffMode = "NORMAL" | "KARAOKE" | "PROMOTION";
 export interface TariffConfig {
   activeMode: TariffMode;
   karaokeDrinkSurcharge: number; // Montant fixe de majoration sur les boissons (ex: 500 ou 1000 FC)
-  promoDiscountAmount: number; // Montant de réduction unitaire en promotion (ex: 1000 FC)
-  promoQuotaPerProduct: number; // Nombre d'unités max par produit éligibles à la remise (ex: 10)
+  promoDiscountAmount: number; // Montant fixe de minoration sur les produits en promotion (ex: 1000 FC)
+  promoQuotaPerProduct?: number; // Optionnel (rétro-compatibilité)
   updatedAt?: string;
   updatedBy?: string;
 }

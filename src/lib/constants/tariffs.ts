@@ -3,8 +3,7 @@ import type { Product, TariffConfig, TariffMode } from "@/lib/shared/types";
 export const DEFAULT_TARIFF_CONFIG: TariffConfig = {
   activeMode: "NORMAL",
   karaokeDrinkSurcharge: 500, // 500 FC de majoration fixe par boisson
-  promoDiscountAmount: 1000, // 1 000 FC de remise unitaire en promo
-  promoQuotaPerProduct: 10, // Max 10 unités par produit éligibles à la remise
+  promoDiscountAmount: 1000, // 1 000 FC de minoration fixe en promo
   updatedAt: new Date().toISOString(),
 };
 
@@ -96,19 +95,18 @@ export function calculateEffectiveProductPrice(
     }
   }
 
-  // 2. Grille Promotion : Remise sur les N premières unités (quota 10 unités)
+  // 2. Grille Promotion : Minoration fixe sur les articles
   if (mode === "PROMOTION") {
-    const quota = Math.max(1, Number(tariffConfig.promoQuotaPerProduct || 10));
     const discount = Math.min(basePrice, Math.max(0, Number(tariffConfig.promoDiscountAmount || 0)));
 
-    if (currentUnitIndex <= quota && discount > 0) {
+    if (discount > 0) {
       return {
         unitPrice: Math.max(0, basePrice - discount),
         originalPrice: basePrice,
         tariffAdjustment: -discount,
         tariffApplied: "PROMOTION",
         isPromoDiscounted: true,
-        notes: `Remise Promo (-${discount.toLocaleString("fr-FR")}, quota ${quota}u)`,
+        notes: `Remise Promo (-${discount.toLocaleString("fr-FR")})`,
       };
     }
   }
@@ -124,8 +122,7 @@ export function calculateEffectiveProductPrice(
 }
 
 /**
- * Calcule le sous-total d'une ligne d'article avec gestion intelligente du quota promotionnel
- * (Ex: Si 12 unités ajoutées avec promo de 1000 FC sur 10u max : 10u à prix réduit + 2u à prix normal)
+ * Calcule le sous-total d'une ligne d'article avec minoration fixe en promo
  */
 export function calculateCartItemSubtotal(
   product: Product,
@@ -160,19 +157,14 @@ export function calculateCartItemSubtotal(
   }
 
   if (mode === "PROMOTION") {
-    const quota = Math.max(1, Number(tariffConfig.promoQuotaPerProduct || 10));
     const discount = Math.min(basePrice, Math.max(0, Number(tariffConfig.promoDiscountAmount || 0)));
-
-    const promoUnits = Math.min(qty, quota);
-    const standardUnits = Math.max(0, qty - quota);
-
     const discountedUnitPrice = Math.max(0, basePrice - discount);
-    const subtotal = promoUnits * discountedUnitPrice + standardUnits * basePrice;
-    const totalAdjustment = -(promoUnits * discount);
+    const subtotal = discountedUnitPrice * qty;
+    const totalAdjustment = -(discount * qty);
 
     return {
       subtotal,
-      averageUnitPrice: subtotal / qty,
+      averageUnitPrice: discountedUnitPrice,
       originalSubtotal,
       totalAdjustment,
       tariffApplied: "PROMOTION",

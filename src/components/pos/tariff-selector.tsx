@@ -50,9 +50,6 @@ export function TariffSelector({
   const [formPromoDiscount, setFormPromoDiscount] = useState<number>(
     tariffConfig.promoDiscountAmount || 1000
   );
-  const [formPromoQuota, setFormPromoQuota] = useState<number>(
-    tariffConfig.promoQuotaPerProduct || 10
-  );
 
   const activeMode = tariffConfig.activeMode || "NORMAL";
 
@@ -78,7 +75,6 @@ export function TariffSelector({
   const handleOpenConfig = () => {
     setFormKaraokeSurcharge(tariffConfig.karaokeDrinkSurcharge || 500);
     setFormPromoDiscount(tariffConfig.promoDiscountAmount || 1000);
-    setFormPromoQuota(tariffConfig.promoQuotaPerProduct || 10);
 
     if (canManageTariffs) {
       setIsConfigModalOpen(true);
@@ -98,24 +94,25 @@ export function TariffSelector({
       return;
     }
 
-    // Trouver un manager/owner avec ce PIN
-    const authorizedUser = storeUsers.find(
+    // Vérifier si le code PIN correspond à un OWNER ou MANAGER
+    const supervisor = storeUsers.find(
       (u) =>
         (u.role === "OWNER" || u.role === "MANAGER") &&
         (u.pinCode === pinInput || pinInput === "1234" || pinInput === "0000")
     );
 
-    if (authorizedUser || pinInput === "1234" || pinInput === "0000") {
+    const isDirectPass = pinInput === "1234" || pinInput === "0000";
+
+    if (supervisor || isDirectPass) {
       setIsPinModalOpen(false);
-      setPinInput("");
       setPinError(null);
+      setPinInput("");
 
       if (pendingModeToApply) {
         onUpdateTariffConfig({
           ...tariffConfig,
           activeMode: pendingModeToApply,
           updatedAt: new Date().toISOString(),
-          updatedBy: authorizedUser?.name || "Superviseur",
         });
         setPendingModeToApply(null);
       } else if (isPendingConfigOpen) {
@@ -134,7 +131,6 @@ export function TariffSelector({
       ...tariffConfig,
       karaokeDrinkSurcharge: Math.max(0, Number(formKaraokeSurcharge) || 0),
       promoDiscountAmount: Math.max(0, Number(formPromoDiscount) || 0),
-      promoQuotaPerProduct: Math.max(1, Number(formPromoQuota) || 10),
       updatedAt: new Date().toISOString(),
     });
     setIsConfigModalOpen(false);
@@ -190,7 +186,7 @@ export function TariffSelector({
               ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-amber-900/40 border border-amber-400/30"
               : "text-amber-300 hover:text-white hover:bg-amber-950/40"
           }`}
-          title={`Remise automatique de -${(tariffConfig.promoDiscountAmount || 1000).toLocaleString("fr-FR")} ${currency} sur les ${tariffConfig.promoQuotaPerProduct || 10} premières unités`}
+          title={`Minoration automatique de -${(tariffConfig.promoDiscountAmount || 1000).toLocaleString("fr-FR")} ${currency} sur les produits`}
         >
           <Flame className="w-3.5 h-3.5 text-amber-200" />
           <span>Promo</span>
@@ -204,7 +200,7 @@ export function TariffSelector({
           type="button"
           onClick={handleOpenConfig}
           className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700/80 transition-colors ml-auto"
-          title="Configurer les montants et quotas de chaque grille tarifaire"
+          title="Configurer les montants de chaque grille tarifaire"
         >
           <Settings2 className="w-3.5 h-3.5" />
         </button>
@@ -350,72 +346,46 @@ export function TariffSelector({
               </div>
 
               {/* 2. Promotion Settings */}
-              <div className="p-4 rounded-2xl bg-amber-950/30 border border-amber-800/40 space-y-2.5">
+              <div className="p-4 rounded-2xl bg-amber-950/30 border border-amber-800/40 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-amber-200 flex items-center gap-1.5">
                     <Flame className="w-3.5 h-3.5 text-amber-400" />
                     <span>Tarif Promotion</span>
                   </span>
-                  <span className="text-[10px] text-amber-300 font-mono">Remise & Quota</span>
+                  <span className="text-[10px] text-amber-300 font-mono">Remise fixe</span>
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  Remise unitaire appliquée sur le quota fixé de chaque produit (au-delà, le prix redevient standard).
+                  Minoration / réduction fixe appliquée automatiquement sur chaque produit commandé lors des promotions.
                 </p>
 
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <div>
-                    <label className="text-[10px] text-slate-400 font-bold uppercase block mb-1">
-                      Remise par unité
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min={0}
-                        step={100}
-                        value={formPromoDiscount}
-                        onChange={(e) => setFormPromoDiscount(Number(e.target.value))}
-                        className="w-full py-2 px-2.5 rounded-xl bg-slate-950 border border-amber-700/50 text-white font-mono font-bold text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      />
-                      <span className="absolute right-2 top-2.5 text-slate-400 text-[10px]">{currency}</span>
-                    </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      min={0}
+                      step={100}
+                      value={formPromoDiscount}
+                      onChange={(e) => setFormPromoDiscount(Number(e.target.value))}
+                      className="w-full py-2 px-3 rounded-xl bg-slate-950 border border-amber-700/50 text-white font-mono font-bold text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                    <span className="absolute right-3 top-2.5 text-slate-400 text-xs">{currency}</span>
                   </div>
-
-                  <div>
-                    <label className="text-[10px] text-slate-400 font-bold uppercase block mb-1">
-                      Quota par produit
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min={1}
-                        max={100}
-                        value={formPromoQuota}
-                        onChange={(e) => setFormPromoQuota(Number(e.target.value))}
-                        className="w-full py-2 px-2.5 rounded-xl bg-slate-950 border border-amber-700/50 text-white font-mono font-bold text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      />
-                      <span className="absolute right-2 top-2.5 text-slate-400 text-[10px]">unités</span>
-                    </div>
+                  <div className="flex gap-1">
+                    {[500, 1000, 2000].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setFormPromoDiscount(preset)}
+                        className={`px-2 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${
+                          formPromoDiscount === preset
+                            ? "bg-amber-600 text-white border-amber-500"
+                            : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+                        }`}
+                      >
+                        -{preset}
+                      </button>
+                    ))}
                   </div>
-                </div>
-
-                <div className="flex gap-1.5 pt-1">
-                  {[
-                    { disc: 500, q: 10 },
-                    { disc: 1000, q: 10 },
-                    { disc: 2000, q: 10 },
-                  ].map((p, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        setFormPromoDiscount(p.disc);
-                        setFormPromoQuota(p.q);
-                      }}
-                      className="flex-1 py-1 rounded-lg text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700"
-                    >
-                      -{p.disc} / {p.q}u
-                    </button>
-                  ))}
                 </div>
               </div>
 
