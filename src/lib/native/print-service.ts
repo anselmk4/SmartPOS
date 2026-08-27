@@ -128,6 +128,10 @@ export function printIsolatedDocument({
       border-radius: 3px;
     }
     img {
+      max-width: 100%;
+      height: auto;
+    }
+    img.ticket-logo {
       max-width: 60px;
       height: auto;
       display: block;
