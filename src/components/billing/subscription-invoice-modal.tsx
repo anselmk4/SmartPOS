@@ -101,6 +101,12 @@ export function SubscriptionInvoiceModal({
         return "Orange Money Direct";
       case "AFRIMONEY":
         return "AfriMoney Direct";
+      case "ILLICOCASH":
+        return "IlliCo Cash (Rawbank)";
+      case "EQUITY_BCDC":
+        return "Equity BCDC";
+      case "PEPELE_MOBILE":
+        return "Pepele Mobile (TMB)";
       case "WAVE":
         return "Wave Mobile Money";
       case "MTN_MOMO":

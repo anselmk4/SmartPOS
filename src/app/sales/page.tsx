@@ -649,6 +649,9 @@ export default function SalesHistoryPage() {
               <option value="AIRTEL_MONEY">🔴 Airtel Money</option>
               <option value="ORANGE_MONEY">🍊 Orange Money</option>
               <option value="AFRIMONEY">🟣 Afrimoney</option>
+              <option value="ILLICOCASH">🏦 IlliCo Cash</option>
+              <option value="EQUITY_BCDC">🏛️ Equity BCDC</option>
+              <option value="PEPELE_MOBILE">📲 Pepele Mobile</option>
               <option value="CARD">💳 Carte Bancaire</option>
               <option value="CREDIT">📖 Dette (Crédit)</option>
               <option value="SPLIT">🥞 Multi-Paiements (Fractionné)</option>

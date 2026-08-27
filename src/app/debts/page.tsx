@@ -532,6 +532,9 @@ export default function DebtsPage() {
                   { id: "AIRTEL_MONEY", label: "Airtel" },
                   { id: "ORANGE_MONEY", label: "Orange" },
                   { id: "AFRIMONEY", label: "Afrimoney" },
+                  { id: "ILLICOCASH", label: "IlliCo Cash" },
+                  { id: "EQUITY_BCDC", label: "Equity BCDC" },
+                  { id: "PEPELE_MOBILE", label: "Pepele Mobile" },
                 ].map((m) => (
                   <button
                     key={m.id}

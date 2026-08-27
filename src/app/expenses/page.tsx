@@ -524,6 +524,9 @@ export default function ExpensesPage() {
                     { id: "MPESA", label: "M-Pesa", icon: "📱" },
                     { id: "AIRTEL_MONEY", label: "Airtel Money", icon: "🔴" },
                     { id: "ORANGE_MONEY", label: "Orange Money", icon: "🟠" },
+                    { id: "ILLICOCASH", label: "IlliCo Cash", icon: "🏦" },
+                    { id: "EQUITY_BCDC", label: "Equity BCDC", icon: "🏛️" },
+                    { id: "PEPELE_MOBILE", label: "Pepele Mobile", icon: "📲" },
                   ].map((m) => (
                     <button
                       type="button"

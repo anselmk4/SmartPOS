@@ -156,6 +156,9 @@ export default function DashboardPage() {
       AIRTEL_MONEY: 0,
       ORANGE_MONEY: 0,
       AFRIMONEY: 0,
+      ILLICOCASH: 0,
+      EQUITY_BCDC: 0,
+      PEPELE_MOBILE: 0,
       WAVE: 0,
       MTN_MOMO: 0,
       MOOV_MONEY: 0,
@@ -931,7 +934,10 @@ export default function DashboardPage() {
               { label: "Airtel Money", amount: paymentBreakdown.AIRTEL_MONEY, color: "bg-rose-600" },
               { label: "Orange Money", amount: paymentBreakdown.ORANGE_MONEY, color: "bg-orange-500" },
               { label: "Afrimoney", amount: paymentBreakdown.AFRIMONEY, color: "bg-purple-600" },
-            ].map((m) => {
+              { label: "IlliCo Cash (Rawbank)", amount: paymentBreakdown.ILLICOCASH, color: "bg-sky-600" },
+              { label: "Equity BCDC", amount: paymentBreakdown.EQUITY_BCDC, color: "bg-amber-700" },
+              { label: "Pepele Mobile (TMB)", amount: paymentBreakdown.PEPELE_MOBILE, color: "bg-emerald-600" },
+            ].filter((m) => m.amount > 0 || m.label === "Espèces (Cash)").map((m) => {
               const pct = todayCashCollected > 0 ? Math.round((m.amount / todayCashCollected) * 100) : 0;
               return (
                 <div key={m.label} className="bg-slate-50 p-2.5 rounded-2xl border border-slate-100">

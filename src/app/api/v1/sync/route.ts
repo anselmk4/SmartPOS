@@ -338,6 +338,7 @@ export async function POST(req: NextRequest) {
             // 4. Validate paymentMethod
             const validPaymentMethods = [
               "CASH", "MPESA", "AIRTEL_MONEY", "ORANGE_MONEY", "AFRIMONEY",
+              "ILLICOCASH", "EQUITY_BCDC", "PEPELE_MOBILE",
               "WAVE", "MTN_MOMO", "MOOV_MONEY", "CREDIT", "CARD", "MIXED"
             ];
             const paymentMethod = validPaymentMethods.includes(data.paymentMethod)
@@ -394,6 +395,7 @@ export async function POST(req: NextRequest) {
 
             const validPaymentMethods = [
               "CASH", "MPESA", "AIRTEL_MONEY", "ORANGE_MONEY", "AFRIMONEY",
+              "ILLICOCASH", "EQUITY_BCDC", "PEPELE_MOBILE",
               "WAVE", "MTN_MOMO", "MOOV_MONEY", "CREDIT", "CARD", "MIXED"
             ];
             const paymentMethod = validPaymentMethods.includes(data.paymentMethod)

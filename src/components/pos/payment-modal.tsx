@@ -40,6 +40,9 @@ const PAYMENT_METHODS: Array<{ id: PaymentMethod; label: string; icon: string; c
   { id: "AIRTEL_MONEY", label: "Airtel Money", icon: "🔴", color: "border-rose-600 bg-rose-50/70 text-rose-700" },
   { id: "ORANGE_MONEY", label: "Orange Money", icon: "🍊", color: "border-orange-500 bg-orange-50/70 text-orange-700" },
   { id: "AFRIMONEY", label: "Afrimoney", icon: "🟣", color: "border-purple-600 bg-purple-50/70 text-purple-700" },
+  { id: "ILLICOCASH", label: "IlliCo Cash (Rawbank)", icon: "🏦", color: "border-sky-500 bg-sky-50/70 text-sky-700" },
+  { id: "EQUITY_BCDC", label: "Equity BCDC", icon: "🏛️", color: "border-amber-700 bg-amber-50/70 text-amber-800" },
+  { id: "PEPELE_MOBILE", label: "Pepele Mobile (TMB)", icon: "📲", color: "border-emerald-600 bg-emerald-50/70 text-emerald-700" },
   { id: "CARD", label: "Carte Bancaire", icon: "💳", color: "border-indigo-500 bg-indigo-50/70 text-indigo-700" },
   { id: "CREDIT", label: "Carnet Dette (Crédit)", icon: "📖", color: "border-amber-600 bg-amber-50/70 text-amber-700" },
 ];
