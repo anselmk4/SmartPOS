@@ -715,22 +715,48 @@ export default function POSPage() {
       {/* LEFT: Product Catalog Grid                                               */}
       {/* ========================================================================= */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top Filter & Search Bar */}
-        <div className="p-3 sm:p-4 bg-white border-b border-slate-200 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 shadow-2xs z-10">
-          <div className="flex flex-col sm:flex-row items-center gap-2.5 flex-1 min-w-0">
-            <div className="relative w-full sm:w-72 shrink-0">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+        {/* Top Header: 1. Tariff Options on Top -> 2. Search & Categories Below */}
+        <div className="p-3 sm:p-3.5 bg-white border-b border-slate-200/90 shadow-2xs z-10 space-y-2.5">
+          {/* LIGNE 1 (AU-DESSUS) : Grilles Tarifaires */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                <Layers className="w-3.5 h-3.5" />
+              </div>
+              <span className="text-xs font-black uppercase tracking-wider text-slate-600">
+                Grille Tarifaire :
+              </span>
+            </div>
+
+            {/* Dynamic Tariff Switcher */}
+            <div className="shrink-0">
+              <TariffSelector
+                tariffConfig={tariffConfig}
+                onUpdateTariffConfig={handleUpdateTariffConfig}
+                canManageTariffs={canManageTariffs}
+                currency={currency}
+                storeUsers={terminalUsers}
+                isHoreca={isHorecaOrDepot}
+              />
+            </div>
+          </div>
+
+          {/* LIGNE 2 (EN-DESSOUS) : Barre de recherche + Catégories */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
+            {/* Search Input */}
+            <div className="relative w-full md:w-80 lg:w-96 shrink-0">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Rechercher article, code-barres..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white rounded-xl text-xs sm:text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                className="w-full pl-10 pr-8 py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white rounded-xl text-xs sm:text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs font-bold"
                 >
                   ✕
                 </button>
@@ -738,7 +764,7 @@ export default function POSPage() {
             </div>
 
             {/* Categories Horizontal Scroll */}
-            <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto no-scrollbar pb-1 sm:pb-0">
+            <div className="flex items-center gap-1.5 overflow-x-auto w-full no-scrollbar pb-0.5 md:pb-0">
               {categories.map((cat) => (
                 <button
                   key={cat}
@@ -746,25 +772,13 @@ export default function POSPage() {
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all touch-press ${
                     selectedCategory === cat
                       ? "bg-blue-600 text-white shadow-xs"
-                      : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80"
+                      : "bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/80"
                   }`}
                 >
                   {cat}
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* Dynamic Tariff Switcher */}
-          <div className="shrink-0 flex items-center justify-end">
-            <TariffSelector
-              tariffConfig={tariffConfig}
-              onUpdateTariffConfig={handleUpdateTariffConfig}
-              canManageTariffs={canManageTariffs}
-              currency={currency}
-              storeUsers={terminalUsers}
-              isHoreca={isHorecaOrDepot}
-            />
           </div>
         </div>
 
