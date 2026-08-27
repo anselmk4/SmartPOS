@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import type { SubscriptionPlan } from "@/lib/shared/types";
+import type { SubscriptionPlan, Subscription, Tenant } from "@/lib/shared/types";
+import { SubscriptionInvoiceModal } from "@/components/billing/subscription-invoice-modal";
 import {
   X,
   Store,
@@ -31,6 +32,7 @@ import {
   TrendingUp,
   Activity,
   Cpu,
+  FileText,
 } from "lucide-react";
 
 export interface TenantWithDetails {
@@ -94,6 +96,7 @@ export function TenantDetailsSidebar({
 }: TenantDetailsSidebarProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"GENERAL" | "NETWORK" | "SUBSCRIPTIONS">("GENERAL");
+  const [sidebarSelectedInvoice, setSidebarSelectedInvoice] = useState<Subscription | null>(null);
 
   // Close on Escape key
   useEffect(() => {
@@ -596,7 +599,7 @@ export function TenantDetailsSidebar({
 
                 <div className="space-y-2">
                   {tenant.subscriptions && tenant.subscriptions.length > 0 ? (
-                    tenant.subscriptions.map((sub) => (
+                    tenant.subscriptions.map((sub: any) => (
                       <div
                         key={sub.id}
                         className="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/60 flex items-center justify-between gap-3 text-xs"
@@ -605,7 +608,7 @@ export function TenantDetailsSidebar({
                           <div className="font-bold text-white flex items-center gap-2">
                             <span>Formule {sub.plan}</span>
                             <span className="font-mono text-emerald-400 font-extrabold">
-                              {sub.amount} {sub.currency}
+                              {Number(sub.amount || 0) === 0 ? "Offert" : `${sub.amount} ${sub.currency}`}
                             </span>
                           </div>
                           <div className="text-[11px] text-slate-400 mt-0.5">
@@ -614,9 +617,21 @@ export function TenantDetailsSidebar({
                           </div>
                         </div>
 
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          {sub.paymentStatus || "PAYÉ"}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSidebarSelectedInvoice(sub as Subscription)}
+                            className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 font-bold text-[11px] flex items-center gap-1 transition-colors"
+                            title="Voir la facture"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>Facture</span>
+                          </button>
+
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            {sub.paymentStatus || "PAYÉ"}
+                          </span>
+                        </div>
                       </div>
                     ))
                   ) : (
@@ -662,6 +677,14 @@ export function TenantDetailsSidebar({
           </div>
         </div>
       </div>
+
+      {/* Subscription Invoice Modal */}
+      <SubscriptionInvoiceModal
+        subscription={sidebarSelectedInvoice}
+        tenant={tenant as any}
+        isOpen={!!sidebarSelectedInvoice}
+        onClose={() => setSidebarSelectedInvoice(null)}
+      />
     </div>
   );
 }

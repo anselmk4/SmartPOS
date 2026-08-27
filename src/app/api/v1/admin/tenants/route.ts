@@ -221,7 +221,24 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, name, phone, currency, countryCode, plan, planStatus, planExpiresAt, isActive } = body;
+    const {
+      id,
+      name,
+      phone,
+      currency,
+      countryCode,
+      plan,
+      planStatus,
+      planExpiresAt,
+      isActive,
+      // Subscription invoice fields
+      durationMonths,
+      amount,
+      isFree,
+      paymentMethod = "CASH",
+      transactionId,
+      notes,
+    } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -245,9 +262,76 @@ export async function PUT(req: NextRequest) {
     if (countryCode !== undefined) updateData.countryCode = countryCode;
     if (plan !== undefined) updateData.plan = plan;
     if (planStatus !== undefined) updateData.planStatus = planStatus;
-    if (planExpiresAt !== undefined) updateData.planExpiresAt = planExpiresAt ? new Date(planExpiresAt) : null;
     if (isActive !== undefined) updateData.isActive = Boolean(isActive);
 
+    // If plan is changed or subscription details are provided, compute expiration & create invoice
+    const hasPlanChange = plan !== undefined && (durationMonths !== undefined || isFree !== undefined || amount !== undefined);
+
+    let calculatedExpiresAt: Date | null = null;
+    if (planExpiresAt !== undefined) {
+      calculatedExpiresAt = planExpiresAt ? new Date(planExpiresAt) : null;
+    } else if (hasPlanChange || durationMonths !== undefined) {
+      const months = Math.max(1, Number(durationMonths) || 1);
+      const now = new Date();
+      // Calculate future expiration date
+      const future = new Date(now);
+      future.setMonth(future.getMonth() + months);
+      calculatedExpiresAt = future;
+    }
+
+    if (calculatedExpiresAt !== null || planExpiresAt !== undefined) {
+      updateData.planExpiresAt = calculatedExpiresAt;
+    }
+
+    let createdSubscription: any = null;
+
+    if (hasPlanChange || (plan && plan !== "FREE" && durationMonths)) {
+      const now = new Date();
+      const months = Math.max(1, Number(durationMonths) || 1);
+      const expiry = calculatedExpiresAt || new Date(now.getTime() + months * 30 * 86400000);
+      const finalAmount = isFree ? 0 : Math.max(0, Number(amount) || 0);
+      const finalCurrency = currency || existing.currency || "CDF";
+      
+      const invoiceRef =
+        transactionId?.trim() ||
+        `FAC-SUB-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}-${Math.floor(100000 + Math.random() * 900000)}`;
+
+      const [updatedTenant, sub] = await prisma.$transaction([
+        prisma.tenant.update({
+          where: { id },
+          data: {
+            ...updateData,
+            plan: plan || existing.plan,
+            planStatus: "ACTIVE",
+            planExpiresAt: expiry,
+          },
+        }),
+        prisma.subscription.create({
+          data: {
+            id: crypto.randomUUID(),
+            tenantId: id,
+            plan: (plan || existing.plan) as any,
+            amount: finalAmount,
+            currency: finalCurrency,
+            paymentMethod: paymentMethod as any,
+            paymentStatus: "ACTIVE",
+            transactionId: invoiceRef,
+            periodStart: now,
+            periodEnd: expiry,
+            createdAt: now,
+          },
+        }),
+      ]);
+
+      return NextResponse.json({
+        success: true,
+        message: `Forfait ${plan} activé avec succès (${isFree ? "Gratuit / Offert" : `${finalAmount} ${finalCurrency} pour ${months} mois`}). Facture N° ${invoiceRef} générée.`,
+        data: updatedTenant,
+        subscription: sub,
+      });
+    }
+
+    // Standard simple update
     const updated = await prisma.tenant.update({
       where: { id },
       data: updateData,

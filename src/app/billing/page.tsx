@@ -7,6 +7,7 @@ import { useSync } from "@/lib/sync/sync-context";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/dexie-db";
 import { PawaPayModal } from "@/components/billing/pawapay-modal";
+import { SubscriptionInvoiceModal } from "@/components/billing/subscription-invoice-modal";
 import { getPlanPriceInfo } from "@/lib/constants/plans";
 import type { SubscriptionPlan, Subscription } from "@/lib/shared/types";
 import {
@@ -36,6 +37,10 @@ import {
   Clock,
   Download,
   AlertCircle,
+  FileText,
+  Eye,
+  Gift,
+  DollarSign,
 } from "lucide-react";
 
 function BillingPageContent() {
@@ -56,6 +61,7 @@ function BillingPageContent() {
   const [displayCurrency, setDisplayCurrency] = useState<string>(rawCurrency || "CDF");
   const [cloudSubscriptions, setCloudSubscriptions] = useState<Subscription[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [selectedInvoiceSubscription, setSelectedInvoiceSubscription] = useState<Subscription | null>(null);
 
   // Local Dexie subscriptions for reactive offline-first tracking
   const localSubscriptions =
@@ -282,50 +288,153 @@ function BillingPageContent() {
       )}
 
       {/* Current Subscription Status Card */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-700/60 relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      {(() => {
+        const latestSubscription = allSubscriptions[0] || null;
+        
+        let durationMonths = 1;
+        if (latestSubscription?.periodStart && latestSubscription?.periodEnd) {
+          const s = new Date(latestSubscription.periodStart).getTime();
+          const e = new Date(latestSubscription.periodEnd).getTime();
+          const days = Math.round((e - s) / (1000 * 60 * 60 * 24));
+          durationMonths = Math.max(1, Math.round(days / 30));
+        }
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs font-black">
-              <Crown className="w-3.5 h-3.5 text-amber-400" />
-              <span>Abonnement Micro-ERP Actif</span>
+        const expiryDate = tenant?.planExpiresAt
+          ? new Date(tenant.planExpiresAt)
+          : latestSubscription?.periodEnd
+          ? new Date(latestSubscription.periodEnd)
+          : null;
+
+        const daysRemaining = expiryDate
+          ? Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+          : null;
+
+        const isManualOffPlatform =
+          latestSubscription?.paymentMethod === "CASH" ||
+          latestSubscription?.transactionId?.startsWith("FAC-SUB") ||
+          latestSubscription?.transactionId?.startsWith("MANUAL");
+
+        const isLatestFree = latestSubscription ? Number(latestSubscription.amount || 0) === 0 : currentPlan === "FREE";
+
+        return (
+          <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-700/60 relative overflow-hidden space-y-6">
+            <div className="absolute right-0 top-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs font-black">
+                  <Crown className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Abonnement Micro-ERP Actif</span>
+                </div>
+
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3">
+                  <span>Forfait Actuel :</span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">
+                    {currentPlan === "FREE" && "Découverte (Gratuit)"}
+                    {currentPlan === "BASIC" && "Commerçant Basic"}
+                    {currentPlan === "PRO" && "Commerçant Pro"}
+                    {currentPlan === "BUSINESS" && "Business Multi-Magasins"}
+                  </span>
+                </h1>
+
+                <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
+                  Boutique : <b>{tenant?.name || "Votre Boutique"}</b> • Devise principale : <b>{displayCurrency}</b>
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                {latestSubscription && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedInvoiceSubscription(latestSubscription)}
+                    className="px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all touch-press"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Voir ma Facture d'Abonnement</span>
+                  </button>
+                )}
+
+                {isPaidPlan && !isCancelled && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCancelModalOpen(true)}
+                    className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white text-xs font-bold border border-white/10 transition-all"
+                  >
+                    Résilier l'abonnement
+                  </button>
+                )}
+
+                {isCancelled && (
+                  <span className="px-3.5 py-1.5 rounded-2xl bg-rose-500/20 border border-rose-400/30 text-rose-300 text-xs font-bold">
+                    Résiliation programmée en fin de période
+                  </span>
+                )}
+              </div>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3">
-              <span>Forfait Actuel :</span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">
-                {currentPlan === "FREE" && "Découverte (Gratuit)"}
-                {currentPlan === "BASIC" && "Commerçant Basic"}
-                {currentPlan === "PRO" && "Commerçant Pro"}
-                {currentPlan === "BUSINESS" && "Business Multi-Magasins"}
-              </span>
-            </h1>
+            {/* Subscription Breakdown Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-700/60 relative z-10">
+              {/* 1. Amount & Months */}
+              <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60 space-y-1">
+                <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
+                  Montant & Durée Réglés
+                </span>
+                <div className="text-base font-black text-white flex items-center gap-2">
+                  {latestSubscription ? (
+                    isLatestFree ? (
+                      <span className="text-amber-300 font-mono">0 {displayCurrency} (Offert)</span>
+                    ) : (
+                      <span className="text-emerald-400 font-mono">
+                        {Number(latestSubscription.amount || 0).toLocaleString("fr-FR")} {latestSubscription.currency || displayCurrency}
+                      </span>
+                    )
+                  ) : (
+                    <span className="text-slate-300">0 {displayCurrency}</span>
+                  )}
+                  <span className="text-xs font-medium text-slate-400">
+                    • {latestSubscription ? `${durationMonths} mois` : "Permanent"}
+                  </span>
+                </div>
+              </div>
 
-            <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-              Boutique : <b>{tenant?.name || "Votre Boutique"}</b> • Devise principale : <b>{displayCurrency}</b>
-            </p>
+              {/* 2. Mode of Payment */}
+              <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60 space-y-1">
+                <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
+                  Canal de Règlement
+                </span>
+                <div className="text-sm font-bold text-slate-200 flex items-center gap-1.5">
+                  <Smartphone className="w-4 h-4 text-blue-400 shrink-0" />
+                  <span>
+                    {isManualOffPlatform
+                      ? "Paiement direct (Hors PawaPay)"
+                      : latestSubscription?.paymentMethod || "Formule Standard"}
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. Expiry Date */}
+              <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60 space-y-1">
+                <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
+                  Échéance du Forfait
+                </span>
+                <div className="text-sm font-bold text-white flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>
+                    {expiryDate
+                      ? expiryDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })
+                      : "Accès illimité"}
+                  </span>
+                </div>
+                {daysRemaining !== null && (
+                  <div className="text-[11px] text-emerald-400 font-semibold">
+                    {daysRemaining > 0 ? `⏳ ${daysRemaining} jours restants` : "⚠️ Forfait expiré"}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {isPaidPlan && !isCancelled && (
-              <button
-                type="button"
-                onClick={() => setIsCancelModalOpen(true)}
-                className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white text-xs font-bold border border-white/10 transition-all"
-              >
-                Résilier l'abonnement
-              </button>
-            )}
-
-            {isCancelled && (
-              <span className="px-3.5 py-1.5 rounded-2xl bg-rose-500/20 border border-rose-400/30 text-rose-300 text-xs font-bold">
-                Résiliation programmée en fin de période
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* ========================================================= */}
       {/* 📜 HISTORIQUE DES PAIEMENTS & SOUSCRIPTIONS EFFECTUÉS */}
@@ -338,10 +447,10 @@ function BillingPageContent() {
             </div>
             <div>
               <h3 className="text-lg sm:text-xl font-black text-slate-900">
-                Historique de vos Paiements & Souscriptions
+                Historique de vos Paiements & Factures d'Abonnement
               </h3>
               <p className="text-xs text-slate-500">
-                Retrouvez tous les règlements Mobile Money effectués pour votre compte.
+                Retrouvez toutes vos factures acquittées, règlements Mobile Money et activations manuelles.
               </p>
             </div>
           </div>
@@ -367,7 +476,7 @@ function BillingPageContent() {
             <Receipt className="w-8 h-8 text-slate-300 mx-auto" />
             <h4 className="text-xs font-bold text-slate-700">Aucun paiement enregistré pour l'instant</h4>
             <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
-              Lorsque vous effectuez un paiement par Mobile Money pour activer un forfait, votre reçu et l'historique complet s'afficheront ici.
+              Lorsque vous effectuez un paiement par Mobile Money ou qu'un forfait est activé par l'administrateur, votre facture officielle s'affichera ici.
             </p>
           </div>
         ) : (
@@ -378,10 +487,11 @@ function BillingPageContent() {
                   <th className="py-3 px-3">Date</th>
                   <th className="py-3 px-3">Forfait Activé</th>
                   <th className="py-3 px-3">Montant Réglé</th>
-                  <th className="py-3 px-3">Opérateur & Mode</th>
-                  <th className="py-3 px-3">Réf. Transaction</th>
-                  <th className="py-3 px-3">Période de Validité</th>
+                  <th className="py-3 px-3">Canal & Mode</th>
+                  <th className="py-3 px-3">Réf. Facture</th>
+                  <th className="py-3 px-3">Échéance</th>
                   <th className="py-3 px-3 text-center">Statut</th>
+                  <th className="py-3 px-3 text-right">Facture</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -404,6 +514,11 @@ function BillingPageContent() {
                     ? new Date(sub.periodEnd).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })
                     : "—";
 
+                  // Duration in months
+                  const s = sub.periodStart ? new Date(sub.periodStart).getTime() : 0;
+                  const e = sub.periodEnd ? new Date(sub.periodEnd).getTime() : 0;
+                  const months = s && e ? Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24 * 30))) : 1;
+
                   const planLabel =
                     sub.plan === "BASIC"
                       ? "Commerçant Basic"
@@ -412,6 +527,8 @@ function BillingPageContent() {
                       : sub.plan === "BUSINESS"
                       ? "Business Multi-Magasins"
                       : "Découverte";
+
+                  const isSubFree = Number(sub.amount || 0) === 0;
 
                   return (
                     <tr key={sub.id || idx} className="hover:bg-slate-50/70 transition-colors">
@@ -426,26 +543,36 @@ function BillingPageContent() {
                       {/* Plan */}
                       <td className="py-3.5 px-3">
                         <span className="font-bold text-slate-900 block">{planLabel}</span>
-                        <span className="text-[10px] text-slate-400 font-medium">30 Jours d'accès</span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {months} mois ({months * 30}j)
+                        </span>
                       </td>
 
                       {/* Amount */}
                       <td className="py-3.5 px-3 font-mono font-black text-slate-900 whitespace-nowrap">
-                        {Number(sub.amount || 0).toLocaleString("fr-FR")} {sub.currency || "CDF"}
+                        {isSubFree ? (
+                          <span className="text-amber-600 font-bold">0 {sub.currency || "CDF"} (Offert)</span>
+                        ) : (
+                          `${Number(sub.amount || 0).toLocaleString("fr-FR")} ${sub.currency || "CDF"}`
+                        )}
                       </td>
 
                       {/* Operator */}
                       <td className="py-3.5 px-3">
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-bold border border-slate-200">
                           <Smartphone className="w-3 h-3 text-blue-600" />
-                          <span>{sub.paymentMethod || "Mobile Money"}</span>
+                          <span>
+                            {sub.paymentMethod === "CASH"
+                              ? "Manuel (Hors PawaPay)"
+                              : sub.paymentMethod || "Mobile Money"}
+                          </span>
                         </span>
                       </td>
 
                       {/* Ref */}
                       <td className="py-3.5 px-3 font-mono text-[11px] text-slate-500">
-                        <span className="truncate max-w-[120px] block" title={sub.transactionId}>
-                          {sub.transactionId || "—"}
+                        <span className="truncate max-w-[130px] block font-bold" title={sub.transactionId}>
+                          {sub.transactionId || `FAC-SUB-${sub.id.slice(0, 6)}`}
                         </span>
                       </td>
 
@@ -458,8 +585,21 @@ function BillingPageContent() {
                       <td className="py-3.5 px-3 text-center whitespace-nowrap">
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
                           <CheckCircle2 className="w-3 h-3" />
-                          <span>Payé & Actif</span>
+                          <span>Acquitté</span>
                         </span>
+                      </td>
+
+                      {/* Action */}
+                      <td className="py-3.5 px-3 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedInvoiceSubscription(sub)}
+                          className="py-1.5 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold flex items-center gap-1.5 ml-auto transition-colors"
+                          title="Consulter et imprimer la facture"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>Facture</span>
+                        </button>
                       </td>
                     </tr>
                   );
@@ -764,6 +904,14 @@ function BillingPageContent() {
           </div>
         </div>
       )}
+
+      {/* Subscription Invoice Modal */}
+      <SubscriptionInvoiceModal
+        subscription={selectedInvoiceSubscription}
+        tenant={tenant}
+        isOpen={!!selectedInvoiceSubscription}
+        onClose={() => setSelectedInvoiceSubscription(null)}
+      />
     </div>
   );
 }

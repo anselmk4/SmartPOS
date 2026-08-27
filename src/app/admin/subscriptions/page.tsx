@@ -68,10 +68,11 @@ export default function AdminSubscriptionsPage() {
   const [isManualSubModalOpen, setIsManualSubModalOpen] = useState(false);
   const [subTenantId, setSubTenantId] = useState("");
   const [subPlan, setSubPlan] = useState<SubscriptionPlan>("PRO");
-  const [subAmount, setSubAmount] = useState(15000);
-  const [subMethod, setSubMethod] = useState<PaymentMethod>("MPESA");
+  const [isFreeSub, setIsFreeSub] = useState(false);
+  const [subMonths, setSubMonths] = useState(1);
+  const [subAmount, setSubAmount] = useState(30000);
+  const [subMethod, setSubMethod] = useState<PaymentMethod>("CASH");
   const [subTxId, setSubTxId] = useState("");
-  const [subDays, setSubDays] = useState(30);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Toast
@@ -120,10 +121,11 @@ export default function AdminSubscriptionsPage() {
   const handleOpenManual = () => {
     if (tenants.length > 0) setSubTenantId(tenants[0].id);
     setSubPlan("PRO");
-    setSubAmount(15000);
-    setSubMethod("MPESA");
+    setIsFreeSub(false);
+    setSubMonths(1);
+    setSubAmount(30000);
+    setSubMethod("CASH");
     setSubTxId("");
-    setSubDays(30);
     setIsManualSubModalOpen(true);
   };
 
@@ -137,17 +139,18 @@ export default function AdminSubscriptionsPage() {
       body: JSON.stringify({
         tenantId: subTenantId,
         plan: subPlan,
-        amount: Number(subAmount) || 0,
-        paymentMethod: subMethod,
+        amount: isFreeSub ? 0 : Number(subAmount) || 0,
+        isFree: isFreeSub,
+        paymentMethod: isFreeSub ? "CASH" : subMethod,
         transactionId: subTxId.trim() || undefined,
-        durationDays: subDays,
+        durationMonths: subMonths,
       }),
     });
     setIsSubmitting(false);
 
     if (res.success) {
       setIsManualSubModalOpen(false);
-      showToast(res.message || "Paiement enregistré avec succès dans Supabase.");
+      showToast(res.message || "Paiement et facture d'abonnement enregistrés avec succès.");
       loadData();
     } else {
       alert(res.error || "Erreur lors de l'enregistrement du paiement");
@@ -379,19 +382,22 @@ export default function AdminSubscriptionsPage() {
 
       {/* Modal: Manual Subscription Entry */}
       {isManualSubModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-white text-base">Enregistrer un Paiement SaaS</h3>
+              <div>
+                <h3 className="font-bold text-white text-base">Enregistrer un Paiement SaaS & Facture</h3>
+                <p className="text-xs text-slate-400">Attribution manuelle hors PawaPay</p>
+              </div>
               <button
                 onClick={() => setIsManualSubModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1"
+                className="text-slate-400 hover:text-white p-1 rounded-xl hover:bg-slate-800 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleManualSubSubmit} className="space-y-3">
+            <form onSubmit={handleManualSubSubmit} className="space-y-3.5">
               <div>
                 <label className="text-xs font-bold text-slate-300 block mb-1">Boutique Bénéficiaire *</label>
                 <select
@@ -408,6 +414,38 @@ export default function AdminSubscriptionsPage() {
                 </select>
               </div>
 
+              {/* Payant vs Gratuit */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsFreeSub(false);
+                    setSubAmount(30000 * subMonths);
+                  }}
+                  className={`py-2 px-3 rounded-xl font-bold text-xs border transition-all ${
+                    !isFreeSub
+                      ? "bg-emerald-500/20 border-emerald-500 text-emerald-300"
+                      : "bg-slate-800/60 border-slate-700 text-slate-400"
+                  }`}
+                >
+                  Payant (Perçu)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsFreeSub(true);
+                    setSubAmount(0);
+                  }}
+                  className={`py-2 px-3 rounded-xl font-bold text-xs border transition-all ${
+                    isFreeSub
+                      ? "bg-amber-500/20 border-amber-500 text-amber-300"
+                      : "bg-slate-800/60 border-slate-700 text-slate-400"
+                  }`}
+                >
+                  Offert / Gratuit
+                </button>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1">Plan</label>
@@ -416,9 +454,10 @@ export default function AdminSubscriptionsPage() {
                     onChange={(e) => {
                       const p = e.target.value as SubscriptionPlan;
                       setSubPlan(p);
-                      if (p === "PRO") setSubAmount(15000);
-                      if (p === "BUSINESS") setSubAmount(45000);
-                      if (p === "BASIC") setSubAmount(5000);
+                      if (!isFreeSub) {
+                        const unit = p === "BUSINESS" ? 100000 : p === "PRO" ? 30000 : 15000;
+                        setSubAmount(unit * subMonths);
+                      }
                     }}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                   >
@@ -429,51 +468,67 @@ export default function AdminSubscriptionsPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Montant (CDF)</label>
-                  <input
-                    type="number"
-                    required
-                    value={subAmount}
-                    onChange={(e) => setSubAmount(Number(e.target.value))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Opérateur / Canal</label>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Durée (Mois)</label>
                   <select
-                    value={subMethod}
-                    onChange={(e) => setSubMethod(e.target.value as PaymentMethod)}
+                    value={subMonths}
+                    onChange={(e) => {
+                      const m = Number(e.target.value) || 1;
+                      setSubMonths(m);
+                      if (!isFreeSub) {
+                        const unit = subPlan === "BUSINESS" ? 100000 : subPlan === "PRO" ? 30000 : 15000;
+                        setSubAmount(unit * m);
+                      }
+                    }}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                   >
-                    <option value="MPESA">Vodacom M-Pesa</option>
-                    <option value="AIRTEL_MONEY">Airtel Money</option>
-                    <option value="ORANGE_MONEY">Orange Money</option>
-                    <option value="AFRIMONEY">Afrimoney</option>
-                    <option value="CASH">Espèces / Direct</option>
+                    <option value={1}>1 mois (30j)</option>
+                    <option value={2}>2 mois (60j)</option>
+                    <option value={3}>3 mois (1 trimestre)</option>
+                    <option value={6}>6 mois (Semestre)</option>
+                    <option value={12}>12 mois (1 an)</option>
                   </select>
                 </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Durée (Jours)</label>
-                  <input
-                    type="number"
-                    value={subDays}
-                    onChange={(e) => setSubDays(Number(e.target.value))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
-                  />
-                </div>
               </div>
+
+              {!isFreeSub && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">Montant Perçu (CDF)</label>
+                    <input
+                      type="number"
+                      required
+                      value={subAmount}
+                      onChange={(e) => setSubAmount(Number(e.target.value))}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">Mode de Règlement</label>
+                    <select
+                      value={subMethod}
+                      onChange={(e) => setSubMethod(e.target.value as PaymentMethod)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="CASH">Espèces / Cash Direct</option>
+                      <option value="MPESA">Vodacom M-Pesa Direct</option>
+                      <option value="AIRTEL_MONEY">Airtel Money Direct</option>
+                      <option value="ORANGE_MONEY">Orange Money Direct</option>
+                      <option value="AFRIMONEY">Afrimoney</option>
+                      <option value="WAVE">Wave Direct</option>
+                      <option value="CARD">Virement / Carte</option>
+                    </select>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-bold text-slate-300 block mb-1">
-                  Référence Transaction Mobile Money
+                  Référence Reçu / Transaction (Optionnel)
                 </label>
                 <input
                   type="text"
-                  placeholder="Ex: MPESA-TX-109283"
+                  placeholder="Laisser vide pour générer FAC-SUB-..."
                   value={subTxId}
                   onChange={(e) => setSubTxId(e.target.value)}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-slate-500 focus:outline-none focus:border-blue-500"
@@ -491,9 +546,9 @@ export default function AdminSubscriptionsPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-lg"
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-lg flex items-center gap-2"
                 >
-                  {isSubmitting ? "Enregistrement..." : "Valider le Paiement Supabase"}
+                  {isSubmitting ? "Enregistrement..." : "Valider & Générer Facture"}
                 </button>
               </div>
             </form>

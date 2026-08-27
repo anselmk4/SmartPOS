@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { adminFetch } from "@/lib/admin/admin-api";
 import { TenantDetailsSidebar } from "@/components/admin/tenant-details-sidebar";
-import type { SubscriptionPlan } from "@/lib/shared/types";
+import type { SubscriptionPlan, PaymentMethod } from "@/lib/shared/types";
+import { getPlanPriceInfo } from "@/lib/constants/plans";
 import {
   Store as StoreIcon,
   Search,
@@ -25,6 +26,12 @@ import {
   Database,
   ExternalLink,
   ChevronRight,
+  DollarSign,
+  Gift,
+  CreditCard,
+  FileText,
+  Clock,
+  ShieldCheck,
 } from "lucide-react";
 
 interface TenantWithDetails {
@@ -85,6 +92,12 @@ export default function AdminTenantsPage() {
 
   // Plan change form state
   const [newPlanChoice, setNewPlanChoice] = useState<SubscriptionPlan>("PRO");
+  const [isFreeActivation, setIsFreeActivation] = useState(false);
+  const [planMonths, setPlanMonths] = useState(1);
+  const [planAmount, setPlanAmount] = useState(30000);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
+  const [receiptRef, setReceiptRef] = useState("");
+  const [freeReason, setFreeReason] = useState("Offre promotionnelle");
 
   // Notification Toast
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -156,12 +169,6 @@ export default function AdminTenantsPage() {
     setIsEditTenantModalOpen(true);
   };
 
-  const handleOpenChangePlanModal = (t: TenantWithDetails) => {
-    setSelectedTenant(t);
-    setNewPlanChoice(t.plan);
-    setIsChangePlanModalOpen(true);
-  };
-
   const handleCreateTenantSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim() || !formOwnerName.trim()) return;
@@ -215,6 +222,53 @@ export default function AdminTenantsPage() {
     }
   };
 
+  const handleOpenChangePlanModal = (t: TenantWithDetails) => {
+    setSelectedTenant(t);
+    const initialPlan = t.plan === "FREE" ? "PRO" : t.plan;
+    setNewPlanChoice(initialPlan);
+    const isFree = t.plan === "FREE";
+    setIsFreeActivation(isFree);
+    setPlanMonths(1);
+    const priceInfo = getPlanPriceInfo(initialPlan, t.currency);
+    setPlanAmount(priceInfo.amount);
+    setPaymentMethod("CASH");
+    setReceiptRef("");
+    setFreeReason("Activation promotionnelle / gracieuse");
+    setIsChangePlanModalOpen(true);
+  };
+
+  const handlePlanChangeSelect = (plan: SubscriptionPlan) => {
+    setNewPlanChoice(plan);
+    if (!selectedTenant) return;
+    if (plan === "FREE") {
+      setIsFreeActivation(true);
+      setPlanAmount(0);
+    } else {
+      const priceInfo = getPlanPriceInfo(plan, selectedTenant.currency);
+      setPlanAmount(priceInfo.amount * planMonths);
+    }
+  };
+
+  const handleMonthsChange = (months: number) => {
+    setPlanMonths(months);
+    if (!selectedTenant) return;
+    if (!isFreeActivation && newPlanChoice !== "FREE") {
+      const priceInfo = getPlanPriceInfo(newPlanChoice, selectedTenant.currency);
+      setPlanAmount(priceInfo.amount * months);
+    }
+  };
+
+  const handleFreeToggle = (free: boolean) => {
+    setIsFreeActivation(free);
+    if (!selectedTenant) return;
+    if (free) {
+      setPlanAmount(0);
+    } else {
+      const priceInfo = getPlanPriceInfo(newPlanChoice, selectedTenant.currency);
+      setPlanAmount(priceInfo.amount * planMonths);
+    }
+  };
+
   const handleChangePlanSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTenant) return;
@@ -225,15 +279,23 @@ export default function AdminTenantsPage() {
       body: JSON.stringify({
         id: selectedTenant.id,
         plan: newPlanChoice,
-        planStatus: "ACTIVE",
-        planExpiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+        durationMonths: planMonths,
+        amount: isFreeActivation ? 0 : Number(planAmount) || 0,
+        isFree: isFreeActivation,
+        currency: selectedTenant.currency,
+        paymentMethod: isFreeActivation ? "CASH" : paymentMethod,
+        transactionId: receiptRef.trim() || undefined,
+        notes: isFreeActivation ? freeReason : `Règlement manuel hors PawaPay (${planMonths} mois)`,
       }),
     });
     setIsSubmitting(false);
 
     if (res.success) {
       setIsChangePlanModalOpen(false);
-      showToast(`Plan de "${selectedTenant.name}" mis à jour vers ${newPlanChoice}.`);
+      showToast(
+        res.message ||
+          `Plan de "${selectedTenant.name}" mis à jour vers ${newPlanChoice} avec facture générée.`
+      );
       loadTenants();
     } else {
       alert(res.error || "Erreur lors de la mise à jour du plan");
@@ -749,73 +811,269 @@ export default function AdminTenantsPage() {
         </div>
       )}
 
-      {/* Modal: Change Plan */}
+      {/* Modal: Change Plan & Generate Invoice */}
       {isChangePlanModalOpen && selectedTenant && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-white text-base">
-                Modifier le Forfait : {selectedTenant.name}
-              </h3>
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5 my-8 animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-4 border-b border-slate-800">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[11px] font-bold">
+                  <Sparkles className="w-3 h-3 text-blue-400" />
+                  <span>Activation Manuelle & Facturation</span>
+                </div>
+                <h3 className="font-black text-white text-lg sm:text-xl">
+                  Modifier le Forfait : {selectedTenant.name}
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Devise du commerce : <b className="text-white">{selectedTenant.currency}</b> • Forfait actuel : <b className="text-blue-400">{selectedTenant.plan}</b>
+                </p>
+              </div>
               <button
                 onClick={() => setIsChangePlanModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1"
+                className="text-slate-400 hover:text-white p-1 rounded-xl hover:bg-slate-800 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleChangePlanSubmit} className="space-y-4">
-              <p className="text-xs text-slate-400">
-                Sélectionnez le nouveau plan d'abonnement. Le statut sera renouvelé automatiquement pour 30 jours dans Supabase.
-              </p>
-
-              <div className="space-y-2">
-                {[
-                  { key: "FREE", name: "Gratuit", desc: "1 Caisse • Quota limité" },
-                  { key: "BASIC", name: "Basic", desc: "1 Caisse • Toutes fonctions" },
-                  { key: "PRO", name: "PRO", desc: "Multi-caisses • Mobile Money auto" },
-                  { key: "BUSINESS", name: "BUSINESS", desc: "Réseau complet • Dépôts multiples" },
-                ].map((item) => (
-                  <label
-                    key={item.key}
-                    onClick={() => setNewPlanChoice(item.key as SubscriptionPlan)}
-                    className={`p-3 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
-                      newPlanChoice === item.key
-                        ? "border-blue-500 bg-blue-500/10 text-white"
-                        : "border-slate-800 bg-slate-800/40 text-slate-400 hover:border-slate-700"
-                    }`}
-                  >
-                    <div>
-                      <div className="font-bold text-xs">{item.name}</div>
-                      <div className="text-[11px] text-slate-500">{item.desc}</div>
-                    </div>
-                    <input
-                      type="radio"
-                      name="planChoice"
-                      value={item.key}
-                      checked={newPlanChoice === item.key}
-                      onChange={() => setNewPlanChoice(item.key as SubscriptionPlan)}
-                      className="text-blue-600"
-                    />
-                  </label>
-                ))}
+              {/* 1. PLAN SELECTION */}
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-2">
+                  1. Sélectionner le Forfait
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { key: "FREE", name: "Découverte", desc: "Gratuit • Quota limité" },
+                    { key: "BASIC", name: "Basic", desc: "1 Caisse • Standard" },
+                    { key: "PRO", name: "PRO", desc: "Multi-caisses • Mobile Money" },
+                    { key: "BUSINESS", name: "BUSINESS", desc: "Multi-dépôts • Réseau" },
+                  ].map((item) => {
+                    const isSelected = newPlanChoice === item.key;
+                    const price = getPlanPriceInfo(item.key as SubscriptionPlan, selectedTenant.currency);
+                    return (
+                      <button
+                        type="button"
+                        key={item.key}
+                        onClick={() => handlePlanChangeSelect(item.key as SubscriptionPlan)}
+                        className={`p-3 rounded-2xl border text-left transition-all relative ${
+                          isSelected
+                            ? "border-blue-500 bg-blue-500/15 text-white ring-2 ring-blue-500/30"
+                            : "border-slate-800 bg-slate-800/40 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-black text-xs">{item.name}</span>
+                          {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          {price.rawPriceStr}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-2">
+              {/* 2. ACTIVATION TYPE (PAYANT VS GRATUIT) */}
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-2">
+                  2. Type d'Activation
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleFreeToggle(false)}
+                    className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border transition-all ${
+                      !isFreeActivation
+                        ? "bg-emerald-500/20 border-emerald-500 text-emerald-300 ring-2 ring-emerald-500/20"
+                        : "bg-slate-800/60 border-slate-700 text-slate-400 hover:bg-slate-800"
+                    }`}
+                  >
+                    <DollarSign className="w-3.5 h-3.5" />
+                    <span>Payant (Perçu)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleFreeToggle(true)}
+                    className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border transition-all ${
+                      isFreeActivation
+                        ? "bg-amber-500/20 border-amber-500 text-amber-300 ring-2 ring-amber-500/20"
+                        : "bg-slate-800/60 border-slate-700 text-slate-400 hover:bg-slate-800"
+                    }`}
+                  >
+                    <Gift className="w-3.5 h-3.5" />
+                    <span>Offert / Gratuit</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. DURATION (MONTHS) */}
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1.5 flex items-center justify-between">
+                  <span>3. Durée de l'Abonnement (Nombre de mois)</span>
+                  <span className="text-blue-400 font-bold font-mono">{planMonths} mois</span>
+                </label>
+                <div className="flex items-center gap-1.5">
+                  {[1, 2, 3, 6, 12].map((m) => (
+                    <button
+                      type="button"
+                      key={m}
+                      onClick={() => handleMonthsChange(m)}
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                        planMonths === m
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                          : "bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700/60"
+                      }`}
+                    >
+                      {m === 12 ? "1 an (12m)" : `${m}m`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4. DETAILS ACCORDING TO FREE OR PAID */}
+              {!isFreeActivation ? (
+                <div className="space-y-3 p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Montant Total Perçu ({selectedTenant.currency})
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        required
+                        value={planAmount}
+                        onChange={(e) => setPlanAmount(Number(e.target.value) || 0)}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Mode de Règlement Perçu
+                      </label>
+                      <select
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                      >
+                        <option value="CASH">Espèces (Cash en mains)</option>
+                        <option value="MPESA">M-Pesa Direct (Hors PawaPay)</option>
+                        <option value="AIRTEL_MONEY">Airtel Money Direct</option>
+                        <option value="ORANGE_MONEY">Orange Money Direct</option>
+                        <option value="AFRIMONEY">AfriMoney Direct</option>
+                        <option value="WAVE">Wave Direct</option>
+                        <option value="MTN_MOMO">MTN MoMo Direct</option>
+                        <option value="CARD">Virement bancaire / Carte</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                      N° Reçu / Réf. Transaction (Optionnel)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: BORD-2026-08 / Reçu Espèces #892"
+                      value={receiptRef}
+                      onChange={(e) => setReceiptRef(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-mono"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs">
+                  <div className="flex items-center gap-2 font-bold">
+                    <Gift className="w-4 h-4 text-amber-400" />
+                    <span>Activation Gracieuse / Offerte (0 {selectedTenant.currency})</span>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-amber-300 font-semibold block mb-1">
+                      Motif de l'offre
+                    </label>
+                    <input
+                      type="text"
+                      value={freeReason}
+                      onChange={(e) => setFreeReason(e.target.value)}
+                      placeholder="Ex: Partenariat, Essai prolongé, Geste commercial"
+                      className="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* 5. SUMMARY BOX & CALCULATED EXPIRATION */}
+              {(() => {
+                const now = new Date();
+                const expiry = new Date(now);
+                expiry.setMonth(expiry.getMonth() + planMonths);
+                const formattedExpiry = expiry.toLocaleDateString("fr-FR", {
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                });
+
+                return (
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">Date d'échéance calculée :</span>
+                      <span className="font-mono font-bold text-emerald-400 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>{formattedExpiry}</span>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">Montant total facturé :</span>
+                      <span className="font-mono font-extrabold text-white text-sm">
+                        {isFreeActivation ? (
+                          <span className="text-amber-400">0 {selectedTenant.currency} (Offert)</span>
+                        ) : (
+                          `${Number(planAmount).toLocaleString("fr-FR")} ${selectedTenant.currency}`
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-800/80 flex items-center gap-1.5 text-[10px] text-slate-400">
+                      <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                      <span>
+                        Une facture officielle d'abonnement sera générée et consultable par la boutique dans son espace Forfait.
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Form Action Buttons */}
+              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsChangePlanModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300"
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition-colors"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-lg"
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all touch-press"
                 >
-                  {isSubmitting ? "Mise à jour..." : "Confirmer le Forfait"}
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Enregistrement & Facturation...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Valider & Générer la Facture</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

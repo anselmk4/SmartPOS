@@ -102,11 +102,13 @@ export async function POST(req: NextRequest) {
     const {
       tenantId,
       plan = "PRO",
-      amount = 15000,
-      currency = "CDF",
-      paymentMethod = "MPESA",
+      amount = 30000,
+      currency,
+      paymentMethod = "CASH",
       transactionId,
-      durationDays = 30,
+      durationDays,
+      durationMonths = 1,
+      isFree = false,
     } = body;
 
     if (!tenantId) {
@@ -126,28 +128,44 @@ export async function POST(req: NextRequest) {
 
     const now = new Date();
     const periodStart = now;
-    const periodEnd = new Date(now.getTime() + Number(durationDays) * 86400000);
-    const txRef = transactionId?.trim() || `MANUAL-ADMIN-${Date.now().toString().slice(-6)}`;
+    
+    // Compute periodEnd
+    let periodEnd: Date;
+    if (durationMonths) {
+      const future = new Date(now);
+      future.setMonth(future.getMonth() + Math.max(1, Number(durationMonths)));
+      periodEnd = future;
+    } else {
+      const days = Number(durationDays) || 30;
+      periodEnd = new Date(now.getTime() + days * 86400000);
+    }
+
+    const finalAmount = isFree ? 0 : Math.max(0, Number(amount) || 0);
+    const finalCurrency = currency || tenant.currency || "CDF";
+    const txRef =
+      transactionId?.trim() ||
+      `FAC-SUB-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}-${Math.floor(100000 + Math.random() * 900000)}`;
 
     const [subscription, updatedTenant] = await prisma.$transaction([
       prisma.subscription.create({
         data: {
           id: crypto.randomUUID(),
           tenantId,
-          plan,
-          amount: Number(amount) || 0,
-          currency: currency || "CDF",
-          paymentMethod,
+          plan: plan as any,
+          amount: finalAmount,
+          currency: finalCurrency,
+          paymentMethod: paymentMethod as any,
           paymentStatus: "ACTIVE",
           transactionId: txRef,
           periodStart,
           periodEnd,
+          createdAt: now,
         },
       }),
       prisma.tenant.update({
         where: { id: tenantId },
         data: {
-          plan,
+          plan: plan as any,
           planStatus: "ACTIVE",
           planExpiresAt: periodEnd,
         },
@@ -156,7 +174,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Paiement d'abonnement pour "${tenant.name}" enregistré avec succès (${plan} jusqu'au ${periodEnd.toLocaleDateString("fr-FR")})`,
+      message: `Abonnement ${plan} pour "${tenant.name}" enregistré (${isFree ? "Gratuit" : `${finalAmount} ${finalCurrency}`}). Facture N° ${txRef} générée.`,
       data: { subscription, updatedTenant },
     });
   } catch (error: any) {
