@@ -356,6 +356,7 @@ export default function AdminUsersPage() {
             <option value="OWNER">Gérant / Propriétaire</option>
             <option value="MANAGER">Superviseur / Manager</option>
             <option value="CASHIER">Caissier(ère)</option>
+            <option value="WAITER">Serveur(se) / Waiter</option>
           </select>
         </div>
       </div>
@@ -381,52 +382,52 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* Users Table / Cards */}
-      {!isLoading && (
-        <div className="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-sm">
+      {/* Users Table */}
+      {!isLoading && !error && (
+        <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="bg-slate-800/80 text-[11px] uppercase font-bold text-slate-400 border-b border-slate-700/60">
-                <tr>
-                  <th className="px-4 py-3.5">Utilisateur & Contact</th>
-                  <th className="px-4 py-3.5">Boutique Rattachée</th>
-                  <th className="px-4 py-3.5">Rôle</th>
-                  <th className="px-4 py-3.5">Code PIN Caisse</th>
-                  <th className="px-4 py-3.5">Statut</th>
-                  <th className="px-4 py-3.5 text-right">Actions</th>
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-black uppercase text-slate-500 tracking-wider">
+                  <th className="px-4 py-3">Utilisateur</th>
+                  <th className="px-4 py-3">Boutique</th>
+                  <th className="px-4 py-3">Rôle</th>
+                  <th className="px-4 py-3">Code PIN</th>
+                  <th className="px-4 py-3">Statut</th>
+                  <th className="px-4 py-3">Créé le</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 font-sans">
+              <tbody className="divide-y divide-slate-100">
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-slate-500">
-                      Aucun utilisateur trouvé.
+                    <td colSpan={7} className="text-center py-12 text-slate-400">
+                      <UsersIcon className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                      <p className="font-bold text-sm">Aucun utilisateur trouvé</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Modifiez vos critères de recherche.</p>
                     </td>
                   </tr>
                 ) : (
                   filteredUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-800/30 transition-colors">
+                    <tr key={u.id} className="hover:bg-slate-50/70 transition-colors">
                       <td className="px-4 py-3.5">
-                        <div className="font-bold text-white text-sm">{u.name}</div>
-                        <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
-                          {u.phone && (
-                            <span className="flex items-center gap-1 font-mono">
-                              <Phone className="w-3 h-3" />
-                              {u.phone}
-                            </span>
-                          )}
-                          {u.email && (
-                            <span className="flex items-center gap-1">
-                              <Mail className="w-3 h-3" />
-                              {u.email}
-                            </span>
-                          )}
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs">
+                            {u.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <span className="font-bold text-slate-900 block text-xs">{u.name}</span>
+                            <div className="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5">
+                              {u.phone && <span>📞 {u.phone}</span>}
+                              {u.email && <span>✉️ {u.email}</span>}
+                            </div>
+                          </div>
                         </div>
                       </td>
 
                       <td className="px-4 py-3.5">
-                        <span className="font-bold text-slate-900 block text-xs">
-                          {u.tenant?.name || "Non affilié"}
+                        <span className="font-semibold text-slate-800 block text-xs">
+                          {u.tenant?.name || "Boutique inconnue"}
                         </span>
                         <span className="text-[10px] text-slate-500 font-mono inline-block max-w-[140px] truncate" title={u.tenantId}>
                           ID: {u.tenantId.substring(0, 8)}...
@@ -440,6 +441,8 @@ export default function AdminUsersPage() {
                               ? "bg-purple-50 text-purple-700 border border-purple-200"
                               : u.role === "MANAGER"
                               ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                              : u.role === "WAITER"
+                              ? "bg-amber-50 text-amber-700 border border-amber-200"
                               : "bg-blue-50 text-blue-700 border border-blue-200"
                           }`}
                         >
@@ -447,6 +450,8 @@ export default function AdminUsersPage() {
                             ? "Propriétaire"
                             : u.role === "MANAGER"
                             ? "Superviseur"
+                            : u.role === "WAITER"
+                            ? "Serveur(se)"
                             : "Caissier"}
                         </span>
                       </td>
@@ -569,6 +574,7 @@ export default function AdminUsersPage() {
                     onChange={(e) => setFormRole(e.target.value as UserRole)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                   >
+                    <option value="WAITER">Serveur(se) / Waiter</option>
                     <option value="CASHIER">Caissier(ère)</option>
                     <option value="MANAGER">Manager</option>
                     <option value="OWNER">Propriétaire</option>
@@ -736,6 +742,7 @@ export default function AdminUsersPage() {
                     onChange={(e) => setFormRole(e.target.value as UserRole)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                   >
+                    <option value="WAITER">Serveur(se) / Waiter</option>
                     <option value="CASHIER">Caissier(ère)</option>
                     <option value="MANAGER">Manager</option>
                     <option value="OWNER">Propriétaire</option>

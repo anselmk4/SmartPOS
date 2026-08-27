@@ -181,6 +181,8 @@ export async function processLocalSale(params: {
   storeId: string;
   customerId?: string | null;
   userId?: string | null;
+  serverName?: string;
+  tariffMode?: import("@/lib/shared/types").TariffMode;
   items: Array<{ product: Product; quantity: number; unitPrice: number }>;
   paymentMethod: PaymentMethod;
   paymentSplits?: PaymentSplit[];
@@ -196,6 +198,8 @@ export async function processLocalSale(params: {
     storeId,
     customerId,
     userId,
+    serverName,
+    tariffMode,
     items,
     paymentMethod,
     paymentSplits,
@@ -223,6 +227,8 @@ export async function processLocalSale(params: {
     storeId,
     customerId: customerId || null,
     userId: userId || null,
+    serverName,
+    tariffMode,
     subtotalAmount,
     discountAmount,
     discountType,
@@ -791,7 +797,7 @@ export async function updateStaffUser(
     name?: string;
     phone?: string;
     pinCode?: string;
-    role?: "OWNER" | "MANAGER" | "CASHIER";
+    role?: import("@/lib/shared/types").UserRole;
     storeId?: string;
     isActive?: boolean;
   }

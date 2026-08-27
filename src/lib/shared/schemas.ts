@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-export const UserRoleSchema = z.enum(["OWNER", "MANAGER", "CASHIER"]);
+export const UserRoleSchema = z.enum(["OWNER", "MANAGER", "CASHIER", "WAITER"]);
+
+export const TariffModeSchema = z.enum(["NORMAL", "KARAOKE", "PROMOTION"]);
 
 export const SubscriptionPlanSchema = z.enum(["FREE", "PRO", "BUSINESS"]);
 

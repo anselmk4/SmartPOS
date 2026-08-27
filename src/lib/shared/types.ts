@@ -1,6 +1,17 @@
 // Universal shared types for Micro-ERP SaaS Multi-Tenant (Web & Expo/React Native)
 
-export type UserRole = "OWNER" | "MANAGER" | "CASHIER";
+export type UserRole = "OWNER" | "MANAGER" | "CASHIER" | "WAITER";
+
+export type TariffMode = "NORMAL" | "KARAOKE" | "PROMOTION";
+
+export interface TariffConfig {
+  activeMode: TariffMode;
+  karaokeDrinkSurcharge: number; // Montant fixe de majoration sur les boissons (ex: 500 ou 1000 FC)
+  promoDiscountAmount: number; // Montant de réduction unitaire en promotion (ex: 1000 FC)
+  promoQuotaPerProduct: number; // Nombre d'unités max par produit éligibles à la remise (ex: 10)
+  updatedAt?: string;
+  updatedBy?: string;
+}
 
 export type SubscriptionPlan = "FREE" | "BASIC" | "PRO" | "BUSINESS";
 
@@ -159,6 +170,8 @@ export interface Sale {
   status: "COMPLETED" | "CANCELLED" | "PENDING";
   receiptNumber?: string;
   tableOrLabel?: string;
+  tariffMode?: TariffMode;
+  serverName?: string;
   notes?: string;
   isSynced: boolean;
   createdAt: string;
@@ -314,6 +327,9 @@ export interface CartItem {
   unitPrice: number;
   subtotal: number;
   discountAmount?: number;
+  originalPrice?: number;
+  tariffApplied?: TariffMode;
+  tariffAdjustment?: number;
 }
 
 export interface HeldOrder {
@@ -322,6 +338,8 @@ export interface HeldOrder {
   label: string; // Ex: Table 4, Commande Paul, Terrasse
   customerId?: string | null;
   customerName?: string;
+  serverName?: string;
+  tariffMode?: TariffMode;
   items: CartItem[];
   subtotalAmount: number;
   discountAmount: number;

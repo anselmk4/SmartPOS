@@ -48,6 +48,9 @@ interface AuthContextType {
   isOwner: boolean;
   isManager: boolean;
   isCashier: boolean;
+  isWaiter: boolean;
+  canCollectPayment: boolean;
+  canManageTariffs: boolean;
   plan: SubscriptionPlan;
   planConfig: PlanConfig;
   canAccess: (feature: keyof PlanConfig) => boolean;
@@ -100,6 +103,9 @@ const AuthContext = createContext<AuthContextType>({
   isOwner: false,
   isManager: false,
   isCashier: true,
+  isWaiter: false,
+  canCollectPayment: true,
+  canManageTariffs: false,
   plan: "FREE",
   planConfig: PLAN_CONFIGS.FREE,
   canAccess: () => false,
@@ -903,6 +909,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isOwner = role === "OWNER";
   const isManager = role === "MANAGER" || isOwner;
   const isCashier = role === "CASHIER";
+  const isWaiter = role === "WAITER";
+  const canCollectPayment = isOwner || isManager || isCashier;
+  const canManageTariffs = isOwner || isManager;
   const plan: SubscriptionPlan = tenant?.plan || "FREE";
   const planConfig: PlanConfig = PLAN_CONFIGS[plan] || PLAN_CONFIGS.FREE;
 
@@ -927,6 +936,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isOwner,
         isManager,
         isCashier,
+        isWaiter,
+        canCollectPayment,
+        canManageTariffs,
         plan,
         planConfig,
         canAccess,

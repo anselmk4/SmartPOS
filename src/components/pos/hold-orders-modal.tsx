@@ -269,6 +269,21 @@ export function HoldOrdersModal({
                             👤 {order.customerName}
                           </span>
                         )}
+                        {order.serverName && (
+                          <span className="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md font-semibold">
+                            🛎️ {order.serverName}
+                          </span>
+                        )}
+                        {order.tariffMode === "KARAOKE" && (
+                          <span className="text-[10px] text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded-md font-bold">
+                            🎤 Karaoké
+                          </span>
+                        )}
+                        {order.tariffMode === "PROMOTION" && (
+                          <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md font-bold">
+                            🔥 Promo
+                          </span>
+                        )}
                         <span className="text-[11px] text-slate-400 font-mono">
                           🕒 {timeStr}
                         </span>

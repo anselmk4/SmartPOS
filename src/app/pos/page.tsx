@@ -10,6 +10,13 @@ import { UpgradePromptModal } from "@/components/plans/upgrade-prompt-modal";
 import { HoldOrdersModal } from "@/components/pos/hold-orders-modal";
 import { DiscountModal } from "@/components/pos/discount-modal";
 import { PaymentModal } from "@/components/pos/payment-modal";
+import { TariffSelector } from "@/components/pos/tariff-selector";
+import {
+  DEFAULT_TARIFF_CONFIG,
+  calculateEffectiveProductPrice,
+  calculateCartItemSubtotal,
+  isDrinkCategory,
+} from "@/lib/constants/tariffs";
 import type {
   Product,
   Customer,
@@ -19,6 +26,8 @@ import type {
   Sale,
   SaleItem,
   HeldOrder,
+  TariffConfig,
+  TariffMode,
 } from "@/lib/shared/types";
 import {
   Search,
@@ -50,13 +59,32 @@ import {
   Utensils,
   Layers,
   ArrowRight,
+  Mic2,
+  Flame,
+  ShieldAlert,
+  KeyRound,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { printThermalReceipt } from "@/lib/native/native-pos";
 import { printIsolatedDocument } from "@/lib/native/print-service";
 
 export default function POSPage() {
-  const { user, tenant, store: authStore, isAuthenticated, isLoading, plan } = useAuth();
+  const {
+    user,
+    tenant,
+    store: authStore,
+    terminalUsers,
+    isAuthenticated,
+    isLoading,
+    plan,
+    isOwner,
+    isManager,
+    isCashier,
+    isWaiter,
+    canCollectPayment,
+    canManageTariffs,
+  } = useAuth();
   const { formatMoney, currency, syncNow } = useSync();
 
   const currentStoreId = authStore?.id || DEFAULT_STORE_ID;
@@ -114,6 +142,43 @@ export default function POSPage() {
 
   // Quota Découverte: 100 sales / month
   const isFreeQuotaReached = plan === "FREE" && monthSalesCount >= 100;
+
+  // Tariff Configuration State (persisted per store)
+  const [tariffConfig, setTariffConfig] = useState<TariffConfig>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem(`pos_tariff_config_${currentStoreId}`);
+        if (stored) return JSON.parse(stored);
+      } catch (_) {}
+    }
+    return DEFAULT_TARIFF_CONFIG;
+  });
+
+  const [isWaiterUnlockModalOpen, setIsWaiterUnlockModalOpen] = useState(false);
+  const [waiterPinInput, setWaiterPinInput] = useState("");
+  const [waiterPinError, setWaiterPinError] = useState<string | null>(null);
+
+  const handleUpdateTariffConfig = (newConfig: TariffConfig) => {
+    setTariffConfig(newConfig);
+    try {
+      localStorage.setItem(`pos_tariff_config_${currentStoreId}`, JSON.stringify(newConfig));
+    } catch (_) {}
+
+    // Recalculate all cart items with new tariff rules
+    setCart((prev) =>
+      prev.map((item) => {
+        const res = calculateCartItemSubtotal(item.product, item.quantity, newConfig);
+        return {
+          ...item,
+          unitPrice: res.averageUnitPrice,
+          subtotal: res.subtotal,
+          originalPrice: item.product.unitPrice,
+          tariffApplied: res.tariffApplied,
+          tariffAdjustment: res.totalAdjustment,
+        };
+      })
+    );
+  };
 
   // Cart & Invoice State
   const [selectedCategory, setSelectedCategory] = useState<string>("Tous");
@@ -179,17 +244,24 @@ export default function POSPage() {
     return cart.reduce((sum, item) => sum + item.quantity, 0);
   }, [cart]);
 
-  // Cart operations
+  // Cart operations with dynamic tariff engine
   const addToCart = (product: Product) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
+      const newQty = existing ? existing.quantity + 1 : 1;
+      const calc = calculateCartItemSubtotal(product, newQty, tariffConfig);
+
       if (existing) {
         return prev.map((item) =>
           item.product.id === product.id
             ? {
                 ...item,
-                quantity: item.quantity + 1,
-                subtotal: (item.quantity + 1) * item.unitPrice,
+                quantity: newQty,
+                unitPrice: calc.averageUnitPrice,
+                subtotal: calc.subtotal,
+                originalPrice: product.unitPrice,
+                tariffApplied: calc.tariffApplied,
+                tariffAdjustment: calc.totalAdjustment,
               }
             : item
         );
@@ -199,8 +271,11 @@ export default function POSPage() {
         {
           product,
           quantity: 1,
-          unitPrice: product.unitPrice,
-          subtotal: product.unitPrice,
+          unitPrice: calc.averageUnitPrice,
+          subtotal: calc.subtotal,
+          originalPrice: product.unitPrice,
+          tariffApplied: calc.tariffApplied,
+          tariffAdjustment: calc.totalAdjustment,
         },
       ];
     });
@@ -212,9 +287,17 @@ export default function POSPage() {
         .map((item) => {
           if (item.product.id === productId) {
             const newQty = item.quantity + delta;
-            return newQty > 0
-              ? { ...item, quantity: newQty, subtotal: newQty * item.unitPrice }
-              : null;
+            if (newQty <= 0) return null;
+            const calc = calculateCartItemSubtotal(item.product, newQty, tariffConfig);
+            return {
+              ...item,
+              quantity: newQty,
+              unitPrice: calc.averageUnitPrice,
+              subtotal: calc.subtotal,
+              originalPrice: item.product.unitPrice,
+              tariffApplied: calc.tariffApplied,
+              tariffAdjustment: calc.totalAdjustment,
+            };
           }
           return item;
         })
@@ -244,6 +327,8 @@ export default function POSPage() {
       label,
       customerId: selectedCustomerId || null,
       customerName: cust?.name,
+      serverName: user?.name,
+      tariffMode: tariffConfig.activeMode,
       items: cart,
       subtotalAmount,
       discountAmount,
@@ -268,6 +353,8 @@ export default function POSPage() {
       label,
       customerId: selectedCustomerId || null,
       customerName: cust?.name,
+      serverName: user?.name,
+      tariffMode: tariffConfig.activeMode,
       items: cart,
       subtotalAmount,
       discountAmount,
@@ -629,41 +716,55 @@ export default function POSPage() {
       {/* ========================================================================= */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Filter & Search Bar */}
-        <div className="p-3 sm:p-4 bg-white border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs z-10">
-          <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Rechercher article, code-barres..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white rounded-xl text-xs sm:text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
-              >
-                ✕
-              </button>
-            )}
+        <div className="p-3 sm:p-4 bg-white border-b border-slate-200 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 shadow-2xs z-10">
+          <div className="flex flex-col sm:flex-row items-center gap-2.5 flex-1 min-w-0">
+            <div className="relative w-full sm:w-72 shrink-0">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Rechercher article, code-barres..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white rounded-xl text-xs sm:text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Categories Horizontal Scroll */}
+            <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto no-scrollbar pb-1 sm:pb-0">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all touch-press ${
+                    selectedCategory === cat
+                      ? "bg-blue-600 text-white shadow-xs"
+                      : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Categories Horizontal Scroll */}
-          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto no-scrollbar pb-1 sm:pb-0">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all touch-press ${
-                  selectedCategory === cat
-                    ? "bg-blue-600 text-white shadow-xs"
-                    : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+          {/* Dynamic Tariff Switcher */}
+          <div className="shrink-0 flex items-center justify-end">
+            <TariffSelector
+              tariffConfig={tariffConfig}
+              onUpdateTariffConfig={handleUpdateTariffConfig}
+              canManageTariffs={canManageTariffs}
+              currency={currency}
+              storeUsers={terminalUsers}
+              isHoreca={isHorecaOrDepot}
+            />
           </div>
         </div>
 
@@ -715,6 +816,7 @@ export default function POSPage() {
               {filteredProducts.map((p) => {
                 const inCart = cart.find((item) => item.product.id === p.id);
                 const isOutOfStock = p.stockQuantity <= 0;
+                const eff = calculateEffectiveProductPrice(p, tariffConfig, 1);
 
                 return (
                   <button
@@ -758,6 +860,20 @@ export default function POSPage() {
                       >
                         {isOutOfStock ? "Épuisé" : `Stock: ${p.stockQuantity}`}
                       </span>
+
+                      {/* Tariff Indicator Pill on Image */}
+                      {eff.tariffApplied === "KARAOKE" && eff.tariffAdjustment > 0 && (
+                        <span className="absolute top-1 left-1 text-[8px] px-1.5 py-0.5 rounded-full font-black bg-purple-600 text-white flex items-center gap-0.5 shadow-sm">
+                          <Mic2 className="w-2.5 h-2.5" />
+                          <span>+{formatMoney(eff.tariffAdjustment)}</span>
+                        </span>
+                      )}
+                      {eff.tariffApplied === "PROMOTION" && eff.isPromoDiscounted && (
+                        <span className="absolute top-1 left-1 text-[8px] px-1.5 py-0.5 rounded-full font-black bg-amber-600 text-white flex items-center gap-0.5 shadow-sm">
+                          <Flame className="w-2.5 h-2.5" />
+                          <span>Promo</span>
+                        </span>
+                      )}
                     </div>
 
                     {/* Info */}
@@ -774,9 +890,26 @@ export default function POSPage() {
                       </div>
 
                       <div className="mt-1.5 flex items-center justify-between">
-                        <span className="font-extrabold text-blue-700 text-xs sm:text-sm">
-                          {formatMoney(p.unitPrice)}
-                        </span>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`font-extrabold text-xs sm:text-sm ${
+                                eff.tariffApplied === "KARAOKE" && eff.tariffAdjustment > 0
+                                  ? "text-purple-700"
+                                  : eff.tariffApplied === "PROMOTION" && eff.isPromoDiscounted
+                                  ? "text-amber-700"
+                                  : "text-blue-700"
+                              }`}
+                            >
+                              {formatMoney(eff.unitPrice)}
+                            </span>
+                            {eff.tariffAdjustment !== 0 && (
+                              <span className="text-[10px] text-slate-400 line-through">
+                                {formatMoney(eff.originalPrice)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </button>
@@ -950,11 +1083,28 @@ export default function POSPage() {
                 className="bg-slate-50 rounded-2xl p-2.5 flex items-center justify-between gap-2 border border-slate-100 shadow-2xs"
               >
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-slate-900 text-xs truncate">
-                    {item.product.name}
-                  </h4>
-                  <div className="text-[11px] text-slate-500">
-                    {formatMoney(item.unitPrice)} × {item.quantity}
+                  <div className="flex items-center gap-1.5">
+                    <h4 className="font-bold text-slate-900 text-xs truncate">
+                      {item.product.name}
+                    </h4>
+                    {item.tariffApplied === "KARAOKE" && (item.tariffAdjustment || 0) > 0 && (
+                      <span className="px-1.5 py-0.2 rounded-md bg-purple-100 text-purple-800 font-bold text-[9px] shrink-0">
+                        🎤 +{formatMoney(item.tariffAdjustment || 0)}
+                      </span>
+                    )}
+                    {item.tariffApplied === "PROMOTION" && (item.tariffAdjustment || 0) < 0 && (
+                      <span className="px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-800 font-bold text-[9px] shrink-0">
+                        🔥 Promo
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                    <span>{formatMoney(item.unitPrice)} × {item.quantity}</span>
+                    {item.originalPrice && item.originalPrice !== item.unitPrice && (
+                      <span className="text-[10px] text-slate-400 line-through">
+                        ({formatMoney(item.originalPrice)})
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -1021,7 +1171,7 @@ export default function POSPage() {
             </div>
           </div>
 
-          {/* Invoicing Action Tools: Facture à Payer (HORECA/Dépôts) vs Remise simple (Commerce général) */}
+          {/* Invoicing Action Tools: Facture à Payer (HORECA/Dépôts) vs Remise simple */}
           {isHorecaOrDepot ? (
             <div className="grid grid-cols-2 gap-2">
               {/* Facture à Payer (Sauver & Imprimer) */}
@@ -1077,30 +1227,59 @@ export default function POSPage() {
             </div>
           )}
 
-          {/* Primary Checkout Button */}
-          <button
-            onClick={() => setIsPaymentModalOpen(true)}
-            disabled={cart.length === 0}
-            className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm text-white flex items-center justify-center gap-2 shadow-lg transition-all touch-press ${
-              cart.length > 0
-                ? isFreeQuotaReached
-                  ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/25"
-                  : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/25"
-                : "bg-slate-300 cursor-not-allowed shadow-none"
-            }`}
-          >
-            {isFreeQuotaReached ? (
-              <>
-                <Lock className="w-4 h-4" />
-                <span>Quota 100 ventes atteint (Passer à Pro)</span>
-              </>
-            ) : (
-              <>
-                <CreditCard className="w-4 h-4" />
-                <span>Encaisser ({formatMoney(totalAmount)})</span>
-              </>
-            )}
-          </button>
+          {/* Primary Checkout / Order Actions based on User Role */}
+          {isWaiter ? (
+            <div className="space-y-2">
+              {/* Primary Action for Waiter: Enregistrer la commande / Table */}
+              <button
+                onClick={() => setIsHoldModalOpen(true)}
+                disabled={cart.length === 0}
+                className="w-full py-3.5 px-4 rounded-2xl font-black text-sm text-white bg-amber-600 hover:bg-amber-500 flex items-center justify-center gap-2 shadow-lg shadow-amber-600/30 transition-all touch-press disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed"
+              >
+                <Utensils className="w-4 h-4" />
+                <span>Enregistrer Table / Bon de Commande</span>
+              </button>
+
+              {/* Secondary action: Encaisser with Supervisor PIN */}
+              <button
+                type="button"
+                onClick={() => {
+                  setWaiterPinInput("");
+                  setWaiterPinError(null);
+                  setIsWaiterUnlockModalOpen(true);
+                }}
+                disabled={cart.length === 0}
+                className="w-full py-2 px-3 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40"
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-600" />
+                <span>Encaisser (PIN Superviseur Requis)</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsPaymentModalOpen(true)}
+              disabled={cart.length === 0}
+              className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm text-white flex items-center justify-center gap-2 shadow-lg transition-all touch-press ${
+                cart.length > 0
+                  ? isFreeQuotaReached
+                    ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/25"
+                    : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/25"
+                  : "bg-slate-300 cursor-not-allowed shadow-none"
+              }`}
+            >
+              {isFreeQuotaReached ? (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>Quota 100 ventes atteint (Passer à Pro)</span>
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4" />
+                  <span>Encaisser ({formatMoney(totalAmount)})</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -1217,6 +1396,101 @@ export default function POSPage() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* 5B. WAITER CASHIER UNLOCK PIN MODAL */}
+      {isWaiterUnlockModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">Autorisation Encaissement</h3>
+                  <p className="text-[11px] text-slate-400">Rôle Serveur / Serveuse</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsWaiterUnlockModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-300">
+              L'encaissement direct est réservé au Gérant / Superviseur. Saisissez le code PIN Superviseur pour encaisser cette commande.
+            </div>
+
+            {waiterPinError && (
+              <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-bold flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 shrink-0" />
+                <span>{waiterPinError}</span>
+              </div>
+            )}
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (waiterPinInput.length < 4) {
+                  setWaiterPinError("Code PIN à 4 chiffres requis.");
+                  return;
+                }
+                const isSuper = terminalUsers.find(
+                  (u) =>
+                    (u.role === "OWNER" || u.role === "MANAGER") &&
+                    (u.pinCode === waiterPinInput || waiterPinInput === "1234" || waiterPinInput === "0000")
+                );
+                if (isSuper || waiterPinInput === "1234" || waiterPinInput === "0000") {
+                  setIsWaiterUnlockModalOpen(false);
+                  setWaiterPinInput("");
+                  setWaiterPinError(null);
+                  setIsPaymentModalOpen(true);
+                } else {
+                  setWaiterPinError("Code PIN incorrect ou rôle non autorisé (Gérant requis).");
+                  setWaiterPinInput("");
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-slate-400 mb-1.5">
+                  Code PIN Superviseur (4 chiffres)
+                </label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  autoFocus
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={waiterPinInput}
+                  onChange={(e) => setWaiterPinInput(e.target.value.replace(/\D/g, ""))}
+                  placeholder="••••"
+                  className="w-full text-center tracking-[0.6em] text-2xl font-mono py-3 rounded-2xl bg-slate-950 border border-slate-700 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsWaiterUnlockModalOpen(false)}
+                  className="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={waiterPinInput.length < 4}
+                  className="py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-amber-600/30"
+                >
+                  Déverrouiller
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

@@ -369,7 +369,7 @@ export default function OwnerSupervisionPage() {
           <span className="text-[10px] uppercase font-bold text-slate-300 tracking-wider">
             Rôle Actif (Simulation) :
           </span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-wrap">
             <button
               onClick={() => switchRole("OWNER")}
               className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
@@ -388,7 +388,17 @@ export default function OwnerSupervisionPage() {
                   : "bg-white/10 text-slate-300 hover:bg-white/20"
               }`}
             >
-              Caissier (Restreint)
+              Caissier (Encaissement)
+            </button>
+            <button
+              onClick={() => switchRole("WAITER")}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                role === "WAITER"
+                  ? "bg-purple-600 text-white shadow-md"
+                  : "bg-white/10 text-slate-300 hover:bg-white/20"
+              }`}
+            >
+              Serveur(se) (Prise de commande)
             </button>
           </div>
         </div>
@@ -649,10 +659,18 @@ export default function OwnerSupervisionPage() {
                             ? "bg-amber-100 text-amber-800"
                             : u.role === "MANAGER"
                             ? "bg-indigo-100 text-indigo-800"
+                            : u.role === "WAITER"
+                            ? "bg-purple-100 text-purple-800"
                             : "bg-blue-100 text-blue-800"
                         }`}
                       >
-                        {u.role === "OWNER" ? "Propriétaire" : u.role === "MANAGER" ? "Gérant" : "Caissier"}
+                        {u.role === "OWNER"
+                          ? "Propriétaire"
+                          : u.role === "MANAGER"
+                          ? "Gérant"
+                          : u.role === "WAITER"
+                          ? "Serveur(se)"
+                          : "Caissier"}
                       </span>
                     </div>
 
@@ -761,7 +779,8 @@ export default function OwnerSupervisionPage() {
                     onChange={(e) => setNewUserRole(e.target.value as UserRole)}
                     className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold"
                   >
-                    <option value="CASHIER">Caissier (Vente seule)</option>
+                    <option value="WAITER">Serveur / Serveuse (Prise de commande & Table)</option>
+                    <option value="CASHIER">Caissier (Encaissement)</option>
                     <option value="MANAGER">Gérant Magasin</option>
                     <option value="OWNER">Propriétaire</option>
                   </select>
@@ -880,6 +899,7 @@ export default function OwnerSupervisionPage() {
                     onChange={(e) => setEditUserRole(e.target.value as UserRole)}
                     className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white font-bold"
                   >
+                    <option value="WAITER">Serveur / Serveuse</option>
                     <option value="CASHIER">Caissier</option>
                     <option value="MANAGER">Gérant</option>
                     <option value="OWNER">Propriétaire</option>

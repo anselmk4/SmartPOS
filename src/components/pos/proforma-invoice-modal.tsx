@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useRef } from "react";
-import type { CartItem, Customer, Store, Tenant } from "@/lib/shared/types";
-import { Printer, MessageCircle, X, FileText, Share2, Check } from "lucide-react";
+import type { CartItem, Customer, Store, Tenant, TariffMode } from "@/lib/shared/types";
+import { Printer, MessageCircle, X, FileText, Share2, Check, Mic2, Flame } from "lucide-react";
 import { printIsolatedDocument } from "@/lib/native/print-service";
 
 interface ProformaInvoiceModalProps {
@@ -17,6 +17,7 @@ interface ProformaInvoiceModalProps {
   store?: Store | null;
   tenant?: Tenant | null;
   cashierName?: string;
+  tariffMode?: TariffMode;
   formatMoney: (amount: number) => string;
   currency: string;
   onSaveAsHoldAndClose?: () => void;
@@ -34,6 +35,7 @@ export function ProformaInvoiceModal({
   store,
   tenant,
   cashierName,
+  tariffMode,
   formatMoney,
   currency,
   onSaveAsHoldAndClose,
@@ -97,7 +99,8 @@ export function ProformaInvoiceModal({
         <div class="flex justify-between"><span>Date :</span><span>${dateStr} ${timeStr}</span></div>
         ${tableOrLabel ? `<div class="flex justify-between font-bold"><span>${isHoreca ? "Table / Ref :" : "Réf / Note :"}</span><span>${tableOrLabel}</span></div>` : ""}
         ${selectedCustomer ? `<div class="flex justify-between"><span>Client :</span><b>${selectedCustomer.name}</b></div>` : ""}
-        ${cashierName ? `<div class="flex justify-between"><span>${isHoreca ? "Serveur / Caissier :" : "Caissier / Vendeur :"}</span><span>${cashierName}</span></div>` : ""}
+        ${cashierName ? `<div class="flex justify-between"><span>${isHoreca ? "Serveur / Prise de commande :" : "Caissier / Vendeur :"}</span><b>${cashierName}</b></div>` : ""}
+        ${tariffMode === "KARAOKE" ? `<div class="flex justify-between" style="color: #6b21a8; font-weight: bold;"><span>Grille tarifaire :</span><span>🎤 Karaoké & Soirée</span></div>` : tariffMode === "PROMOTION" ? `<div class="flex justify-between" style="color: #c2410c; font-weight: bold;"><span>Grille tarifaire :</span><span>🔥 Promotion</span></div>` : ""}
       </div>
 
       <div class="divider"></div>
@@ -222,8 +225,20 @@ export function ProformaInvoiceModal({
             )}
             {cashierName && (
               <div className="flex justify-between">
-                <span>{isHoreca ? "Serveur / Caissier :" : "Caissier / Vendeur :"}</span>
-                <span>{cashierName}</span>
+                <span>{isHoreca ? "Serveur / Prise de commande :" : "Caissier / Vendeur :"}</span>
+                <span className="font-bold text-slate-800">{cashierName}</span>
+              </div>
+            )}
+            {tariffMode === "KARAOKE" && (
+              <div className="flex justify-between text-purple-700 font-bold">
+                <span>Grille tarifaire :</span>
+                <span>🎤 Karaoké & Soirée</span>
+              </div>
+            )}
+            {tariffMode === "PROMOTION" && (
+              <div className="flex justify-between text-amber-700 font-bold">
+                <span>Grille tarifaire :</span>
+                <span>🔥 Promotion</span>
               </div>
             )}
           </div>
