@@ -138,12 +138,11 @@ export function SubscriptionInvoiceModal({
               </div>
             </div>
 
-            <div style="text-align: right; font-size: 10px; color: #475569; max-width: 280px; line-height: 1.4;">
-              <div style="font-weight: bold; color: #0f172a; font-size: 11px;">GlobalPOS Technologies SARL</div>
-              <div>Immeuble Futur Tower, Boulevard du 30 Juin</div>
-              <div>Kinshasa - République Démocratique du Congo</div>
-              <div>RCCM : CD/KIN/RCCM/24-B-01982 • Id. Nat : 01-G4700-N</div>
-              <div>Support : <b>support@globalpos.app</b> | <b>+243 897 458 980</b></div>
+            <div style="text-align: right; font-size: 10px; color: #475569; max-width: 300px; line-height: 1.45;">
+              <div style="font-weight: bold; color: #0f172a; font-size: 11px;">Kuettu Corporation SARL</div>
+              <div>Bukavu - République Démocratique du Congo</div>
+              <div>RCCM : CD/BKV/RCCM/20-B-00023</div>
+              <div>Support : <b>support@globalpos.app</b> | <b>+243 990 387 237</b></div>
             </div>
           </div>
 
@@ -287,7 +286,7 @@ export function SubscriptionInvoiceModal({
 
             <!-- Platform Official Stamp & Signature -->
             <div style="border: 1.5px solid #bfdbfe; background: #eff6ff; border-radius: 10px; padding: 12px; height: 110px; display: flex; flex-direction: column; justify-content: space-between; text-align: center; position: relative;">
-              <div style="font-size: 11px; font-weight: 900; color: #1e3a8a;">GLOBALPOS TECHNOLOGIES — DIRECTION FINANCIÈRE</div>
+              <div style="font-size: 11px; font-weight: 900; color: #1e3a8a;">KUETTU CORPORATION SARL — DIRECTION FINANCIÈRE</div>
               <div style="display: inline-block; margin: 0 auto; padding: 4px 10px; border: 1.5px solid #2563eb; color: #1e3a8a; font-weight: 900; font-size: 10px; text-transform: uppercase; border-radius: 6px; transform: rotate(-2deg);">
                 ✓ CERTIFIED & VALIDATED SAAS
               </div>
@@ -298,9 +297,9 @@ export function SubscriptionInvoiceModal({
           <!-- FOOTER & AUTHENTICITY URL -->
           <div style="border-top: 2px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #64748b;">
             <div>
-              <div style="font-weight: bold; color: #0f172a;">Document officiel généré par Kuettu Global POS Cloud ERP</div>
+              <div style="font-weight: bold; color: #0f172a;">Document officiel émis par Kuettu Corporation SARL — GlobalPOS Cloud ERP</div>
               <div style="margin-top: 2px;">Vérification de validité en ligne : <a href="https://globalpos.app" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: bold;">https://globalpos.app</a></div>
-              <div style="margin-top: 2px; color: #94a3b8;">Merci pour votre fidélité et excellente gestion de votre commerce !</div>
+              <div style="margin-top: 2px; color: #94a3b8;">RCCM : CD/BKV/RCCM/20-B-00023 • Bukavu, Sud-Kivu, RDC</div>
             </div>
 
             <div style="text-align: center;">
@@ -327,7 +326,7 @@ export function SubscriptionInvoiceModal({
 
   const handleShare = () => {
     const text =
-      `🧾 *FACTURE D'ABONNEMENT GLOBAL POS*\n` +
+      `🧾 *FACTURE D'ABONNEMENT KUETTU CORPORATION*\n` +
       `Facture N° : ${invoiceNumber}\n` +
       `Boutique : ${tenant?.name || "Boutique"}\n` +
       `Forfait : ${planName} (${durationMonths} mois)\n` +
@@ -335,7 +334,7 @@ export function SubscriptionInvoiceModal({
       `Période : Du ${formattedStart} au ${formattedEnd}\n` +
       `Date d'échéance : ${formattedEnd}\n` +
       `Statut : ACQUITTÉ & ACTIF ✅\n` +
-      `Vérification : https://globalpos.app`;
+      `Émetteur : Kuettu Corporation SARL (RCCM : CD/BKV/RCCM/20-B-00023, Bukavu RDC)`;
 
     if (navigator.share) {
       navigator.share({ title: `Facture_${invoiceNumber}`, text }).catch(() => {});
@@ -356,7 +355,7 @@ export function SubscriptionInvoiceModal({
             </div>
             <div>
               <h3 className="font-bold text-white text-sm sm:text-base">
-                Facture d'Abonnement GlobalPOS
+                Facture d'Abonnement Kuettu Corporation
               </h3>
               <p className="text-[11px] text-slate-400 font-mono">{invoiceNumber}</p>
             </div>
@@ -403,14 +402,14 @@ export function SubscriptionInvoiceModal({
                   GLOBAL<span className="text-blue-500">POS</span>
                 </span>
                 <span className="px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-400 text-[10px] font-black uppercase">
-                  SaaS Enterprise
+                  Kuettu Corp
                 </span>
               </div>
               <p className="text-xs text-slate-400">
                 Plateforme Centrale SaaS • Caisses & Stocks
               </p>
               <p className="text-[11px] text-slate-500">
-                GlobalPOS Technologies • Kinshasa, RDC
+                Kuettu Corporation SARL • Bukavu, RDC
               </p>
             </div>
 
