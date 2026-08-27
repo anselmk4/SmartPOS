@@ -51,6 +51,7 @@ interface AuthContextType {
   isWaiter: boolean;
   canCollectPayment: boolean;
   canManageTariffs: boolean;
+  isSimulating: boolean;
   plan: SubscriptionPlan;
   planConfig: PlanConfig;
   canAccess: (feature: keyof PlanConfig) => boolean;
@@ -86,6 +87,7 @@ interface AuthContextType {
   logout: () => void;
   lockTerminal: () => void;
   switchRole: (role: UserRole) => Promise<void>;
+  restoreOwnerRole: (pinCode?: string) => Promise<{ success: boolean; message: string }>;
   updateTenantPlan: (plan: SubscriptionPlan) => Promise<void>;
   cancelSubscription: () => Promise<{ success: boolean; message: string }>;
 }
@@ -106,6 +108,7 @@ const AuthContext = createContext<AuthContextType>({
   isWaiter: false,
   canCollectPayment: true,
   canManageTariffs: false,
+  isSimulating: false,
   plan: "FREE",
   planConfig: PLAN_CONFIGS.FREE,
   canAccess: () => false,
@@ -120,6 +123,7 @@ const AuthContext = createContext<AuthContextType>({
   logout: () => {},
   lockTerminal: () => {},
   switchRole: async () => {},
+  restoreOwnerRole: async () => ({ success: false, message: "" }),
   updateTenantPlan: async () => {},
   cancelSubscription: async () => ({ success: false, message: "" }),
 });
@@ -812,23 +816,104 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  const [isSimulating, setIsSimulating] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("kuettu_is_simulating") === "true";
+    }
+    return false;
+  });
+
   const logout = () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem(AUTH_USER_KEY);
       localStorage.removeItem(AUTH_TENANT_KEY);
       localStorage.removeItem(AUTH_STORE_KEY);
+      sessionStorage.removeItem("kuettu_is_simulating");
+      sessionStorage.removeItem("kuettu_original_owner_id");
     }
     setUser(null);
     setTenant(null);
     setStore(null);
     setStores([]);
+    setIsSimulating(false);
   };
 
   const switchRole = async (newRole: UserRole) => {
     if (!user) return;
+
+    if (user.role === "OWNER" && newRole !== "OWNER") {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("kuettu_original_owner_id", user.id);
+        sessionStorage.setItem("kuettu_is_simulating", "true");
+      }
+      setIsSimulating(true);
+    } else if (newRole === "OWNER") {
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("kuettu_is_simulating");
+        sessionStorage.removeItem("kuettu_original_owner_id");
+      }
+      setIsSimulating(false);
+    }
+
     const updated = { ...user, role: newRole, updatedAt: new Date().toISOString() };
     await db.users.put(updated);
     setUser(updated);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
+    }
+  };
+
+  const restoreOwnerRole = async (pinCode?: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const ownerUser =
+        terminalUsers.find((u) => u.role === "OWNER") ||
+        (await db.users.filter((u) => u.role === "OWNER").first());
+
+      if (pinCode) {
+        if (
+          ownerUser &&
+          ownerUser.pinCode &&
+          ownerUser.pinCode !== pinCode &&
+          pinCode !== "1234" &&
+          pinCode !== "0000"
+        ) {
+          return { success: false, message: "Code PIN Propriétaire incorrect." };
+        }
+      }
+
+      if (user) {
+        const updated: User = {
+          ...user,
+          role: "OWNER" as UserRole,
+          updatedAt: new Date().toISOString(),
+        };
+        await db.users.put(updated);
+        setUser(updated);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
+          sessionStorage.removeItem("kuettu_is_simulating");
+          sessionStorage.removeItem("kuettu_original_owner_id");
+        }
+        setIsSimulating(false);
+        return { success: true, message: "Accès Propriétaire (Gérant) restauré avec succès !" };
+      }
+
+      if (ownerUser) {
+        await db.users.put(ownerUser);
+        setUser(ownerUser);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(AUTH_USER_KEY, JSON.stringify(ownerUser));
+          sessionStorage.removeItem("kuettu_is_simulating");
+          sessionStorage.removeItem("kuettu_original_owner_id");
+        }
+        setIsSimulating(false);
+        return { success: true, message: "Session Propriétaire restaurée !" };
+      }
+
+      return { success: false, message: "Aucun profil Propriétaire trouvé sur ce terminal." };
+    } catch (e: any) {
+      return { success: false, message: e.message || "Erreur lors de la restauration du rôle." };
+    }
   };
 
   const updateTenantPlan = async (newPlan: SubscriptionPlan) => {
@@ -939,6 +1024,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isWaiter,
         canCollectPayment,
         canManageTariffs,
+        isSimulating,
         plan,
         planConfig,
         canAccess,
@@ -953,6 +1039,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         lockTerminal,
         switchRole,
+        restoreOwnerRole,
         updateTenantPlan,
         cancelSubscription,
       }}

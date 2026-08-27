@@ -7,6 +7,7 @@ import { AdminAuthProvider } from "@/lib/admin/admin-context";
 import { SidebarProvider } from "@/components/navigation/sidebar-context";
 import { Sidebar } from "@/components/navigation/sidebar";
 import { Navbar } from "@/components/navigation/navbar";
+import { SimulationBanner } from "@/components/navigation/simulation-banner";
 import { PWARegister } from "@/components/pwa/pwa-register";
 import { PlanMotivationCapsule } from "@/components/plans/plan-motivation-capsule";
 import { PlanPaymentGate } from "@/components/auth/plan-payment-gate";
@@ -164,6 +165,7 @@ export default function RootLayout({
                   {/* Main Content Area */}
                   <div className="flex-1 flex flex-col min-w-0">
                     <Navbar />
+                    <SimulationBanner />
                     <main className="flex-1 flex flex-col">
                       <PlanPaymentGate>{children}</PlanPaymentGate>
                     </main>

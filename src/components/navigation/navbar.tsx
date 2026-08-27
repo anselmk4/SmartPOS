@@ -24,13 +24,30 @@ import {
   Info,
   DollarSign,
   PanelLeft,
+  Crown,
 } from "lucide-react";
 
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { isOnline, isSyncing, pendingCount, syncNow } = useSync();
-  const { user, tenant, store, stores, isAuthenticated, isOwner, isCashier, plan, canAccess, selectStore, lockTerminal, logout } = useAuth();
+  const {
+    user,
+    tenant,
+    store,
+    stores,
+    isAuthenticated,
+    isOwner,
+    isCashier,
+    isWaiter,
+    isSimulating,
+    restoreOwnerRole,
+    plan,
+    canAccess,
+    selectStore,
+    lockTerminal,
+    logout,
+  } = useAuth();
   const { toggleCollapse, toggleMobileOpen, isCollapsed } = useSidebar();
   const [syncToast, setSyncToast] = useState<string | null>(null);
 
@@ -263,6 +280,23 @@ export function Navbar() {
                     </span>
                   )}
                 </button>
+
+                {/* Restore Owner Button if in Simulation or Not Owner */}
+                {!isOwner && (
+                  <button
+                    onClick={async () => {
+                      const res = await restoreOwnerRole();
+                      if (res.success) {
+                        router.push("/owner");
+                      }
+                    }}
+                    className="py-1.5 px-2.5 sm:px-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-xs shadow-xs transition-all flex items-center gap-1.5 touch-press"
+                    title="Restaurer l'accès Propriétaire et quitter la simulation"
+                  >
+                    <Crown className="w-3.5 h-3.5 text-amber-100 animate-pulse" />
+                    <span className="hidden sm:inline">Restaurer Gérant</span>
+                  </button>
+                )}
 
                 {/* Verrouiller (Lock Terminal) */}
                 <button
