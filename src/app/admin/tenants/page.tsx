@@ -32,6 +32,7 @@ import {
   FileText,
   Clock,
   ShieldCheck,
+  Eraser,
 } from "lucide-react";
 
 interface TenantWithDetails {
@@ -329,6 +330,30 @@ export default function AdminTenantsPage() {
     }
   };
 
+  const handleCleanTenantData = async (t: TenantWithDetails) => {
+    if (
+      !confirm(
+        `🧹 NETTOYAGE COMPLET : Voulez-vous supprimer TOUTES les données de la boutique "${t.name}" ?\n\n- Toutes les ventes et encaissements seront supprimés\n- Tous les produits et catalogues seront supprimés\n- Tous les clients et dettes seront supprimés\n- Tous les journaux de synchro seront purgés\n\nLe compte boutique et le compte propriétaire resteront intacts.`
+      )
+    ) {
+      return;
+    }
+
+    const res = await adminFetch(`/api/v1/admin/tenants/clean`, {
+      method: "POST",
+      body: JSON.stringify({
+        tenantId: t.id,
+      }),
+    });
+
+    if (res.success) {
+      showToast(res.message || `Données de "${t.name}" nettoyées avec succès.`);
+      loadTenants();
+    } else {
+      alert(res.error || "Erreur lors du nettoyage des données");
+    }
+  };
+
   const handleDeleteTenant = async (t: TenantWithDetails) => {
     if (
       !confirm(
@@ -582,6 +607,14 @@ export default function AdminTenantsPage() {
                   </div>
 
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleCleanTenantData(t)}
+                      className="p-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 transition-colors"
+                      title="Nettoyer / Purger toutes les données (ventes, articles, clients)"
+                    >
+                      <Eraser className="w-3.5 h-3.5" />
+                    </button>
+
                     <button
                       onClick={() => handleOpenEditModal(t)}
                       className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
