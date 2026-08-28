@@ -29,11 +29,11 @@ export default function LandingFooter() {
   return (
     <footer className="bg-slate-950 text-slate-300 border-t border-slate-800/80 pt-16 pb-10 px-4 sm:px-6 lg:px-8 font-sans relative overflow-hidden">
       {/* Background Ambient Glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-emerald-500/10 blur-[140px] rounded-full pointer-events-none" />
 
       <div className="max-w-7xl mx-auto relative z-10 space-y-12">
         {/* Top Newsletter & Brand Banner */}
-        <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-blue-950/80 rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+        <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950/40 rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div className="max-w-xl">
             <div className="flex items-center gap-3 mb-2">
               <div className="bg-white p-2 rounded-2xl border border-slate-700 shadow-md">
@@ -41,7 +41,7 @@ export default function LandingFooter() {
               </div>
               <div>
                 <h3 className="text-xl font-black text-white">Kuettu Global POS</h3>
-                <p className="text-xs text-blue-400 font-semibold">Le Micro-ERP Caisse & Gestion N°1 en Afrique</p>
+                <p className="text-xs text-emerald-400 font-semibold">Le Micro-ERP Caisse & Gestion N°1 en Afrique</p>
               </div>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed mt-2">
@@ -52,7 +52,7 @@ export default function LandingFooter() {
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
             <Link
               href="/auth/register"
-              className="w-full sm:w-auto py-3 px-6 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 touch-press"
+              className="w-full sm:w-auto py-3 px-6 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-950 transition-all flex items-center justify-center gap-2 touch-press"
             >
               <span>Créer mon Compte Gratuit</span>
               <ArrowRight className="w-4 h-4" />

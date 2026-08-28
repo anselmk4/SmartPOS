@@ -43,6 +43,30 @@ const config: Config = {
         card: "0 4px 20px 0 rgba(0, 0, 0, 0.03)",
         modern: "0 8px 30px rgba(0, 0, 0, 0.04)",
         floating: "0 10px 30px -5px rgba(37, 99, 235, 0.4)",
+        emerald: "0 10px 30px -5px rgba(16, 185, 129, 0.4)",
+        amber: "0 10px 30px -5px rgba(245, 158, 11, 0.35)",
+        glow: "0 0 50px -10px rgba(16, 185, 129, 0.25)",
+      },
+      animation: {
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'float': 'float 5s ease-in-out infinite',
+        'float-delayed': 'float 5s ease-in-out 2.5s infinite',
+        'shimmer': 'shimmer 3s infinite linear',
+        'radar': 'radar 3s linear infinite',
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-6px)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        radar: {
+          '0%': { transform: 'scale(1)', opacity: '0.8' },
+          '100%': { transform: 'scale(2.2)', opacity: '0' },
+        },
       },
     },
   },
