@@ -11,9 +11,9 @@ import {
   CheckCircle2,
   Sparkles,
   ArrowRight,
-  ShieldCheck,
   Zap,
 } from "lucide-react";
+import { useLandingTheme } from "./landing-theme-context";
 
 interface Sector {
   id: string;
@@ -24,8 +24,10 @@ interface Sector {
   tagline: string;
   desc: string;
   features: string[];
-  gradient: string;
-  accentColor: string;
+  gradientDark: string;
+  gradientLight: string;
+  accentDark: string;
+  accentLight: string;
   statNumber: string;
   statLabel: string;
 }
@@ -45,8 +47,10 @@ const SECTORS: Sector[] = [
       "Alertes de stock minimum pour ne jamais tomber en rupture",
       "Clôture de caisse quotidienne (Ticket Z) avec contrôle des écarts",
     ],
-    gradient: "from-emerald-500/20 via-teal-500/10 to-slate-950",
-    accentColor: "text-emerald-400 border-emerald-500/40 bg-emerald-950/60",
+    gradientDark: "from-emerald-500/20 via-teal-500/10 to-slate-950",
+    gradientLight: "from-emerald-50 via-teal-50 to-white",
+    accentDark: "text-emerald-400 border-emerald-500/40 bg-emerald-950/60",
+    accentLight: "text-emerald-800 border-emerald-300 bg-emerald-100",
     statNumber: "3 sec",
     statLabel: "Temps moyen par encaissement",
   },
@@ -64,8 +68,10 @@ const SECTORS: Sector[] = [
       "Partage d'addition et paiements mixtes (Cash + M-Pesa)",
       "Gestion des fûts, casiers de boissons et ingrédients de cuisine",
     ],
-    gradient: "from-amber-500/20 via-orange-500/10 to-slate-950",
-    accentColor: "text-amber-400 border-amber-500/40 bg-amber-950/60",
+    gradientDark: "from-amber-500/20 via-orange-500/10 to-slate-950",
+    gradientLight: "from-amber-50 via-orange-50 to-white",
+    accentDark: "text-amber-400 border-amber-500/40 bg-amber-950/60",
+    accentLight: "text-amber-800 border-amber-300 bg-amber-100",
     statNumber: "0 oubli",
     statLabel: "Tables et verres non facturés évités",
   },
@@ -83,8 +89,10 @@ const SECTORS: Sector[] = [
       "Gestion des unités de mesure multiples (sacs, barres, mètres, pièces)",
       "Bons de livraison imprimables et exportables en PDF",
     ],
-    gradient: "from-blue-500/20 via-indigo-500/10 to-slate-950",
-    accentColor: "text-blue-400 border-blue-500/40 bg-blue-950/60",
+    gradientDark: "from-blue-500/20 via-indigo-500/10 to-slate-950",
+    gradientLight: "from-blue-50 via-indigo-50 to-white",
+    accentDark: "text-blue-400 border-blue-500/40 bg-blue-950/60",
+    accentLight: "text-blue-800 border-blue-300 bg-blue-100",
     statNumber: "+38%",
     statLabel: "Taux de recouvrement des crédits",
   },
@@ -102,8 +110,10 @@ const SECTORS: Sector[] = [
       "Historique d'achat par client fidèle pour offres personnalisées",
       "Impression de tickets de caisse personnalisés avec logo de votre boutique",
     ],
-    gradient: "from-purple-500/20 via-pink-500/10 to-slate-950",
-    accentColor: "text-purple-400 border-purple-500/40 bg-purple-950/60",
+    gradientDark: "from-purple-500/20 via-pink-500/10 to-slate-950",
+    gradientLight: "from-purple-50 via-pink-50 to-white",
+    accentDark: "text-purple-400 border-purple-500/40 bg-purple-950/60",
+    accentLight: "text-purple-800 border-purple-300 bg-purple-100",
     statNumber: "100%",
     statLabel: "Visibilité sur le stock de variantes",
   },
@@ -121,8 +131,10 @@ const SECTORS: Sector[] = [
       "Tarification en gros et demi-gros paramétrable",
       "Export comptable Excel et rapports de rentabilité par camion/dépôt",
     ],
-    gradient: "from-cyan-500/20 via-sky-500/10 to-slate-950",
-    accentColor: "text-cyan-400 border-cyan-500/40 bg-cyan-950/60",
+    gradientDark: "from-cyan-500/20 via-sky-500/10 to-slate-950",
+    gradientLight: "from-cyan-50 via-sky-50 to-white",
+    accentDark: "text-cyan-400 border-cyan-500/40 bg-cyan-950/60",
+    accentLight: "text-cyan-800 border-cyan-300 bg-cyan-100",
     statNumber: "10 shops",
     statLabel: "Supervisés sous un seul compte gérant",
   },
@@ -140,34 +152,48 @@ const SECTORS: Sector[] = [
       "Application de remises négociées au pourcentage ou montant fixe",
       "Suivi des clients professionnels en compte régulier",
     ],
-    gradient: "from-indigo-500/20 via-teal-500/10 to-slate-950",
-    accentColor: "text-indigo-400 border-indigo-500/40 bg-indigo-950/60",
+    gradientDark: "from-indigo-500/20 via-teal-500/10 to-slate-950",
+    gradientLight: "from-indigo-50 via-teal-50 to-white",
+    accentDark: "text-indigo-400 border-indigo-500/40 bg-indigo-950/60",
+    accentLight: "text-indigo-800 border-indigo-300 bg-indigo-100",
     statNumber: "0 erreur",
     statLabel: "Sur les prestations et remises",
   },
 ];
 
 export default function SectorShowcase() {
+  const { isDark } = useLandingTheme();
   const [activeSector, setActiveSector] = useState<Sector>(SECTORS[0]);
 
   return (
-    <section id="types" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-slate-950 text-white relative border-b border-slate-800/80">
+    <section
+      id="types"
+      className={`py-20 sm:py-28 px-4 sm:px-6 lg:px-8 relative border-b transition-colors duration-300 ${
+        isDark ? "bg-slate-950 text-white border-slate-800/80" : "bg-white text-slate-900 border-slate-200"
+      }`}
+    >
       <div className="max-w-7xl mx-auto">
         {/* Section Title */}
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-14">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-900 border border-amber-500/30 text-amber-400 text-xs font-bold shadow-md">
+          <div
+            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold shadow-md ${
+              isDark
+                ? "bg-slate-900 border border-amber-500/30 text-amber-400"
+                : "bg-amber-50 border border-amber-300 text-amber-900"
+            }`}
+          >
             <Sparkles className="w-3.5 h-3.5" />
             <span>Adapté à Chaque Métier du Commerce</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight">
             Un Micro-ERP pensé pour votre{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-300 to-emerald-300">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-500 dark:from-amber-400 dark:via-orange-300 dark:to-emerald-300">
               secteur d'activité.
             </span>
           </h2>
 
-          <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+          <p className={`text-sm sm:text-base leading-relaxed ${isDark ? "text-slate-300" : "text-slate-600"}`}>
             Que vous dirigiez une supérette, un bar-terrasse, une quincaillerie de chantier ou un dépôt de gros, Kuettu s'adapte à vos flux opérationnels réels.
           </p>
         </div>
@@ -183,11 +209,15 @@ export default function SectorShowcase() {
                 onClick={() => setActiveSector(sector)}
                 className={`px-4 py-2.5 rounded-2xl font-bold text-xs flex items-center gap-2.5 shrink-0 transition-all border ${
                   isActive
-                    ? "bg-slate-800 text-white border-emerald-500/50 shadow-lg shadow-emerald-950/40 scale-105"
-                    : "bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200 hover:bg-slate-850"
+                    ? isDark
+                      ? "bg-slate-800 text-white border-emerald-500/50 shadow-lg shadow-emerald-950/40 scale-105"
+                      : "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/30 scale-105"
+                    : isDark
+                    ? "bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200"
+                    : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? "text-emerald-400" : "text-slate-400"}`} />
+                <Icon className={`w-4 h-4 ${isActive ? "text-emerald-300" : "text-slate-400"}`} />
                 <span>{sector.shortName}</span>
               </button>
             );
@@ -195,7 +225,13 @@ export default function SectorShowcase() {
         </div>
 
         {/* Active Sector Dynamic Showcase Card */}
-        <div className="rounded-3xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+        <div
+          className={`rounded-3xl border p-6 sm:p-10 shadow-2xl relative overflow-hidden transition-all duration-300 ${
+            isDark
+              ? "bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800"
+              : "bg-slate-50 border-slate-200 shadow-slate-200"
+          }`}
+        >
           {/* Ambient Glow */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -203,16 +239,26 @@ export default function SectorShowcase() {
             {/* Left Col: Details & Checklist */}
             <div className="lg:col-span-7 space-y-5 text-left">
               <div className="flex items-center gap-3">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${activeSector.accentColor}`}>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                    isDark ? activeSector.accentDark : activeSector.accentLight
+                  }`}
+                >
                   {activeSector.badge}
                 </span>
-                <span className="text-xs text-slate-400 font-medium">Secteur Spécialisé</span>
+                <span className="text-xs text-slate-500 font-medium">Secteur Spécialisé</span>
               </div>
 
               <div>
-                <h3 className="text-2xl sm:text-3xl font-black text-white">{activeSector.title}</h3>
-                <p className="text-sm font-semibold text-emerald-400 mt-1">{activeSector.tagline}</p>
-                <p className="text-sm text-slate-300 leading-relaxed mt-3">{activeSector.desc}</p>
+                <h3 className={`text-2xl sm:text-3xl font-black ${isDark ? "text-white" : "text-slate-900"}`}>
+                  {activeSector.title}
+                </h3>
+                <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
+                  {activeSector.tagline}
+                </p>
+                <p className={`text-sm leading-relaxed mt-3 ${isDark ? "text-slate-300" : "text-slate-600"}`}>
+                  {activeSector.desc}
+                </p>
               </div>
 
               {/* Checklist Grid */}
@@ -220,40 +266,56 @@ export default function SectorShowcase() {
                 {activeSector.features.map((feat, i) => (
                   <div
                     key={i}
-                    className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 flex items-start gap-2.5"
+                    className={`p-3 rounded-2xl border flex items-start gap-2.5 ${
+                      isDark ? "bg-slate-950/80 border-slate-800/80" : "bg-white border-slate-200 shadow-xs"
+                    }`}
                   >
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                    <span className="text-xs text-slate-200 leading-snug">{feat}</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                    <span className={`text-xs leading-snug ${isDark ? "text-slate-200" : "text-slate-800"}`}>
+                      {feat}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Right Col: Metric Highlight & CTA */}
-            <div className="lg:col-span-5 flex flex-col justify-between p-6 sm:p-8 rounded-3xl bg-slate-950/90 border border-slate-800 shadow-xl space-y-6">
+            <div
+              className={`lg:col-span-5 flex flex-col justify-between p-6 sm:p-8 rounded-3xl border shadow-xl space-y-6 ${
+                isDark
+                  ? "bg-slate-950/90 border-slate-800"
+                  : "bg-white border-slate-200 shadow-slate-200"
+              }`}
+            >
               <div className="space-y-2">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                   Impact Mesuré sur le Terrain
                 </p>
-                <div className="text-4xl sm:text-5xl font-black text-white font-mono tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-amber-300">
+                <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-amber-500 dark:from-emerald-400 dark:to-amber-300">
                   {activeSector.statNumber}
                 </div>
-                <p className="text-xs font-semibold text-slate-300">{activeSector.statLabel}</p>
+                <p className={`text-xs font-semibold ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                  {activeSector.statLabel}
+                </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-200">
-                  <Zap className="w-4 h-4 text-amber-400" />
+              <div
+                className={`p-4 rounded-2xl border space-y-2 ${
+                  isDark ? "bg-slate-900/80 border-slate-800/80" : "bg-slate-50 border-slate-200"
+                }`}
+              >
+                <div className={`flex items-center gap-2 text-xs font-bold ${isDark ? "text-slate-200" : "text-slate-800"}`}>
+                  <Zap className="w-4 h-4 text-amber-500" />
                   <span>Configuration instantanée</span>
                 </div>
-                <p className="text-[11px] text-slate-400 leading-relaxed">
+                <p className="text-[11px] text-slate-500 leading-relaxed">
                   Activez les modules spécifiques (tables, variantes, codes-barres) en un clic dans vos paramètres.
                 </p>
               </div>
 
               <a
                 href="/auth/register"
-                className="w-full py-3.5 px-5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950 transition-all"
+                className="w-full py-3.5 px-5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all"
               >
                 <span>Démarrer pour {activeSector.shortName}</span>
                 <ArrowRight className="w-4 h-4" />

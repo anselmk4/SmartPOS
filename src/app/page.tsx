@@ -11,11 +11,18 @@ import TestimonialsSection from "@/components/landing/testimonials-section";
 import FaqAccordion from "@/components/landing/faq-accordion";
 import CtaBanner from "@/components/landing/cta-banner";
 import LandingFooter from "@/components/landing/landing-footer";
+import { LandingThemeProvider, useLandingTheme } from "@/components/landing/landing-theme-context";
 
-export default function LandingPage() {
+function LandingContent() {
+  const { isDark } = useLandingTheme();
+
   return (
-    <div className="flex-1 bg-slate-950 text-slate-100 overflow-x-hidden scroll-smooth font-sans">
-      {/* 1. Hero Section with 0ms Offline Badge, Gradient Headline, CTAs, and Interactive Touch POS Mockup */}
+    <div
+      className={`flex-1 overflow-x-hidden scroll-smooth font-sans transition-colors duration-300 ${
+        isDark ? "bg-slate-950 text-slate-100 dark" : "bg-white text-slate-900"
+      }`}
+    >
+      {/* 1. Hero Section with 0ms Offline Badge, Gradient Headline, CTAs, Theme Switcher & Interactive Touch POS Mockup */}
       <HeroSection />
 
       {/* 2. Key Metrics Bar (0ms Latency, +38% Recovery, 100% Offline, CDF & USD) */}
@@ -45,5 +52,13 @@ export default function LandingPage() {
       {/* 10. Comprehensive Footer */}
       <LandingFooter />
     </div>
+  );
+}
+
+export default function LandingPage() {
+  return (
+    <LandingThemeProvider>
+      <LandingContent />
+    </LandingThemeProvider>
   );
 }

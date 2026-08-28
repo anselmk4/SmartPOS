@@ -3,20 +3,33 @@
 import React from "react";
 import Link from "next/link";
 import { ArrowRight, MessageCircle, Sparkles, ShieldCheck, Zap, Store } from "lucide-react";
+import { useLandingTheme } from "./landing-theme-context";
 
 export default function CtaBanner() {
+  const { isDark } = useLandingTheme();
+
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-950 text-white relative overflow-hidden">
+    <section
+      className={`py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden transition-colors duration-300 ${
+        isDark ? "bg-slate-950 text-white" : "bg-white text-slate-900"
+      }`}
+    >
       {/* Dynamic Ambient Background Glows */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[350px] bg-gradient-to-r from-emerald-600/15 via-teal-600/15 to-amber-600/15 blur-[140px] rounded-full pointer-events-none" />
 
       <div className="max-w-6xl mx-auto relative z-10">
-        <div className="rounded-[36px] bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950/95 border border-slate-800 p-8 sm:p-14 text-center shadow-2xl relative overflow-hidden">
+        <div
+          className={`rounded-[36px] border p-8 sm:p-14 text-center shadow-2xl relative overflow-hidden transition-all duration-300 ${
+            isDark
+              ? "bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950/95 border-slate-800"
+              : "bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white border-slate-800 shadow-slate-300"
+          }`}
+        >
           {/* Subtle top light bar */}
           <div className="absolute top-0 inset-x-20 h-px bg-gradient-to-r from-transparent via-emerald-500/80 to-transparent" />
 
           <div className="max-w-3xl mx-auto space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-950 border border-emerald-500/40 text-emerald-400 text-xs font-bold shadow-lg">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-950/90 border border-emerald-500/40 text-emerald-400 text-xs font-bold shadow-lg">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Démarrage Immédiat • 0 Frais d'Installation</span>
             </div>

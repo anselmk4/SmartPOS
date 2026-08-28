@@ -1,9 +1,12 @@
 "use client";
 
 import React from "react";
-import { Star, ShieldCheck, Sparkles, Quote, MapPin } from "lucide-react";
+import { Star, ShieldCheck, Sparkles, MapPin } from "lucide-react";
+import { useLandingTheme } from "./landing-theme-context";
 
 export default function TestimonialsSection() {
+  const { isDark } = useLandingTheme();
+
   const testimonials = [
     {
       name: "Mireille Boketshu",
@@ -38,23 +41,33 @@ export default function TestimonialsSection() {
   ];
 
   return (
-    <section className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-slate-950 text-white relative border-b border-slate-800/80">
+    <section
+      className={`py-20 sm:py-28 px-4 sm:px-6 lg:px-8 relative border-b transition-colors duration-300 ${
+        isDark ? "bg-slate-950 text-white border-slate-800/80" : "bg-slate-50/70 text-slate-900 border-slate-200"
+      }`}
+    >
       <div className="max-w-7xl mx-auto">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-14">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-900 border border-emerald-500/30 text-emerald-400 text-xs font-bold shadow-md">
+          <div
+            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold shadow-md ${
+              isDark
+                ? "bg-slate-900 border border-emerald-500/30 text-emerald-400"
+                : "bg-emerald-50 border border-emerald-300 text-emerald-900"
+            }`}
+          >
             <Sparkles className="w-3.5 h-3.5" />
             <span>Retours d'Expérience Réels</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight">
             Adopté par les commerçants qui{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-amber-300">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-teal-500 to-amber-500 dark:from-emerald-400 dark:via-teal-300 dark:to-amber-300">
               font tourner l'économie.
             </span>
           </h2>
 
-          <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+          <p className={`text-sm sm:text-base leading-relaxed ${isDark ? "text-slate-300" : "text-slate-600"}`}>
             Découvrez comment Kuettu Global POS sécurise les caisses et accélère la croissance des commerces en Afrique.
           </p>
         </div>
@@ -64,40 +77,50 @@ export default function TestimonialsSection() {
           {testimonials.map((t, idx) => (
             <div
               key={idx}
-              className="p-6 sm:p-7 rounded-3xl bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-800 hover:border-slate-700 hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative"
+              className={`p-6 sm:p-7 rounded-3xl border flex flex-col justify-between relative transition-all duration-300 ${
+                isDark
+                  ? "bg-gradient-to-b from-slate-900/90 to-slate-950/90 border-slate-800 hover:border-slate-700 hover:shadow-xl"
+                  : "bg-white border-slate-200 hover:border-slate-300 hover:shadow-lg shadow-slate-200"
+              }`}
             >
               <div className="space-y-4">
                 {/* Rating & Impact Badge */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-amber-400">
+                  <div className="flex items-center gap-1 text-amber-500">
                     {[...Array(t.stars)].map((_, sIdx) => (
                       <Star key={sIdx} className="w-4 h-4 fill-amber-400" />
                     ))}
                   </div>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-[10px] font-bold">
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                      isDark
+                        ? "bg-emerald-950/80 border-emerald-500/40 text-emerald-400"
+                        : "bg-emerald-100 border-emerald-300 text-emerald-800"
+                    }`}
+                  >
                     {t.impact}
                   </span>
                 </div>
 
                 {/* Quote */}
-                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed italic">
+                <p className={`text-xs sm:text-sm leading-relaxed italic ${isDark ? "text-slate-200" : "text-slate-700"}`}>
                   "{t.quote}"
                 </p>
               </div>
 
               {/* Author Bio */}
-              <div className="pt-6 mt-6 border-t border-slate-800/80 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 font-bold text-xs shrink-0">
+              <div className={`pt-6 mt-6 border-t flex items-center gap-3 ${isDark ? "border-slate-800/80" : "border-slate-200"}`}>
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-600 dark:text-emerald-300 font-bold text-xs shrink-0">
                   {t.avatarText}
                 </div>
                 <div className="truncate">
                   <div className="flex items-center gap-1.5">
-                    <h4 className="text-xs font-bold text-white truncate">{t.name}</h4>
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <h4 className={`text-xs font-bold truncate ${isDark ? "text-white" : "text-slate-900"}`}>{t.name}</h4>
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                   </div>
-                  <p className="text-[11px] text-slate-400 truncate">{t.role}</p>
-                  <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5 truncate">
-                    <MapPin className="w-3 h-3 text-slate-500" />
+                  <p className="text-[11px] text-slate-500 truncate">{t.role}</p>
+                  <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5 truncate">
+                    <MapPin className="w-3 h-3 text-slate-400" />
                     <span>{t.business}</span>
                   </p>
                 </div>

@@ -2,9 +2,11 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Check, Sparkles, ArrowRight, ShieldCheck, Crown, Zap, Building } from "lucide-react";
+import { Check, Sparkles, ArrowRight } from "lucide-react";
+import { useLandingTheme } from "./landing-theme-context";
 
 export default function PricingSection() {
+  const { isDark } = useLandingTheme();
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [currency, setCurrency] = useState<"CDF" | "USD">("CDF");
 
@@ -30,7 +32,8 @@ export default function PricingSection() {
       ],
       ctaText: "Démarrer Gratuitement",
       ctaHref: "/auth/register?plan=FREE",
-      btnClass: "bg-slate-800 hover:bg-slate-700 text-white border border-slate-700",
+      btnClassDark: "bg-slate-800 hover:bg-slate-700 text-white border border-slate-700",
+      btnClassLight: "bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200",
     },
     {
       id: "BASIC",
@@ -54,7 +57,8 @@ export default function PricingSection() {
       ],
       ctaText: "Choisir Basic",
       ctaHref: "/auth/register?plan=BASIC",
-      btnClass: "bg-slate-800 hover:bg-slate-700 text-white border border-slate-700",
+      btnClassDark: "bg-slate-800 hover:bg-slate-700 text-white border border-slate-700",
+      btnClassLight: "bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200",
     },
     {
       id: "PRO",
@@ -79,7 +83,8 @@ export default function PricingSection() {
       ],
       ctaText: "Passer en Pro",
       ctaHref: "/auth/register?plan=PRO",
-      btnClass: "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black shadow-lg shadow-emerald-950",
+      btnClassDark: "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black shadow-lg shadow-emerald-950",
+      btnClassLight: "bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-lg shadow-emerald-600/30",
     },
     {
       id: "BUSINESS",
@@ -103,41 +108,59 @@ export default function PricingSection() {
       ],
       ctaText: "Choisir Multi-Magasins",
       ctaHref: "/auth/register?plan=BUSINESS",
-      btnClass: "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black shadow-lg shadow-amber-950",
+      btnClassDark: "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black shadow-lg shadow-amber-950",
+      btnClassLight: "bg-amber-500 hover:bg-amber-600 text-white font-black shadow-lg shadow-amber-500/30",
     },
   ];
 
   return (
-    <section id="pricing" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-slate-950 text-white relative border-b border-slate-800/80">
+    <section
+      id="pricing"
+      className={`py-20 sm:py-28 px-4 sm:px-6 lg:px-8 relative border-b transition-colors duration-300 ${
+        isDark ? "bg-slate-950 text-white border-slate-800/80" : "bg-white text-slate-900 border-slate-200"
+      }`}
+    >
       <div className="max-w-7xl mx-auto">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-900 border border-emerald-500/30 text-emerald-400 text-xs font-bold shadow-md">
+          <div
+            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold shadow-md ${
+              isDark
+                ? "bg-slate-900 border border-emerald-500/30 text-emerald-400"
+                : "bg-emerald-50 border border-emerald-300 text-emerald-900"
+            }`}
+          >
             <Sparkles className="w-3.5 h-3.5" />
             <span>Tarifs Transparents & Sans Frais Cachés</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight">
             Un investissement rentabilisé dès le{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-amber-300">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-teal-500 to-amber-500 dark:from-emerald-400 dark:via-teal-300 dark:to-amber-300">
               premier mois.
             </span>
           </h2>
 
-          <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+          <p className={`text-sm sm:text-base leading-relaxed ${isDark ? "text-slate-300" : "text-slate-600"}`}>
             Choisissez le forfait adapté à la taille de votre commerce. Changez de formule à tout moment en 1 clic.
           </p>
 
           {/* Controls: Billing Cycle & Currency Switcher */}
           <div className="pt-6 flex flex-wrap items-center justify-center gap-4">
             {/* Billing Cycle Pill */}
-            <div className="inline-flex items-center p-1 rounded-2xl bg-slate-900 border border-slate-800">
+            <div
+              className={`inline-flex items-center p-1 rounded-2xl border ${
+                isDark ? "bg-slate-900 border-slate-800" : "bg-slate-100 border-slate-200"
+              }`}
+            >
               <button
                 onClick={() => setBillingCycle("monthly")}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   billingCycle === "monthly"
-                    ? "bg-slate-800 text-white shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? isDark
+                      ? "bg-slate-800 text-white shadow-sm"
+                      : "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
                 Paiement Mensuel
@@ -147,7 +170,7 @@ export default function PricingSection() {
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                   billingCycle === "annual"
                     ? "bg-emerald-500 text-slate-950 font-black shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
                 <span>Annuel</span>
@@ -158,13 +181,17 @@ export default function PricingSection() {
             </div>
 
             {/* Currency Switcher */}
-            <div className="inline-flex items-center p-1 rounded-2xl bg-slate-900 border border-slate-800">
+            <div
+              className={`inline-flex items-center p-1 rounded-2xl border ${
+                isDark ? "bg-slate-900 border-slate-800" : "bg-slate-100 border-slate-200"
+              }`}
+            >
               <button
                 onClick={() => setCurrency("CDF")}
                 className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                   currency === "CDF"
                     ? "bg-emerald-500 text-slate-950 font-black shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
                 Franc Congolais (FC)
@@ -174,7 +201,7 @@ export default function PricingSection() {
                 className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                   currency === "USD"
                     ? "bg-emerald-500 text-slate-950 font-black shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
                 Dollars ($)
@@ -195,10 +222,16 @@ export default function PricingSection() {
                 key={plan.id}
                 className={`rounded-3xl p-6 sm:p-7 flex flex-col justify-between relative transition-all duration-300 ${
                   plan.isPopular
-                    ? "bg-gradient-to-b from-slate-900 via-slate-900 to-emerald-950/40 border-2 border-emerald-500/80 shadow-2xl shadow-emerald-950/60 lg:-translate-y-2"
+                    ? isDark
+                      ? "bg-gradient-to-b from-slate-900 via-slate-900 to-emerald-950/40 border-2 border-emerald-500/80 shadow-2xl shadow-emerald-950/60 lg:-translate-y-2"
+                      : "bg-gradient-to-b from-white to-emerald-50/40 border-2 border-emerald-500 shadow-xl shadow-emerald-200/50 lg:-translate-y-2"
                     : plan.isBusiness
-                    ? "bg-gradient-to-b from-slate-900 via-slate-900 to-amber-950/40 border-2 border-amber-500/60 shadow-xl shadow-amber-950/40"
-                    : "bg-slate-900/80 border border-slate-800 hover:border-slate-700 shadow-lg"
+                    ? isDark
+                      ? "bg-gradient-to-b from-slate-900 via-slate-900 to-amber-950/40 border-2 border-amber-500/60 shadow-xl shadow-amber-950/40"
+                      : "bg-gradient-to-b from-white to-amber-50/40 border-2 border-amber-500/80 shadow-lg shadow-amber-200/40"
+                    : isDark
+                    ? "bg-slate-900/80 border border-slate-800 hover:border-slate-700 shadow-lg"
+                    : "bg-white border border-slate-200 hover:border-slate-300 shadow-md shadow-slate-200"
                 }`}
               >
                 {/* Popular / Business Badges */}
@@ -216,26 +249,36 @@ export default function PricingSection() {
                 <div>
                   {/* Title & Badge */}
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xl font-black text-white">{plan.name}</h3>
+                    <h3 className={`text-xl font-black ${isDark ? "text-white" : "text-slate-900"}`}>{plan.name}</h3>
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         plan.isPopular
-                          ? "bg-emerald-950 text-emerald-300 border border-emerald-700"
+                          ? isDark
+                            ? "bg-emerald-950 text-emerald-300 border border-emerald-700"
+                            : "bg-emerald-100 text-emerald-800 border border-emerald-300"
                           : plan.isBusiness
-                          ? "bg-amber-950 text-amber-300 border border-amber-700"
-                          : "bg-slate-800 text-slate-300"
+                          ? isDark
+                            ? "bg-amber-950 text-amber-300 border border-amber-700"
+                            : "bg-amber-100 text-amber-800 border border-amber-300"
+                          : isDark
+                          ? "bg-slate-800 text-slate-300"
+                          : "bg-slate-100 text-slate-700"
                       }`}
                     >
                       {plan.badge}
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-400 leading-relaxed mb-6">{plan.tagline}</p>
+                  <p className="text-xs text-slate-500 leading-relaxed mb-6">{plan.tagline}</p>
 
                   {/* Price Display */}
-                  <div className="pb-6 mb-6 border-b border-slate-800">
+                  <div className={`pb-6 mb-6 border-b ${isDark ? "border-slate-800" : "border-slate-200"}`}>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl sm:text-4xl font-black text-white font-mono">
+                      <span
+                        className={`text-3xl sm:text-4xl font-black font-mono ${
+                          isDark ? "text-white" : "text-slate-950"
+                        }`}
+                      >
                         {currency === "CDF"
                           ? priceCDF === 0
                             ? "0 FC"
@@ -244,12 +287,12 @@ export default function PricingSection() {
                           ? "$0"
                           : `$${priceUSD.toFixed(2)}`}
                       </span>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-slate-500">
                         {priceCDF === 0 ? "/ à vie" : isMonthly ? "/ mois" : "/ an"}
                       </span>
                     </div>
                     {priceCDF > 0 && (
-                      <p className="text-[10px] text-slate-400 mt-1">
+                      <p className="text-[10px] text-slate-500 mt-1">
                         {currency === "CDF"
                           ? `Équivaut à env. ~$${priceUSD.toFixed(2)}`
                           : `Équivaut à env. ~${priceCDF.toLocaleString()} FC`}
@@ -260,13 +303,13 @@ export default function PricingSection() {
                   {/* Features Checklist */}
                   <ul className="space-y-3 mb-8">
                     {plan.features.map((feat, idx) => (
-                      <li key={idx} className="flex items-start gap-2.5 text-xs text-slate-200">
+                      <li key={idx} className={`flex items-start gap-2.5 text-xs ${isDark ? "text-slate-200" : "text-slate-800"}`}>
                         <Check
                           className={`w-4 h-4 shrink-0 mt-0.5 ${
                             plan.isPopular
-                              ? "text-emerald-400"
+                              ? "text-emerald-500"
                               : plan.isBusiness
-                              ? "text-amber-400"
+                              ? "text-amber-500"
                               : "text-slate-400"
                           }`}
                         />
@@ -279,7 +322,9 @@ export default function PricingSection() {
                 {/* CTA Button */}
                 <Link
                   href={plan.ctaHref}
-                  className={`w-full py-3 px-4 rounded-2xl text-xs font-bold text-center flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 ${plan.btnClass}`}
+                  className={`w-full py-3 px-4 rounded-2xl text-xs font-bold text-center flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 ${
+                    isDark ? plan.btnClassDark : plan.btnClassLight
+                  }`}
                 >
                   <span>{plan.ctaText}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
