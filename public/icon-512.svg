@@ -1,42 +1,59 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1d4ed8" />
-      <stop offset="50%" stop-color="#2563eb" />
-      <stop offset="100%" stop-color="#4f46e5" />
+    <!-- Background Gradient -->
+    <linearGradient id="bgGradient512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f8fafc" />
     </linearGradient>
-    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38bdf8" />
-      <stop offset="100%" stop-color="#a855f7" />
+    
+    <!-- Butterfly Blue Gradient -->
+    <linearGradient id="butterflyBlue512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a4fb4" />
+      <stop offset="50%" stop-color="#0e5cdb" />
+      <stop offset="100%" stop-color="#186ef2" />
     </linearGradient>
-    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.25" />
+
+    <!-- Ambient Shadow -->
+    <filter id="glowShadow512" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#0e5cdb" flood-opacity="0.28" />
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0a4fb4" flood-opacity="0.2" />
     </filter>
   </defs>
 
-  <!-- Background Rounded Base -->
-  <rect width="512" height="512" rx="128" fill="url(#bgGradient)" />
+  <!-- Clean Rounded Base Frame -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGradient512)" stroke="#e2e8f0" stroke-width="4" />
 
-  <!-- Inner POS Terminal & Cart Graphic -->
-  <g filter="url(#dropShadow)" transform="translate(106, 106)">
-    <!-- Main Store / Terminal Body -->
-    <rect x="20" y="40" width="260" height="200" rx="36" fill="#ffffff" />
-    <!-- Screen Header -->
-    <rect x="40" y="60" width="220" height="60" rx="16" fill="#eff6ff" />
-    <circle cx="70" cy="90" r="10" fill="#2563eb" />
-    <rect x="95" y="82" width="130" height="16" rx="8" fill="#93c5fd" />
-    
-    <!-- POS Numeric / Keypad Grid -->
-    <rect x="40" y="135" width="60" height="30" rx="8" fill="#f1f5f9" />
-    <rect x="120" y="135" width="60" height="30" rx="8" fill="#f1f5f9" />
-    <rect x="200" y="135" width="60" height="30" rx="8" fill="#22c55e" />
-    
-    <rect x="40" y="180" width="60" height="30" rx="8" fill="#f1f5f9" />
-    <rect x="120" y="180" width="60" height="30" rx="8" fill="#f1f5f9" />
-    <rect x="200" y="180" width="60" height="30" rx="8" fill="#3b82f6" />
-    
-    <!-- Base Stand -->
-    <path d="M100 240 L200 240 L220 280 L80 280 Z" fill="#ffffff" opacity="0.9" />
-    <rect x="60" y="275" width="180" height="14" rx="7" fill="#ffffff" />
+  <!-- Iconic Blue Butterfly Logo -->
+  <g filter="url(#glowShadow512)" fill="url(#butterflyBlue512)" transform="translate(40, 40) scale(0.84)">
+    <!-- Antennae -->
+    <!-- Left Antenna -->
+    <path d="M236 175 C 220 120, 190 90, 168 76" stroke="url(#butterflyBlue512)" stroke-width="8" stroke-linecap="round" fill="none" />
+    <circle cx="165" cy="74" r="7" fill="url(#butterflyBlue512)" />
+
+    <!-- Right Antenna -->
+    <path d="M276 175 C 292 120, 322 90, 344 76" stroke="url(#butterflyBlue512)" stroke-width="8" stroke-linecap="round" fill="none" />
+    <circle cx="347" cy="74" r="7" fill="url(#butterflyBlue512)" />
+
+    <!-- Butterfly Wings & Body Solid Silhouette -->
+    <path d="
+      M 256 182
+      C 246 160, 218 105, 142 82
+      C 72 60, 38 106, 52 178
+      C 62 230, 114 260, 162 278
+      C 134 296, 78 340, 88 410
+      C 98 478, 168 496, 214 430
+      C 236 398, 246 360, 252 320
+      C 254 310, 258 310, 260 320
+      C 266 360, 276 398, 298 430
+      C 344 496, 414 478, 424 410
+      C 434 340, 378 296, 350 278
+      C 398 260, 450 230, 460 178
+      C 474 106, 440 60, 370 82
+      C 294 105, 266 160, 256 182
+      Z
+    " />
+
+    <!-- Center Thorax / Body Capsule Highlight -->
+    <path d="M 256 170 C 248 170, 244 210, 244 260 C 244 305, 248 340, 256 340 C 264 340, 268 305, 268 260 C 268 210, 264 170, 256 170 Z" fill="#083884" opacity="0.3" />
   </g>
 </svg>

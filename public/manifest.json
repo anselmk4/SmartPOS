@@ -1,26 +1,44 @@
 {
   "name": "Kuettu Global POS - Caisse Tactile Offline-First",
   "short_name": "Global POS",
-  "description": "Caisse tactile, gestion des stocks, carnet de dettes WhatsApp et suivi des dépenses 100% hors-ligne pour le commerce en Afrique.",
+  "description": "Caisse tactile 0ms, gestion des stocks, carnet de dettes WhatsApp et encaissement Mobile Money 100% hors-ligne pour le commerce en Afrique.",
   "start_url": "/pos",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "theme_color": "#0a4fb4",
   "categories": ["business", "finance", "productivity", "shopping"],
   "icons": [
     {
-      "src": "/icon-192.svg",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ]
 }
