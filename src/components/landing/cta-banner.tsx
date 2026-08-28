@@ -56,13 +56,13 @@ export default function CtaBanner() {
               </Link>
 
               <a
-                href="https://wa.me/243810000000?text=Bonjour%20Kuettu%20Global%20POS,%20j%27aimerais%20une%20d%C3%A9monstration%20ou%20des%20conseils%20pour%20mon%20commerce."
+                href="https://wa.me/243990387237?text=Bonjour%20Kuettu%20Global%20POS,%20j%27aimerais%20une%20assistance%20directe%20pour%20mon%20commerce."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto py-4 px-6 rounded-2xl bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] font-bold text-sm border border-[#25D366]/40 flex items-center justify-center gap-2.5 backdrop-blur transition-all active:scale-95 shadow-lg shadow-[#25D366]/10"
               >
                 <MessageCircle className="w-4 h-4 text-[#25D366]" />
-                <span>Assistance WhatsApp Direct (+243)</span>
+                <span>Assistance WhatsApp (+243 990 387 237)</span>
               </a>
             </div>
 

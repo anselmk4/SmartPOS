@@ -214,13 +214,13 @@ export default function LandingFooter() {
               </li>
               <li>
                 <a
-                  href="https://wa.me/243810001122"
+                  href="https://wa.me/243990387237?text=Bonjour%20Kuettu%20Global%20POS,%20j%27aimerais%20une%20assistance%20directe%20pour%20mon%20commerce."
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-emerald-400 transition-colors flex items-center gap-1"
                 >
                   <MessageCircle className="w-3 h-3 text-emerald-400" />
-                  <span>Assistance WhatsApp (+243)</span>
+                  <span>Assistance WhatsApp (+243 990 387 237)</span>
                 </a>
               </li>
               <li>

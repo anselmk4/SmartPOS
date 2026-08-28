@@ -150,7 +150,7 @@ export default function RootLayout({
         image: "https://globalpos.app/images/og-image.png",
         description:
           "Éditeur du logiciel Micro-ERP et Point de Vente (POS) tactile 100% hors-ligne pour les commerces en Afrique.",
-        sameAs: ["https://facebook.com/KuettuPOS", "https://wa.me/243810000000"],
+        sameAs: ["https://facebook.com/KuettuPOS", "https://wa.me/243990387237"],
       },
       {
         "@type": "WebSite",

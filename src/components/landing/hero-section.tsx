@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import {
   ArrowRight,
-  PlayCircle,
+  MessageCircle,
   Sparkles,
   ShieldCheck,
   Zap,
@@ -114,18 +114,20 @@ export default function HeroSection() {
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
 
-              {/* Secondary Demo CTA */}
-              <Link
-                href="/pos"
+              {/* Direct WhatsApp Assistance Link */}
+              <a
+                href="https://wa.me/243990387237?text=Bonjour%20Kuettu%20Global%20POS,%20j%27aimerais%20une%20assistance%20directe%20pour%20mon%20commerce."
+                target="_blank"
+                rel="noopener noreferrer"
                 className={`inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl font-bold text-sm border shadow-lg backdrop-blur transition-all active:scale-[0.98] ${
                   isDark
-                    ? "bg-slate-900/90 hover:bg-slate-800 text-slate-100 border-slate-700 hover:border-slate-500"
-                    : "bg-white hover:bg-slate-50 text-slate-800 border-slate-200 hover:border-slate-400"
+                    ? "bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#25D366] border-[#25D366]/30 shadow-[#25D366]/10"
+                    : "bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] border-[#25D366]/30"
                 }`}
               >
-                <PlayCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Tester la Caisse Démo</span>
-              </Link>
+                <MessageCircle className="w-4 h-4 text-[#25D366]" />
+                <span>Assistance WhatsApp (+243 990 387 237)</span>
+              </a>
             </div>
 
             {/* Trust Signals */}
