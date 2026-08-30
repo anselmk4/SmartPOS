@@ -42,7 +42,7 @@ import { convertCurrency, EXCHANGE_RATES } from "@/lib/constants/plans";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, tenant, store: authStore, isAuthenticated, isLoading, isOwner, lockTerminal, logout } = useAuth();
+  const { user, tenant, store: authStore, isAuthenticated, isLoading, isOwner, isManager, isCashier, isWaiter, lockTerminal, logout } = useAuth();
   const { isOnline, isSyncing, pendingCount, lastSyncedAt, syncNow, refreshStore } = useSync();
 
   const currentStoreId = authStore?.id || DEFAULT_STORE_ID;
@@ -238,6 +238,37 @@ export default function SettingsPage() {
       alert("Articles et clients de démonstration ajoutés à votre boutique avec succès !");
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-slate-100">
+        <div className="text-center text-slate-400">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+          <p className="text-xs">Chargement des paramètres...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <PinLockScreen title="Paramètres Verrouillés" />;
+  }
+
+  if (!isOwner && !isManager) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="max-w-md w-full p-6 bg-white rounded-3xl border border-slate-200 shadow-sm text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <SettingsIcon className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900">Accès Réservé au Gérant</h3>
+          <p className="text-xs text-slate-500">
+            Les réglages et configurations de la boutique sont réservés au Gérant ou Manager.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 max-w-5xl w-full mx-auto p-3 sm:p-5 flex flex-col space-y-5">

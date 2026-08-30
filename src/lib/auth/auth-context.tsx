@@ -176,7 +176,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const savedUserId = typeof window !== "undefined" ? localStorage.getItem(AUTH_USER_KEY) : null;
+        let savedUserId = typeof window !== "undefined" ? localStorage.getItem(AUTH_USER_KEY) : null;
+        if (savedUserId && savedUserId.startsWith("{")) {
+          try {
+            const parsed = JSON.parse(savedUserId);
+            savedUserId = parsed.id || null;
+            if (savedUserId) localStorage.setItem(AUTH_USER_KEY, savedUserId);
+          } catch {}
+        }
         const savedTenantId = typeof window !== "undefined" ? localStorage.getItem(AUTH_TENANT_KEY) : null;
         const savedStoreId = typeof window !== "undefined" ? localStorage.getItem(AUTH_STORE_KEY) : null;
 
@@ -185,11 +192,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (savedUserId && savedTenantId) {
-          const u = await db.users.get(savedUserId);
+          let u = await db.users.get(savedUserId);
           const t = await db.tenants.get(savedTenantId);
           const s = savedStoreId ? await db.stores.get(savedStoreId) : await db.stores.where("tenantId").equals(savedTenantId).first();
 
           if (u && t && u.isActive) {
+            // If this is the main owner user and their role got switched to cashier/waiter, restore OWNER role
+            const totalUsersInTenant = await db.users.where("tenantId").equals(t.id).count();
+            const isTenantOwnerName = t.ownerName && u.name && t.ownerName.trim().toLowerCase() === u.name.trim().toLowerCase();
+            if ((totalUsersInTenant <= 1 || isTenantOwnerName) && u.role !== "OWNER") {
+              u = { ...u, role: "OWNER", updatedAt: new Date().toISOString() };
+              await db.users.put(u);
+            }
+
             setUser(u);
             setTenant(t);
             setStore(s || null);
@@ -855,23 +870,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsSimulating(false);
     }
 
-    const updated = { ...user, role: newRole, updatedAt: new Date().toISOString() };
-    await db.users.put(updated);
+    const updated = { ...user, role: newRole };
     setUser(updated);
     if (typeof window !== "undefined") {
-      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
+      localStorage.setItem(AUTH_USER_KEY, user.id);
     }
   };
 
   const restoreOwnerRole = async (pinCode?: string): Promise<{ success: boolean; message: string }> => {
     try {
-      const ownerUser =
-        terminalUsers.find((u) => u.role === "OWNER") ||
-        (await db.users.filter((u) => u.role === "OWNER").first());
+      const originalOwnerId = typeof window !== "undefined" ? sessionStorage.getItem("kuettu_original_owner_id") : null;
+      let ownerUser: User | null = null;
+      if (originalOwnerId) {
+        ownerUser = (await db.users.get(originalOwnerId)) || null;
+      }
+      if (!ownerUser && tenant) {
+        ownerUser =
+          terminalUsers.find((u) => u.role === "OWNER") ||
+          (await db.users.where("tenantId").equals(tenant.id).filter((u) => u.role === "OWNER").first()) ||
+          null;
+      }
 
-      if (pinCode) {
+      if (pinCode && ownerUser) {
         if (
-          ownerUser &&
           ownerUser.pinCode &&
           ownerUser.pinCode !== pinCode &&
           pinCode !== "1234" &&
@@ -879,6 +900,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ) {
           return { success: false, message: "Code PIN Propriétaire incorrect." };
         }
+      }
+
+      if (ownerUser) {
+        setUser(ownerUser);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(AUTH_USER_KEY, ownerUser.id);
+          sessionStorage.removeItem("kuettu_is_simulating");
+          sessionStorage.removeItem("kuettu_original_owner_id");
+        }
+        setIsSimulating(false);
+        return { success: true, message: "Accès Propriétaire (Gérant) restauré avec succès !" };
       }
 
       if (user) {
@@ -890,24 +922,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await db.users.put(updated);
         setUser(updated);
         if (typeof window !== "undefined") {
-          localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
+          localStorage.setItem(AUTH_USER_KEY, updated.id);
           sessionStorage.removeItem("kuettu_is_simulating");
           sessionStorage.removeItem("kuettu_original_owner_id");
         }
         setIsSimulating(false);
         return { success: true, message: "Accès Propriétaire (Gérant) restauré avec succès !" };
-      }
-
-      if (ownerUser) {
-        await db.users.put(ownerUser);
-        setUser(ownerUser);
-        if (typeof window !== "undefined") {
-          localStorage.setItem(AUTH_USER_KEY, JSON.stringify(ownerUser));
-          sessionStorage.removeItem("kuettu_is_simulating");
-          sessionStorage.removeItem("kuettu_original_owner_id");
-        }
-        setIsSimulating(false);
-        return { success: true, message: "Session Propriétaire restaurée !" };
       }
 
       return { success: false, message: "Aucun profil Propriétaire trouvé sur ce terminal." };

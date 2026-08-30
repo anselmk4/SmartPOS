@@ -39,7 +39,7 @@ import {
 type TimeRange = "HOURLY" | "7_DAYS" | "30_DAYS" | "MONTHLY";
 
 export default function DashboardPage() {
-  const { user, tenant, store: authStore, stores, isAuthenticated, isLoading, isOwner, isCashier, plan, canAccess } = useAuth();
+  const { user, tenant, store: authStore, stores, isAuthenticated, isLoading, isOwner, isManager, isCashier, isWaiter, plan, canAccess } = useAuth();
   const { formatMoney, rawCurrency } = useSync();
 
   const currentStoreId = authStore?.id || DEFAULT_STORE_ID;
@@ -413,6 +413,37 @@ export default function DashboardPage() {
   const periodTotalSalesCount = useMemo(() => {
     return chartData.reduce((sum, d) => sum + d.count, 0);
   }, [chartData]);
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-slate-100">
+        <div className="text-center text-slate-400">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+          <p className="text-xs">Chargement du bilan financier...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <PinLockScreen title="Bilan Financier Verrouillé" />;
+  }
+
+  if (!isOwner && !isManager) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="max-w-md w-full p-6 bg-white rounded-3xl border border-slate-200 shadow-sm text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900">Accès Réservé au Gérant</h3>
+          <p className="text-xs text-slate-500">
+            Le bilan financier, les marges et les statistiques sont réservés au Gérant ou Manager.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 flex flex-col space-y-5">

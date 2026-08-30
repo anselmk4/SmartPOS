@@ -467,30 +467,63 @@ export async function POST(req: NextRequest) {
             });
             syncedIds.push(id);
           } else if (entity === "user" && (action === "CREATE" || action === "UPDATE")) {
-            await prisma.user.upsert({
-              where: { id: data.id },
-              update: {
-                name: data.name,
-                phone: data.phone,
-                email: data.email,
-                pinCode: data.pinCode,
-                role: data.role || "CASHIER",
-                isActive: data.isActive !== undefined ? data.isActive : true,
-                updatedAt: now,
-              },
-              create: {
-                id: data.id,
-                tenantId: data.tenantId || tenantId,
-                name: data.name,
-                phone: data.phone,
-                email: data.email,
-                pinCode: data.pinCode,
-                role: data.role || "CASHIER",
-                isActive: data.isActive !== undefined ? data.isActive : true,
-                createdAt: new Date(data.createdAt || now),
-                updatedAt: now,
-              },
-            });
+            const requestedRole = data.role || "CASHIER";
+            try {
+              await prisma.user.upsert({
+                where: { id: data.id },
+                update: {
+                  name: data.name,
+                  phone: data.phone,
+                  email: data.email,
+                  pinCode: data.pinCode,
+                  role: requestedRole,
+                  isActive: data.isActive !== undefined ? data.isActive : true,
+                  updatedAt: now,
+                },
+                create: {
+                  id: data.id,
+                  tenantId: data.tenantId || tenantId,
+                  name: data.name,
+                  phone: data.phone,
+                  email: data.email,
+                  pinCode: data.pinCode,
+                  role: requestedRole,
+                  isActive: data.isActive !== undefined ? data.isActive : true,
+                  createdAt: new Date(data.createdAt || now),
+                  updatedAt: now,
+                },
+              });
+            } catch (userUpsertErr: any) {
+              // If remote Postgres database has not yet added WAITER to UserRole enum, fallback safely to CASHIER
+              if (requestedRole === "WAITER" || userUpsertErr?.message?.includes("UserRole")) {
+                await prisma.user.upsert({
+                  where: { id: data.id },
+                  update: {
+                    name: data.name,
+                    phone: data.phone,
+                    email: data.email,
+                    pinCode: data.pinCode,
+                    role: "CASHIER",
+                    isActive: data.isActive !== undefined ? data.isActive : true,
+                    updatedAt: now,
+                  },
+                  create: {
+                    id: data.id,
+                    tenantId: data.tenantId || tenantId,
+                    name: data.name,
+                    phone: data.phone,
+                    email: data.email,
+                    pinCode: data.pinCode,
+                    role: "CASHIER",
+                    isActive: data.isActive !== undefined ? data.isActive : true,
+                    createdAt: new Date(data.createdAt || now),
+                    updatedAt: now,
+                  },
+                });
+              } else {
+                throw userUpsertErr;
+              }
+            }
             syncedIds.push(id);
           } else {
             // For other local entities (expense, stock_transfer, cash_closing, etc.), mark as synced

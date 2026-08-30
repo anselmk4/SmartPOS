@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 
 export default function InventoryPage() {
-  const { tenant, store: authStore, stores, user, isAuthenticated, isLoading, plan, canAccess } = useAuth();
+  const { tenant, store: authStore, stores, user, isAuthenticated, isLoading, isOwner, isManager, plan, canAccess } = useAuth();
   const { formatMoney, currency } = useSync();
 
   const currentStoreId = authStore?.id || DEFAULT_STORE_ID;
@@ -118,6 +118,22 @@ export default function InventoryPage() {
 
   if (!isAuthenticated) {
     return <PinLockScreen title="Gestion de Stock Verrouillée" />;
+  }
+
+  if (!isOwner && !isManager) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="max-w-md w-full p-6 bg-white rounded-3xl border border-slate-200 shadow-sm text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <Package className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900">Accès Réservé au Gérant</h3>
+          <p className="text-xs text-slate-500">
+            La gestion des articles, des stocks et des coûts est réservée au Gérant ou Manager.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

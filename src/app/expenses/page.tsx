@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 
 export default function ExpensesPage() {
-  const { store: authStore, tenant, isAuthenticated, isLoading, isCashier } = useAuth();
+  const { store: authStore, tenant, isAuthenticated, isLoading, isOwner, isManager } = useAuth();
   const { formatMoney, rawCurrency } = useSync();
 
   const currentStoreId = authStore?.id || DEFAULT_STORE_ID;
@@ -78,6 +78,22 @@ export default function ExpensesPage() {
 
   if (!isAuthenticated) {
     return <PinLockScreen title="Dépenses Verrouillées" />;
+  }
+
+  if (!isOwner && !isManager) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="max-w-md w-full p-6 bg-white rounded-3xl border border-slate-200 shadow-sm text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <Wallet className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900">Accès Réservé au Gérant</h3>
+          <p className="text-xs text-slate-500">
+            L'enregistrement et le suivi des dépenses sont réservés au Gérant ou Manager.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const todayStr = new Date().toISOString().split("T")[0];

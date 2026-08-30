@@ -146,7 +146,7 @@ export function Sidebar() {
       icon: Receipt,
       color: "text-blue-500",
       bgActive: "bg-blue-600 text-white shadow-sm shadow-blue-500/25",
-      allowed: true,
+      allowed: !isWaiter,
     },
     {
       label: "Carnet de Dettes",
@@ -155,7 +155,7 @@ export function Sidebar() {
       icon: BookOpen,
       color: "text-rose-600",
       bgActive: "bg-blue-600 text-white shadow-sm shadow-blue-500/25",
-      allowed: true,
+      allowed: !isWaiter,
     },
     {
       label: "Clients & Fidélité",
@@ -173,7 +173,7 @@ export function Sidebar() {
       icon: Wallet,
       color: "text-red-500",
       bgActive: "bg-blue-600 text-white shadow-sm shadow-blue-500/25",
-      allowed: !isCashier,
+      allowed: isOwner || isManager,
     },
     {
       label: "Stocks & Articles",
@@ -182,7 +182,7 @@ export function Sidebar() {
       icon: Package,
       color: "text-indigo-600",
       bgActive: "bg-blue-600 text-white shadow-sm shadow-blue-500/25",
-      allowed: !isCashier,
+      allowed: isOwner || isManager,
     },
     {
       label: "Bilan & Marges",
@@ -191,7 +191,7 @@ export function Sidebar() {
       icon: BarChart3,
       color: "text-emerald-600",
       bgActive: "bg-blue-600 text-white shadow-sm shadow-blue-500/25",
-      allowed: !isCashier,
+      allowed: isOwner || isManager,
     },
     {
       label: "Espace Gérant",
@@ -218,7 +218,7 @@ export function Sidebar() {
       icon: Settings,
       color: "text-slate-600",
       bgActive: "bg-blue-600 text-white shadow-sm shadow-blue-500/25",
-      allowed: !isCashier,
+      allowed: isOwner || isManager,
     },
   ].filter((item) => item.allowed);
 
