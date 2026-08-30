@@ -94,7 +94,7 @@ export function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs px-3 sm:px-5 py-2.5">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs px-3 sm:px-5 py-2.5 shrink-0">
         <div className="w-full mx-auto flex items-center justify-between gap-3">
           {/* ========================================================= */}
           {/* LEFT SECTION */}

@@ -232,10 +232,10 @@ export default function RootLayout({
                   <Sidebar />
 
                   {/* Main Content Area */}
-                  <div className="flex-1 flex flex-col min-w-0">
+                  <div className="flex-1 flex flex-col min-w-0 min-h-0">
                     <Navbar />
                     <SimulationBanner />
-                    <main className="flex-1 flex flex-col">
+                    <main className="flex-1 flex flex-col min-h-0">
                       <PlanPaymentGate>{children}</PlanPaymentGate>
                     </main>
                   </div>

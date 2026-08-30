@@ -710,13 +710,13 @@ export default function POSPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col lg:flex-row h-[calc(100dvh-57px)] lg:h-[calc(100vh-61px)] min-h-0 overflow-hidden bg-slate-100">
+    <div className="flex-1 flex flex-col md:flex-row h-[calc(100dvh-56px)] md:h-[calc(100vh-56px)] max-h-[calc(100dvh-56px)] md:max-h-[calc(100vh-56px)] min-h-0 overflow-hidden bg-slate-100">
       {/* ========================================================================= */}
       {/* LEFT: Product Catalog Grid                                               */}
       {/* ========================================================================= */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-full max-h-full min-h-0 overflow-hidden">
         {/* Top Header: 1. Tariff Options on Top -> 2. Search & Categories Below */}
-        <div className="shrink-0 p-3 sm:p-3.5 bg-white border-b border-slate-200/90 shadow-2xs z-10 space-y-2.5">
+        <div className="shrink-0 p-2.5 sm:p-3 bg-white border-b border-slate-200/90 shadow-2xs z-10 space-y-2">
           {/* LIGNE 1 (AU-DESSUS) : Grilles Tarifaires */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -742,16 +742,16 @@ export default function POSPage() {
           </div>
 
           {/* LIGNE 2 (EN-DESSOUS) : Barre de recherche + Catégories */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
             {/* Search Input */}
-            <div className="relative w-full md:w-80 lg:w-96 shrink-0">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <div className="relative w-full md:w-72 lg:w-80 shrink-0">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Rechercher article, code-barres..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-8 py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white rounded-xl text-xs sm:text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                className="w-full pl-9 pr-8 py-1.5 sm:py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white rounded-xl text-xs sm:text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
               />
               {searchQuery && (
                 <button
@@ -784,7 +784,7 @@ export default function POSPage() {
 
         {/* PROMINENT QUICK-ACCESS RIBBON FOR HELD ORDERS / ACTIVE BILLS */}
         {heldOrders.length > 0 && (
-          <div className="shrink-0 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 text-white px-3 py-2 flex items-center gap-2 overflow-x-auto shadow-sm no-scrollbar z-10 animate-in slide-in-from-top-2">
+          <div className="shrink-0 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 text-white px-3 py-1.5 sm:py-2 flex items-center gap-2 overflow-x-auto shadow-sm no-scrollbar z-10 animate-in slide-in-from-top-2">
             <div className="flex items-center gap-1.5 text-xs font-black shrink-0 pr-1 border-r border-amber-400/50">
               <Clock className="w-3.5 h-3.5" />
               <span>{heldOrders.length} Facture{heldOrders.length > 1 ? "s" : ""} en attente :</span>
@@ -810,7 +810,7 @@ export default function POSPage() {
         )}
 
         {/* Product Cards Grid */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-2.5 sm:p-3.5">
           {filteredProducts.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 py-12 text-center">
               <Package className="w-12 h-12 stroke-1 text-slate-300 mb-2" />
@@ -826,7 +826,7 @@ export default function POSPage() {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3.5">
               {filteredProducts.map((p) => {
                 const eff = calculateEffectiveProductPrice(p, tariffConfig, 1);
                 const isOutOfStock = p.stockQuantity <= 0;
@@ -836,7 +836,7 @@ export default function POSPage() {
                     key={p.id}
                     onClick={() => addToCart(p)}
                     disabled={isOutOfStock}
-                    className={`relative p-3 rounded-2xl border text-left transition-all flex flex-col justify-between group touch-press ${
+                    className={`relative p-2.5 sm:p-3 rounded-2xl border text-left transition-all flex flex-col justify-between group touch-press ${
                       isOutOfStock
                         ? "bg-slate-50 border-slate-200 opacity-50 cursor-not-allowed"
                         : "bg-white border-slate-200/80 hover:border-blue-400 hover:shadow-md active:scale-98"
@@ -937,9 +937,9 @@ export default function POSPage() {
       {/* ========================================================================= */}
       {/* RIGHT: Modern Cart & Flexible Invoicing Checkout Panel                   */}
       {/* ========================================================================= */}
-      <div className="w-full lg:w-[380px] xl:w-[420px] bg-white border-t lg:border-t-0 lg:border-l border-slate-200 flex flex-col shadow-xl z-20 h-full min-h-0 overflow-hidden shrink-0">
+      <div className="w-full md:w-[360px] lg:w-[390px] xl:w-[420px] bg-white border-t md:border-t-0 md:border-l border-slate-200 flex flex-col shadow-xl z-20 h-full max-h-full min-h-0 overflow-hidden shrink-0">
         {/* Cart Header */}
-        <div className="shrink-0 p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+        <div className="shrink-0 p-2.5 sm:p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-4 h-4 text-blue-600" />
             <h2 className="font-extrabold text-slate-900 text-sm">Panier & Facture</h2>
@@ -979,17 +979,17 @@ export default function POSPage() {
         </div>
 
         {/* Table / Reference / Customer Selector */}
-        <div className="shrink-0 p-3 border-b border-slate-100 bg-white space-y-2">
+        <div className="shrink-0 p-2.5 sm:p-3 border-b border-slate-100 bg-white space-y-1.5">
           {/* Table / Ref Banner (if active) */}
           {tableOrLabel ? (
             <div className="flex items-center justify-between bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-xl text-xs">
-              <div className="flex items-center gap-1.5 font-bold text-amber-900">
-                <Utensils className="w-3.5 h-3.5 text-amber-600" />
-                <span>Emplacement : <b>{tableOrLabel}</b></span>
+              <div className="flex items-center gap-1.5 font-bold text-amber-900 truncate">
+                <Utensils className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span className="truncate">Emplacement : <b>{tableOrLabel}</b></span>
               </div>
               <button
                 onClick={() => setTableOrLabel("")}
-                className="text-[10px] text-amber-700 hover:text-rose-600 font-bold"
+                className="text-[10px] text-amber-700 hover:text-rose-600 font-bold shrink-0 ml-1"
               >
                 Retirer
               </button>
@@ -1024,7 +1024,7 @@ export default function POSPage() {
             <select
               value={selectedCustomerId}
               onChange={(e) => setSelectedCustomerId(e.target.value)}
-              className="w-full p-2 bg-slate-50 rounded-xl text-xs font-semibold border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-1.5 sm:p-2 bg-slate-50 rounded-xl text-xs font-semibold border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">-- Client Comptant (Passager) --</option>
               {customers.map((c) => (
@@ -1037,21 +1037,21 @@ export default function POSPage() {
         </div>
 
         {/* Cart Items List */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
+        <div className="flex-1 min-h-0 max-h-full overflow-y-auto p-2.5 sm:p-3 space-y-2">
           {cart.length === 0 ? (
             heldOrders.length > 0 ? (
               <div className="space-y-2 py-1">
                 <div className="flex items-center justify-between px-1">
                   <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-800 flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Factures en attente d'encaissement ({heldOrders.length})</span>
+                    <span>Factures en attente ({heldOrders.length})</span>
                   </span>
                 </div>
                 <div className="space-y-1.5">
                   {heldOrders.map((order) => (
                     <div
                       key={order.id}
-                      className="bg-amber-50/70 hover:bg-amber-50 border border-amber-200/80 rounded-2xl p-2.5 flex items-center justify-between gap-2 transition-all"
+                      className="bg-amber-50/70 hover:bg-amber-50 border border-amber-200/80 rounded-2xl p-2 sm:p-2.5 flex items-center justify-between gap-2 transition-all"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900 truncate">
@@ -1074,7 +1074,7 @@ export default function POSPage() {
 
                       <button
                         onClick={() => handleRestoreHeldOrder(order)}
-                        className="py-1.5 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-black shadow-xs flex items-center gap-1 shrink-0 touch-press"
+                        className="py-1 px-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-black shadow-xs flex items-center gap-1 shrink-0 touch-press"
                       >
                         <span>Encaisser</span>
                         <ArrowRight className="w-3 h-3" />
@@ -1084,8 +1084,8 @@ export default function POSPage() {
                 </div>
               </div>
             ) : (
-              <div className="h-full min-h-[140px] flex flex-col items-center justify-center text-slate-400 text-center py-6">
-                <Receipt className="w-8 h-8 stroke-1 text-slate-300 mb-1" />
+              <div className="h-full min-h-[120px] flex flex-col items-center justify-center text-slate-400 text-center py-4">
+                <Receipt className="w-7 h-7 stroke-1 text-slate-300 mb-1" />
                 <p className="text-xs font-bold text-slate-700">Panier vide</p>
                 <p className="text-[11px] text-slate-400">Touchez un article pour constituer la facture</p>
               </div>
@@ -1094,7 +1094,7 @@ export default function POSPage() {
             cart.map((item) => (
               <div
                 key={item.product.id}
-                className="bg-slate-50 rounded-2xl p-2.5 flex items-center justify-between gap-2 border border-slate-100 shadow-2xs"
+                className="bg-slate-50 rounded-2xl p-2 sm:p-2.5 flex items-center justify-between gap-2 border border-slate-100 shadow-2xs"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
@@ -1122,26 +1122,26 @@ export default function POSPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <div className="flex items-center bg-white border border-slate-200 rounded-xl shadow-2xs">
                     <button
                       onClick={() => updateQuantity(item.product.id, -1)}
-                      className="w-6 h-6 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded-l-xl"
+                      className="w-5.5 h-5.5 sm:w-6 sm:h-6 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded-l-xl"
                     >
                       <Minus className="w-3 h-3" />
                     </button>
-                    <span className="w-6 text-center text-xs font-black text-slate-800">
+                    <span className="w-5 sm:w-6 text-center text-xs font-black text-slate-800">
                       {item.quantity}
                     </span>
                     <button
                       onClick={() => updateQuantity(item.product.id, 1)}
-                      className="w-6 h-6 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded-r-xl"
+                      className="w-5.5 h-5.5 sm:w-6 sm:h-6 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded-r-xl"
                     >
                       <Plus className="w-3 h-3" />
                     </button>
                   </div>
 
-                  <div className="text-right min-w-[65px]">
+                  <div className="text-right min-w-[60px] sm:min-w-[65px]">
                     <div className="font-black text-xs text-slate-900">
                       {formatMoney(item.subtotal)}
                     </div>
@@ -1160,9 +1160,9 @@ export default function POSPage() {
         </div>
 
         {/* Cart Financial Summary & Action Toolbar */}
-        <div className="shrink-0 mt-auto p-3.5 bg-white border-t border-slate-200 space-y-3">
+        <div className="shrink-0 mt-auto p-2.5 sm:p-3 bg-white border-t border-slate-200 space-y-2 sm:space-y-2.5">
           {/* Subtotal, Discount & Total Net */}
-          <div className="space-y-1 text-xs">
+          <div className="space-y-0.5 text-xs">
             <div className="flex items-center justify-between text-slate-500">
               <span>Sous-total Brut :</span>
               <span className="font-semibold">{formatMoney(subtotalAmount)}</span>
@@ -1179,7 +1179,7 @@ export default function POSPage() {
 
             <div className="flex items-center justify-between pt-1 border-t border-slate-200">
               <span className="text-xs text-slate-700 font-bold">Net à Payer :</span>
-              <span className="text-lg font-black text-slate-900">
+              <span className="text-base sm:text-lg font-black text-slate-900">
                 {formatMoney(totalAmount)}
               </span>
             </div>
@@ -1192,10 +1192,10 @@ export default function POSPage() {
               <button
                 onClick={() => setIsHoldModalOpen(true)}
                 disabled={cart.length === 0}
-                className="py-2.5 px-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs"
+                className="py-2 px-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs"
                 title="Générer et imprimer la facture à payer pour le client"
               >
-                <Printer className="w-4 h-4 text-amber-600 shrink-0" />
+                <Printer className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                 <span>Facture à Payer</span>
               </button>
 
@@ -1203,14 +1203,14 @@ export default function POSPage() {
               <button
                 onClick={() => setIsDiscountModalOpen(true)}
                 disabled={cart.length === 0}
-                className={`py-2.5 px-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs ${
+                className={`py-2 px-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs ${
                   discountAmount > 0
                     ? "border-emerald-500 bg-emerald-500 text-white shadow-xs"
                     : "border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800"
                 }`}
                 title="Appliquer une réduction"
               >
-                <Tag className="w-4 h-4 shrink-0" />
+                <Tag className="w-3.5 h-3.5 shrink-0" />
                 <span>
                   {discountAmount > 0
                     ? `-${discountType === "PERCENT" ? `${discountValue}%` : formatMoney(discountAmount)}`
@@ -1243,12 +1243,12 @@ export default function POSPage() {
 
           {/* Primary Checkout / Order Actions based on User Role */}
           {isWaiter ? (
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               {/* Primary Action for Waiter: Enregistrer la commande / Table */}
               <button
                 onClick={() => setIsHoldModalOpen(true)}
                 disabled={cart.length === 0}
-                className="w-full py-3.5 px-4 rounded-2xl font-black text-sm text-white bg-amber-600 hover:bg-amber-500 flex items-center justify-center gap-2 shadow-lg shadow-amber-600/30 transition-all touch-press disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed"
+                className="w-full py-3 px-4 rounded-2xl font-black text-xs sm:text-sm text-white bg-amber-600 hover:bg-amber-500 flex items-center justify-center gap-2 shadow-lg shadow-amber-600/30 transition-all touch-press disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed"
               >
                 <Utensils className="w-4 h-4" />
                 <span>Enregistrer Table / Bon de Commande</span>
@@ -1263,7 +1263,7 @@ export default function POSPage() {
                   setIsWaiterUnlockModalOpen(true);
                 }}
                 disabled={cart.length === 0}
-                className="w-full py-2 px-3 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40"
+                className="w-full py-1.5 px-3 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40"
               >
                 <Lock className="w-3.5 h-3.5 text-amber-600" />
                 <span>Encaisser (PIN Superviseur Requis)</span>
@@ -1273,7 +1273,7 @@ export default function POSPage() {
             <button
               onClick={() => setIsPaymentModalOpen(true)}
               disabled={cart.length === 0}
-              className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm text-white flex items-center justify-center gap-2 shadow-lg transition-all touch-press ${
+              className={`w-full py-3 px-4 rounded-2xl font-black text-xs sm:text-sm text-white flex items-center justify-center gap-2 shadow-lg transition-all touch-press ${
                 cart.length > 0
                   ? isFreeQuotaReached
                     ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/25"
