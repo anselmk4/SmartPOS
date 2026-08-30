@@ -710,13 +710,13 @@ export default function POSPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-61px)] overflow-hidden bg-slate-100">
+    <div className="flex-1 flex flex-col lg:flex-row h-[calc(100dvh-57px)] lg:h-[calc(100vh-61px)] min-h-0 overflow-hidden bg-slate-100">
       {/* ========================================================================= */}
       {/* LEFT: Product Catalog Grid                                               */}
       {/* ========================================================================= */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* Top Header: 1. Tariff Options on Top -> 2. Search & Categories Below */}
-        <div className="p-3 sm:p-3.5 bg-white border-b border-slate-200/90 shadow-2xs z-10 space-y-2.5">
+        <div className="shrink-0 p-3 sm:p-3.5 bg-white border-b border-slate-200/90 shadow-2xs z-10 space-y-2.5">
           {/* LIGNE 1 (AU-DESSUS) : Grilles Tarifaires */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -784,7 +784,7 @@ export default function POSPage() {
 
         {/* PROMINENT QUICK-ACCESS RIBBON FOR HELD ORDERS / ACTIVE BILLS */}
         {heldOrders.length > 0 && (
-          <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 text-white px-3 py-2 flex items-center gap-2 overflow-x-auto shadow-sm no-scrollbar z-10 animate-in slide-in-from-top-2">
+          <div className="shrink-0 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 text-white px-3 py-2 flex items-center gap-2 overflow-x-auto shadow-sm no-scrollbar z-10 animate-in slide-in-from-top-2">
             <div className="flex items-center gap-1.5 text-xs font-black shrink-0 pr-1 border-r border-amber-400/50">
               <Clock className="w-3.5 h-3.5" />
               <span>{heldOrders.length} Facture{heldOrders.length > 1 ? "s" : ""} en attente :</span>
@@ -810,7 +810,7 @@ export default function POSPage() {
         )}
 
         {/* Product Cards Grid */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
           {filteredProducts.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 py-12 text-center">
               <Package className="w-12 h-12 stroke-1 text-slate-300 mb-2" />
@@ -828,25 +828,25 @@ export default function POSPage() {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-3 sm:gap-4">
               {filteredProducts.map((p) => {
-                const inCart = cart.find((item) => item.product.id === p.id);
-                const isOutOfStock = p.stockQuantity <= 0;
                 const eff = calculateEffectiveProductPrice(p, tariffConfig, 1);
+                const isOutOfStock = p.stockQuantity <= 0;
 
                 return (
                   <button
                     key={p.id}
                     onClick={() => addToCart(p)}
-                    className={`bg-white rounded-2xl p-3 sm:p-3.5 border text-left flex flex-col justify-between transition-all relative overflow-hidden shadow-2xs hover:shadow-md touch-press group ${
-                      inCart
-                        ? "border-blue-500 ring-2 ring-blue-500/20"
-                        : "border-slate-200/80 hover:border-blue-300"
+                    disabled={isOutOfStock}
+                    className={`relative p-3 rounded-2xl border text-left transition-all flex flex-col justify-between group touch-press ${
+                      isOutOfStock
+                        ? "bg-slate-50 border-slate-200 opacity-50 cursor-not-allowed"
+                        : "bg-white border-slate-200/80 hover:border-blue-400 hover:shadow-md active:scale-98"
                     }`}
                   >
-                    {/* In-cart quantity badge */}
-                    {inCart && (
-                      <span className="absolute top-2 right-2 z-10 w-5 h-5 bg-blue-600 text-white rounded-full text-[10px] font-black flex items-center justify-center shadow-xs">
-                        {inCart.quantity}
-                      </span>
+                    {/* Badge if item in cart */}
+                    {cart.some((item) => item.product.id === p.id) && (
+                      <div className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-blue-600 text-white text-[11px] font-black flex items-center justify-center shadow-md z-10 animate-in zoom-in-50 duration-150">
+                        {cart.find((item) => item.product.id === p.id)?.quantity}
+                      </div>
                     )}
 
                     {/* Product Image / Icon */}
@@ -937,9 +937,9 @@ export default function POSPage() {
       {/* ========================================================================= */}
       {/* RIGHT: Modern Cart & Flexible Invoicing Checkout Panel                   */}
       {/* ========================================================================= */}
-      <div className="w-full lg:w-[400px] bg-white border-t lg:border-t-0 lg:border-l border-slate-200 flex flex-col shadow-xl z-20">
+      <div className="w-full lg:w-[380px] xl:w-[420px] bg-white border-t lg:border-t-0 lg:border-l border-slate-200 flex flex-col shadow-xl z-20 h-full min-h-0 overflow-hidden shrink-0">
         {/* Cart Header */}
-        <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+        <div className="shrink-0 p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-4 h-4 text-blue-600" />
             <h2 className="font-extrabold text-slate-900 text-sm">Panier & Facture</h2>
@@ -979,7 +979,7 @@ export default function POSPage() {
         </div>
 
         {/* Table / Reference / Customer Selector */}
-        <div className="p-3 border-b border-slate-100 bg-white space-y-2">
+        <div className="shrink-0 p-3 border-b border-slate-100 bg-white space-y-2">
           {/* Table / Ref Banner (if active) */}
           {tableOrLabel ? (
             <div className="flex items-center justify-between bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-xl text-xs">
@@ -1037,7 +1037,7 @@ export default function POSPage() {
         </div>
 
         {/* Cart Items List */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-2 max-h-56 lg:max-h-none">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
           {cart.length === 0 ? (
             heldOrders.length > 0 ? (
               <div className="space-y-2 py-1">
@@ -1160,7 +1160,7 @@ export default function POSPage() {
         </div>
 
         {/* Cart Financial Summary & Action Toolbar */}
-        <div className="p-3.5 bg-white border-t border-slate-200 space-y-3">
+        <div className="shrink-0 mt-auto p-3.5 bg-white border-t border-slate-200 space-y-3">
           {/* Subtotal, Discount & Total Net */}
           <div className="space-y-1 text-xs">
             <div className="flex items-center justify-between text-slate-500">
