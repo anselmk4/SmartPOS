@@ -9,7 +9,6 @@ import { Sidebar } from "@/components/navigation/sidebar";
 import { Navbar } from "@/components/navigation/navbar";
 import { SimulationBanner } from "@/components/navigation/simulation-banner";
 import { PWARegister } from "@/components/pwa/pwa-register";
-import { PlanMotivationCapsule } from "@/components/plans/plan-motivation-capsule";
 import { PlanPaymentGate } from "@/components/auth/plan-payment-gate";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -240,9 +239,6 @@ export default function RootLayout({
                     </main>
                   </div>
                 </div>
-
-                {/* Plan Motivation Floating Capsule */}
-                <PlanMotivationCapsule />
 
                 {/* PWA Service Worker & Install Manager */}
                 <PWARegister />

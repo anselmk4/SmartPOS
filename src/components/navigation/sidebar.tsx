@@ -6,6 +6,11 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSidebar } from "./sidebar-context";
 import { useRouter } from "next/navigation";
+import { useSync } from "@/lib/sync/sync-context";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/lib/db/dexie-db";
+import { PLAN_CONFIGS } from "@/lib/shared/types";
+import { getPlanPriceInfo } from "@/lib/constants/plans";
 import {
   ShoppingCart,
   BookOpen,
@@ -28,6 +33,7 @@ import {
   ShieldCheck,
   KeyRound,
   AlertTriangle,
+  ArrowRight,
 } from "lucide-react";
 import CashReconciliationModal from "@/components/pos/cash-reconciliation-modal";
 import ExportReportModal from "@/components/reports/export-report-modal";
@@ -53,6 +59,26 @@ export function Sidebar() {
     terminalUsers,
   } = useAuth();
   const { isCollapsed, toggleCollapse, isMobileOpen, setIsMobileOpen } = useSidebar();
+  const { rawCurrency } = useSync();
+
+  // Count sales made this month for quota check
+  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+  const monthlySalesCount =
+    useLiveQuery(
+      async () => {
+        if (!tenant?.id) return 0;
+        return await db.sales
+          .filter((s) => (s.tenantId === tenant.id || !s.tenantId) && s.createdAt >= startOfMonth)
+          .count();
+      },
+      [tenant?.id, startOfMonth]
+    ) || 0;
+
+  const currentPlanConfig = PLAN_CONFIGS[plan] || PLAN_CONFIGS.FREE;
+  const maxSales = currentPlanConfig.maxSalesPerMonth;
+  const percentUsed = maxSales ? Math.min(Math.round((monthlySalesCount / maxSales) * 100), 100) : 0;
+  const nextPlan = plan === "FREE" ? "BASIC" : plan === "BASIC" ? "PRO" : plan === "PRO" ? "BUSINESS" : null;
+  const nextPriceInfo = nextPlan ? getPlanPriceInfo(nextPlan, rawCurrency) : null;
 
   // Modals state
   const [isCashClosingOpen, setIsCashClosingOpen] = useState(false);
@@ -349,6 +375,75 @@ export function Sidebar() {
               <Crown className="w-4 h-4" />
             </button>
           )}
+        </div>
+      )}
+
+      {/* 2C. PLAN & QUOTA STATUS WIDGET (Directly under menus, above user profile) */}
+      {!isCollapsed ? (
+        <div className="p-3 border-t border-slate-100 bg-slate-50/60">
+          <div className="p-3 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white shadow-md border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between gap-1.5">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="block text-[11px] font-black text-white truncate leading-tight">
+                    Forfait {currentPlanConfig.name}
+                  </span>
+                  <span className="block text-[9px] text-slate-400 font-medium">
+                    {maxSales ? `${monthlySalesCount} / ${maxSales} ventes` : "Ventes illimitées"}
+                  </span>
+                </div>
+              </div>
+
+              <Link
+                href="/billing"
+                onClick={() => setIsMobileOpen(false)}
+                className="px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold shrink-0 transition-colors flex items-center gap-0.5"
+              >
+                <span>Gérer</span>
+                <ArrowRight className="w-2.5 h-2.5" />
+              </Link>
+            </div>
+
+            {maxSales ? (
+              <div className="space-y-1">
+                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all ${
+                      percentUsed > 80 ? "bg-amber-500" : "bg-gradient-to-r from-blue-500 to-emerald-400"
+                    }`}
+                    style={{ width: `${percentUsed}%` }}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {nextPlan && (
+              <div className="text-[10px] text-slate-300 flex items-center gap-1 leading-tight pt-1 border-t border-slate-800/80">
+                <Zap className="w-3 h-3 text-amber-400 shrink-0" />
+                <span className="truncate">
+                  {nextPlan === "BASIC" && `Basic : 1 000 ventes & 10 caissiers`}
+                  {nextPlan === "PRO" && `Pro : Ventes illimitées & WhatsApp`}
+                  {nextPlan === "BUSINESS" && `Business : Multi-Dépôts`}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="p-2 border-t border-slate-100 flex justify-center">
+          <Link
+            href="/billing"
+            className="w-10 h-10 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center hover:bg-slate-800 shadow-sm transition-all group relative"
+            title={`Forfait ${currentPlanConfig.name}`}
+          >
+            <Sparkles className="w-4 h-4" />
+            <span className="absolute left-full ml-2.5 px-2.5 py-1 bg-slate-900 text-white text-xs font-bold rounded-xl whitespace-nowrap shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+              Forfait {currentPlanConfig.name}
+            </span>
+          </Link>
         </div>
       )}
 
