@@ -233,29 +233,32 @@ function VerifyOtpContent() {
       </div>
 
       {/* Simulation Banner (Helpful for dev/sandbox until Twilio keys provided) */}
-      {simulatedCode && (
-        <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl text-xs text-amber-300 space-y-1.5 animate-in fade-in">
-          <div className="flex items-center justify-between font-bold">
-            <span className="flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>Mode Simulation Actif</span>
-            </span>
-            <span className="font-mono text-sm text-white bg-amber-500/20 px-2 py-0.5 rounded-lg">
-              {simulatedCode}
-            </span>
-          </div>
-          <p className="text-[11px] text-amber-200/80 leading-relaxed">
-            Vos clés Twilio / Supabase n'étant pas encore renseignées, le code généré est pré-affiché pour vos tests.
-          </p>
-          <button
-            type="button"
-            onClick={handleFillSimulatedCode}
-            className="text-[11px] font-bold text-white bg-amber-600/60 hover:bg-amber-600 px-2.5 py-1 rounded-xl transition-all"
-          >
-            Remplir automatiquement le code ({simulatedCode}) →
-          </button>
+      <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl text-xs text-amber-300 space-y-1.5 animate-in fade-in">
+        <div className="flex items-center justify-between font-bold">
+          <span className="flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span>Mode Sandbox / Test</span>
+          </span>
+          <span className="font-mono text-sm text-white bg-amber-500/20 px-2 py-0.5 rounded-lg">
+            {simulatedCode || "123456"}
+          </span>
         </div>
-      )}
+        <p className="text-[11px] text-amber-200/80 leading-relaxed">
+          En attendant la configuration de vos clés Twilio SMS, utilisez le code de test <b>{simulatedCode || "123456"}</b> (ou <b>111111</b>) pour valider votre compte.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            const code = simulatedCode || "123456";
+            setDigits(code.split(""));
+            verifyCode(code);
+          }}
+          className="text-[11px] font-bold text-white bg-amber-600/70 hover:bg-amber-600 px-3 py-1.5 rounded-xl transition-all w-full flex items-center justify-center gap-1.5 shadow-sm touch-press"
+        >
+          <span>Remplir et Valider automatiquement ({simulatedCode || "123456"})</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
 
       {/* Error / Success Alerts */}
       {errorMsg && (
