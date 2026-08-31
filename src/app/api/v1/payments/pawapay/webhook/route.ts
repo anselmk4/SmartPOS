@@ -1,10 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import type { SubscriptionPlan } from "@/lib/shared/types";
+import type { SubscriptionPlan, PaymentMethod } from "@/lib/shared/types";
 import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+function mapProviderToPaymentMethod(providerOrOp?: string | null): PaymentMethod {
+  if (!providerOrOp) return "MPESA";
+  const p = providerOrOp.toUpperCase();
+
+  if (p.includes("AIRTEL")) return "AIRTEL_MONEY";
+  if (p.includes("ORANGE")) return "ORANGE_MONEY";
+  if (p.includes("AFRICELL") || p.includes("AFRIMONEY")) return "AFRIMONEY";
+  if (p.includes("WAVE")) return "WAVE";
+  if (p.includes("MTN")) return "MTN_MOMO";
+  if (p.includes("MOOV")) return "MOOV_MONEY";
+  if (p.includes("MPESA") || p.includes("VODACOM")) return "MPESA";
+  if (p.includes("ILLICO")) return "ILLICOCASH";
+
+  return (providerOrOp as PaymentMethod) || "MPESA";
+}
 
 function getPawaPayWebhookSecret(): string {
   const secret = process.env.PAWAPAY_WEBHOOK_SECRET || process.env.PAWAPAY_API_KEY;
@@ -70,13 +86,14 @@ export async function POST(req: NextRequest) {
     let tenantId = metadata?.tenantId || customData?.tenantId;
     let plan = (metadata?.plan || customData?.plan || "PRO") as SubscriptionPlan;
 
-    // Handle array metadata format
+    // Handle array metadata format [{ tenantId: "..." }, { plan: "..." }]
     if (Array.isArray(metadata)) {
-      const tItem = metadata.find((m: any) => m.name === "tenantId" || m.fieldName === "tenantId");
-      if (tItem) tenantId = tItem.value || tItem.fieldValue;
-
-      const pItem = metadata.find((m: any) => m.name === "plan" || m.fieldName === "plan");
-      if (pItem) plan = (pItem.value || pItem.fieldValue || "PRO") as SubscriptionPlan;
+      for (const item of metadata) {
+        if (item.tenantId) tenantId = item.tenantId;
+        if (item.plan) plan = item.plan as SubscriptionPlan;
+        if (item.name === "tenantId" || item.fieldName === "tenantId") tenantId = item.value || item.fieldValue;
+        if (item.name === "plan" || item.fieldName === "plan") plan = (item.value || item.fieldValue) as SubscriptionPlan;
+      }
     }
 
     // Fallback: look up pending subscription by transactionId
@@ -89,6 +106,12 @@ export async function POST(req: NextRequest) {
         plan = pendingSub.plan;
       }
     }
+
+    const detectedProvider =
+      body.payer?.accountDetails?.provider ||
+      body.correspondent ||
+      body.provider;
+    const paymentMethod = mapProviderToPaymentMethod(detectedProvider);
 
     // If it's a deposit or checkout completion
     const currentStatus = String(status || event || "").toUpperCase();
@@ -109,19 +132,37 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Update subscription status if transactionId exists
+        // Update or create subscription record
         if (transactionId) {
-          await prisma.subscription.updateMany({
-            where: {
-              tenantId,
-              transactionId,
-            },
-            data: {
-              paymentStatus: "ACTIVE",
-              periodStart: now,
-              periodEnd,
-            },
+          const existingSub = await prisma.subscription.findFirst({
+            where: { transactionId },
           });
+
+          if (existingSub) {
+            await prisma.subscription.update({
+              where: { id: existingSub.id },
+              data: {
+                paymentStatus: "ACTIVE",
+                paymentMethod,
+                periodStart: now,
+                periodEnd,
+              },
+            });
+          } else {
+            await prisma.subscription.create({
+              data: {
+                tenantId,
+                plan,
+                amount: Number(body.amount || 0),
+                currency: body.currency || "CDF",
+                paymentMethod,
+                paymentStatus: "ACTIVE",
+                transactionId,
+                periodStart: now,
+                periodEnd,
+              },
+            });
+          }
         }
       } else if (
         currentStatus === "FAILED" ||
@@ -146,6 +187,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       received: true,
       processedStatus: currentStatus,
+      paymentMethod,
       transactionId,
     });
   } catch (error: any) {

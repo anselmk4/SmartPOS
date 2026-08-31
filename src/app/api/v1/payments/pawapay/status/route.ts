@@ -1,10 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkPawaPayDepositStatus } from "@/lib/payments/pawapay-client";
-import type { SubscriptionPlan } from "@/lib/shared/types";
+import type { SubscriptionPlan, PaymentMethod } from "@/lib/shared/types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+function mapProviderToPaymentMethod(providerOrOp?: string | null): PaymentMethod {
+  if (!providerOrOp) return "MPESA";
+  const p = providerOrOp.toUpperCase();
+
+  if (p.includes("AIRTEL")) return "AIRTEL_MONEY";
+  if (p.includes("ORANGE")) return "ORANGE_MONEY";
+  if (p.includes("AFRICELL") || p.includes("AFRIMONEY")) return "AFRIMONEY";
+  if (p.includes("WAVE")) return "WAVE";
+  if (p.includes("MTN")) return "MTN_MOMO";
+  if (p.includes("MOOV")) return "MOOV_MONEY";
+  if (p.includes("MPESA") || p.includes("VODACOM")) return "MPESA";
+  if (p.includes("ILLICO")) return "ILLICOCASH";
+
+  return (providerOrOp as PaymentMethod) || "MPESA";
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,6 +28,7 @@ export async function GET(req: NextRequest) {
     const depositId = searchParams.get("depositId");
     const tenantId = searchParams.get("tenantId");
     const plan = (searchParams.get("plan") || "PRO") as SubscriptionPlan;
+    const operatorParam = searchParams.get("operator");
 
     if (!depositId) {
       return NextResponse.json(
@@ -22,6 +39,16 @@ export async function GET(req: NextRequest) {
 
     const checkRes = await checkPawaPayDepositStatus(depositId);
     const status = String(checkRes.status || "").toUpperCase();
+
+    // Detect actual provider from PawaPay response data or client param
+    const detectedProvider =
+      checkRes.raw?.data?.payer?.accountDetails?.provider ||
+      checkRes.raw?.payer?.accountDetails?.provider ||
+      checkRes.raw?.data?.correspondent ||
+      checkRes.raw?.correspondent ||
+      operatorParam;
+
+    const paymentMethod = mapProviderToPaymentMethod(detectedProvider);
 
     const now = new Date();
     const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -49,6 +76,7 @@ export async function GET(req: NextRequest) {
               where: { id: existingSub.id },
               data: {
                 paymentStatus: "ACTIVE",
+                paymentMethod,
                 periodStart: now,
                 periodEnd,
               },
@@ -58,9 +86,9 @@ export async function GET(req: NextRequest) {
               data: {
                 tenantId,
                 plan,
-                amount: Number(checkRes.amount || 0),
-                currency: checkRes.currency || "CDF",
-                paymentMethod: "MPESA",
+                amount: Number(checkRes.amount || checkRes.raw?.data?.amount || 0),
+                currency: checkRes.currency || checkRes.raw?.data?.currency || "CDF",
+                paymentMethod,
                 paymentStatus: "ACTIVE",
                 transactionId: depositId,
                 periodStart: now,
@@ -78,6 +106,7 @@ export async function GET(req: NextRequest) {
         completed: true,
         failed: false,
         status,
+        paymentMethod,
         planExpiresAt: periodEnd.toISOString(),
         message: `Paiement Mobile Money confirmé ! Forfait ${plan} activé avec succès.`,
       });
@@ -116,6 +145,7 @@ export async function GET(req: NextRequest) {
       completed: false,
       failed: false,
       status,
+      paymentMethod,
       message: "En attente de saisie de votre code PIN sur votre mobile...",
     });
   } catch (error: any) {

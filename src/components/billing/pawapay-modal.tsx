@@ -116,7 +116,7 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
 
   const activeOp = countryConfig.operators.find((o) => o.id === selectedOperator) || countryConfig.operators[0];
 
-  const handleCompleteActivation = async (depositId: string, customMsg?: string) => {
+  const handleCompleteActivation = async (depositId: string, customMsg?: string, customPaymentMethod?: string) => {
     if (pollingRef.current) clearInterval(pollingRef.current);
     if (!tenant) return;
 
@@ -129,7 +129,7 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
         plan,
         amount: planAmount,
         currency: selectedCurrency,
-        paymentMethod: selectedOperator,
+        paymentMethod: (customPaymentMethod as PaymentMethod) || selectedOperator,
         paymentStatus: "ACTIVE",
         transactionId: depositId || `SUB-${Date.now()}`,
         periodStart: now,
@@ -154,14 +154,14 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
       const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
       const apiUrl = isNative
-        ? `${baseUrl}/api/v1/payments/pawapay/status?depositId=${depositId}&tenantId=${tenant.id}&plan=${plan}`
-        : `/api/v1/payments/pawapay/status?depositId=${depositId}&tenantId=${tenant.id}&plan=${plan}`;
+        ? `${baseUrl}/api/v1/payments/pawapay/status?depositId=${depositId}&tenantId=${tenant.id}&plan=${plan}&operator=${selectedOperator}`
+        : `/api/v1/payments/pawapay/status?depositId=${depositId}&tenantId=${tenant.id}&plan=${plan}&operator=${selectedOperator}`;
 
       const res = await fetch(apiUrl, { cache: "no-store" });
       const data = await res.json();
 
       if (data.completed) {
-        await handleCompleteActivation(depositId, data.message);
+        await handleCompleteActivation(depositId, data.message, data.paymentMethod);
       } else if (data.failed) {
         if (pollingRef.current) clearInterval(pollingRef.current);
         setErrorMessage(data.error || "Le paiement a été rejeté ou a échoué sur votre mobile.");
