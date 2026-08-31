@@ -147,21 +147,37 @@ export function Navbar() {
                         </span>
                       )}
 
-                      <Link
-                        href="/billing"
-                        className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border transition-all ${
-                          plan === "BUSINESS"
-                            ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
-                            : plan === "PRO"
-                            ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
-                            : plan === "BASIC"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                            : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
-                        }`}
-                        title="Changer de forfait"
-                      >
-                        {plan === "BUSINESS" ? "Business" : plan === "PRO" ? "Pro" : plan === "BASIC" ? "Basic" : "Gratuit"}
-                      </Link>
+                      {isOwner ? (
+                        <Link
+                          href="/billing"
+                          className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border transition-all ${
+                            plan === "BUSINESS"
+                              ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+                              : plan === "PRO"
+                              ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                              : plan === "BASIC"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                              : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
+                          }`}
+                          title="Changer de forfait"
+                        >
+                          {plan === "BUSINESS" ? "Business" : plan === "PRO" ? "Pro" : plan === "BASIC" ? "Basic" : "Gratuit"}
+                        </Link>
+                      ) : (
+                        <span
+                          className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                            plan === "BUSINESS"
+                              ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                              : plan === "PRO"
+                              ? "bg-blue-50 text-blue-700 border-blue-200"
+                              : plan === "BASIC"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-slate-100 text-slate-700 border-slate-200"
+                          }`}
+                        >
+                          {plan === "BUSINESS" ? "Business" : plan === "PRO" ? "Pro" : plan === "BASIC" ? "Basic" : "Gratuit"}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
@@ -174,6 +190,8 @@ export function Navbar() {
                           ? "Manager"
                           : user?.role === "CASHIER"
                           ? "Caissier"
+                          : user?.role === "WAITER"
+                          ? "Serveur(se)"
                           : "Utilisateur"}
                       </span>
                     </div>
@@ -232,7 +250,7 @@ export function Navbar() {
           {/* ========================================================= */}
           <div className="flex items-center gap-2 sm:gap-2.5">
             {/* Quick Actions for authenticated users on wide screens in dashboard */}
-            {isDashboardView && canAccess("canPerformCashClosing") && (
+            {isDashboardView && !isWaiter && canAccess("canPerformCashClosing") && (
               <button
                 onClick={() => setIsCashClosingOpen(true)}
                 className="hidden 2xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition-all"
@@ -281,8 +299,8 @@ export function Navbar() {
                   )}
                 </button>
 
-                {/* Restore Owner Button if in Simulation or Not Owner */}
-                {!isOwner && (
+                {/* Restore Owner Button if in Simulation */}
+                {isSimulating && (
                   <button
                     onClick={async () => {
                       const res = await restoreOwnerRole();

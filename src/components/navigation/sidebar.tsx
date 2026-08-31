@@ -48,6 +48,7 @@ export function Sidebar() {
     stores,
     isAuthenticated,
     isOwner,
+    isManager,
     isCashier,
     isWaiter,
     isSimulating,
@@ -164,7 +165,7 @@ export function Sidebar() {
       icon: User,
       color: "text-sky-600",
       bgActive: "bg-blue-600 text-white shadow-sm shadow-blue-500/25",
-      allowed: true,
+      allowed: !isWaiter,
     },
     {
       label: "Dépenses & Frais",
@@ -173,7 +174,7 @@ export function Sidebar() {
       icon: Wallet,
       color: "text-red-500",
       bgActive: "bg-blue-600 text-white shadow-sm shadow-blue-500/25",
-      allowed: isOwner || isManager,
+      allowed: !isWaiter && (isOwner || isManager),
     },
     {
       label: "Stocks & Articles",
@@ -182,7 +183,7 @@ export function Sidebar() {
       icon: Package,
       color: "text-indigo-600",
       bgActive: "bg-blue-600 text-white shadow-sm shadow-blue-500/25",
-      allowed: isOwner || isManager,
+      allowed: !isWaiter && (isOwner || isManager),
     },
     {
       label: "Bilan & Marges",
@@ -191,7 +192,7 @@ export function Sidebar() {
       icon: BarChart3,
       color: "text-emerald-600",
       bgActive: "bg-blue-600 text-white shadow-sm shadow-blue-500/25",
-      allowed: isOwner || isManager,
+      allowed: !isWaiter && (isOwner || isManager),
     },
     {
       label: "Espace Gérant",
@@ -200,7 +201,7 @@ export function Sidebar() {
       icon: Crown,
       color: "text-amber-500",
       bgActive: "bg-blue-600 text-white shadow-sm shadow-blue-500/25",
-      allowed: isOwner,
+      allowed: !isWaiter && isOwner,
     },
     {
       label: "Forfaits & SaaS",
@@ -209,7 +210,7 @@ export function Sidebar() {
       icon: Zap,
       color: "text-purple-600",
       bgActive: "bg-blue-600 text-white shadow-sm shadow-blue-500/25",
-      allowed: isOwner,
+      allowed: !isWaiter && isOwner,
     },
     {
       label: "Paramètres",
@@ -218,7 +219,7 @@ export function Sidebar() {
       icon: Settings,
       color: "text-slate-600",
       bgActive: "bg-blue-600 text-white shadow-sm shadow-blue-500/25",
-      allowed: isOwner || isManager,
+      allowed: !isWaiter && (isOwner || isManager),
     },
   ].filter((item) => item.allowed);
 
@@ -314,7 +315,7 @@ export function Sidebar() {
         })}
 
         {/* Quick Modals Shortcuts (Ticket Z & Export) */}
-        {!isCollapsed && (
+        {!isCollapsed && !isWaiter && (
           <div className="pt-4 mt-3 border-t border-slate-100 space-y-1.5">
             <div className="px-3 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
               Raccourcis Directs
@@ -349,8 +350,8 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* 2B. RESTORE OWNER PROMPT WHEN SIMULATING OR AS CASHIER */}
-      {!isOwner && (
+      {/* 2B. RESTORE OWNER PROMPT WHEN SIMULATING */}
+      {isSimulating && (
         <div className="p-2 border-t border-slate-100 bg-amber-50/40">
           {!isCollapsed ? (
             <button
@@ -379,7 +380,7 @@ export function Sidebar() {
       )}
 
       {/* 2C. PLAN & QUOTA STATUS WIDGET (Directly under menus, above user profile) */}
-      {!isCollapsed ? (
+      {!isCollapsed && !isWaiter ? (
         <div className="p-3 border-t border-slate-100 bg-slate-50/60">
           <div className="p-3 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white shadow-md border border-slate-800 space-y-2">
             <div className="flex items-center justify-between gap-1.5">
@@ -432,7 +433,7 @@ export function Sidebar() {
             )}
           </div>
         </div>
-      ) : (
+      ) : isCollapsed && !isWaiter ? (
         <div className="p-2 border-t border-slate-100 flex justify-center">
           <Link
             href="/billing"
@@ -445,7 +446,7 @@ export function Sidebar() {
             </span>
           </Link>
         </div>
-      )}
+      ) : null}
 
       {/* 3. Footer with Soft User Pill Card & Power Button (as in screenshot) */}
       <div className="p-3 border-t border-slate-100/80 bg-white">

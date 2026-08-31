@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
@@ -44,7 +45,7 @@ import {
 } from "lucide-react";
 
 function BillingPageContent() {
-  const { tenant, updateTenantPlan, cancelSubscription } = useAuth();
+  const { tenant, isOwner, updateTenantPlan, cancelSubscription } = useAuth();
   const { formatMoney, rawCurrency } = useSync();
   const searchParams = useSearchParams();
 
@@ -249,6 +250,28 @@ function BillingPageContent() {
       alert(res.message);
     }
   };
+
+  if (!isOwner) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6 bg-slate-100 min-h-[60vh]">
+        <div className="max-w-md w-full p-6 bg-white rounded-3xl border border-slate-200 shadow-sm text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900">Accès Réservé au Propriétaire</h3>
+          <p className="text-xs text-slate-500">
+            La gestion des forfaits et abonnements est réservée au Propriétaire du compte.
+          </p>
+          <Link
+            href="/pos"
+            className="inline-block py-2.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all"
+          >
+            Retourner à la Caisse
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12 font-sans">

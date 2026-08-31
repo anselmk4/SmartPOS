@@ -816,14 +816,18 @@ export default function POSPage() {
               <Package className="w-12 h-12 stroke-1 text-slate-300 mb-2" />
               <p className="font-bold text-slate-700 text-sm">Aucun article trouvé</p>
               <p className="text-xs text-slate-400 mt-1 max-w-xs">
-                Ajoutez des produits dans votre inventaire pour commencer à vendre.
+                {isWaiter
+                  ? "Aucun article n'est disponible pour la vente actuellement."
+                  : "Ajoutez des produits dans votre inventaire pour commencer à vendre."}
               </p>
-              <Link
-                href="/inventory"
-                className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
-              >
-                + Ajouter des Articles
-              </Link>
+              {!isWaiter && (isOwner || isManager) && (
+                <Link
+                  href="/inventory"
+                  className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+                >
+                  + Ajouter des Articles
+                </Link>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3.5">

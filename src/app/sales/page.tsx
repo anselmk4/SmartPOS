@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, DEFAULT_STORE_ID } from "@/lib/db/dexie-db";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -30,10 +31,11 @@ import {
   Utensils,
   ChevronDown,
   ShoppingBag,
+  Lock,
 } from "lucide-react";
 
 export default function SalesHistoryPage() {
-  const { user, tenant, store, stores, isAuthenticated, isLoading, isCashier } = useAuth();
+  const { user, tenant, store, stores, isAuthenticated, isLoading, isCashier, isWaiter } = useAuth();
   const { formatMoney, currency } = useSync();
 
   const currentStoreId = store?.id || DEFAULT_STORE_ID;
@@ -489,6 +491,28 @@ export default function SalesHistoryPage() {
 
   if (!isAuthenticated) {
     return <PinLockScreen title="Accès Réservé au Gérant" />;
+  }
+
+  if (isWaiter) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6 bg-slate-100">
+        <div className="max-w-md w-full p-6 bg-white rounded-3xl border border-slate-200 shadow-sm text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900">Accès Restreint</h3>
+          <p className="text-xs text-slate-500">
+            Le journal et l'historique des ventes sont réservés aux caissiers et gérants.
+          </p>
+          <Link
+            href="/pos"
+            className="inline-block py-2.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all"
+          >
+            Retourner à la Caisse
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (

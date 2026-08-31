@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, generateUUID, enqueueSync } from "@/lib/db/dexie-db";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -33,10 +34,11 @@ import {
   ShoppingBag,
   Clock,
   Filter,
+  Lock,
 } from "lucide-react";
 
 export default function CustomersPage() {
-  const { tenant, store, user, isAuthenticated, isLoading } = useAuth();
+  const { tenant, store, user, isAuthenticated, isLoading, isWaiter } = useAuth();
   const { formatMoney } = useSync();
 
   const currentTenantId = tenant?.id;
@@ -272,6 +274,28 @@ export default function CustomersPage() {
 
   if (!isAuthenticated) {
     return <PinLockScreen title="Gestion Clients Verrouillée" />;
+  }
+
+  if (isWaiter) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6 bg-slate-100">
+        <div className="max-w-md w-full p-6 bg-white rounded-3xl border border-slate-200 shadow-sm text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900">Accès Restreint</h3>
+          <p className="text-xs text-slate-500">
+            Le répertoire et la gestion des clients sont réservés aux caissiers et gérants.
+          </p>
+          <Link
+            href="/pos"
+            className="inline-block py-2.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all"
+          >
+            Retourner à la Caisse
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   const handleOpenCreate = () => {

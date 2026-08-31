@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, DEFAULT_STORE_ID, enqueueSync, generateUUID, updateStoreBranding, repairAndRestoreStandardProductPrices } from "@/lib/db/dexie-db";
@@ -104,6 +105,28 @@ export default function SettingsPage() {
 
   if (!isAuthenticated) {
     return <PinLockScreen title="Paramètres Verrouillés" />;
+  }
+
+  if (!isOwner && !isManager) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6 bg-slate-100">
+        <div className="max-w-md w-full p-6 bg-white rounded-3xl border border-slate-200 shadow-sm text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900">Accès Réservé au Gérant</h3>
+          <p className="text-xs text-slate-500">
+            Les réglages du commerce et la configuration sont réservés au Gérant ou Manager.
+          </p>
+          <Link
+            href="/pos"
+            className="inline-block py-2.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all"
+          >
+            Retourner à la Caisse
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   const handleCountryChange = (newCountryCode: string) => {

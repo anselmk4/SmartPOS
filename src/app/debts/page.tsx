@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, processDebtRepayment, DEFAULT_STORE_ID, generateUUID, enqueueSync } from "@/lib/db/dexie-db";
 import { useSync } from "@/lib/sync/sync-context";
@@ -31,7 +32,7 @@ import {
 } from "lucide-react";
 
 export default function DebtsPage() {
-  const { user, tenant, store: authStore, isAuthenticated, isLoading, plan, canAccess } = useAuth();
+  const { user, tenant, store: authStore, isAuthenticated, isLoading, isWaiter, plan, canAccess } = useAuth();
   const { formatMoney, currency } = useSync();
 
   const currentStoreId = authStore?.id || DEFAULT_STORE_ID;
@@ -197,6 +198,32 @@ export default function DebtsPage() {
     const msg = buildWhatsAppMessage(cust, template);
     return `https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`;
   };
+
+  if (!isAuthenticated) {
+    return <PinLockScreen title="Carnet de Dettes Verrouillé" />;
+  }
+
+  if (isWaiter) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6 bg-slate-100">
+        <div className="max-w-md w-full p-6 bg-white rounded-3xl border border-slate-200 shadow-sm text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900">Accès Restreint</h3>
+          <p className="text-xs text-slate-500">
+            Le carnet de dettes et le recouvrement sont réservés aux caissiers et gérants.
+          </p>
+          <Link
+            href="/pos"
+            className="inline-block py-2.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all"
+          >
+            Retourner à la Caisse
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 flex flex-col">
