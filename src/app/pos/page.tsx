@@ -59,6 +59,7 @@ import {
   Utensils,
   Layers,
   ArrowRight,
+  ArrowLeft,
   Mic2,
   Flame,
   ShieldAlert,
@@ -184,6 +185,7 @@ export default function POSPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("Tous");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [mobileTab, setMobileTab] = useState<"CATALOG" | "CART">("CATALOG");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [tableOrLabel, setTableOrLabel] = useState<string>("");
   const [discountType, setDiscountType] = useState<"PERCENT" | "FIXED">("PERCENT");
@@ -711,10 +713,44 @@ export default function POSPage() {
 
   return (
     <div className="flex-1 flex flex-col md:flex-row h-[calc(100dvh-56px)] md:h-[calc(100vh-56px)] max-h-[calc(100dvh-56px)] md:max-h-[calc(100vh-56px)] min-h-0 overflow-hidden bg-slate-100">
+      {/* MOBILE SEGMENTED TOGGLE (Switch between Catalogue & Panier on small screens) */}
+      <div className="md:hidden shrink-0 flex items-center p-1.5 bg-slate-200/90 border-b border-slate-300 gap-1.5 z-30">
+        <button
+          type="button"
+          onClick={() => setMobileTab("CATALOG")}
+          className={`flex-1 py-2 px-3 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all touch-press ${
+            mobileTab === "CATALOG"
+              ? "bg-white text-blue-700 shadow-sm ring-1 ring-slate-200"
+              : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <Package className="w-3.5 h-3.5" />
+          <span>Articles ({filteredProducts.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMobileTab("CART")}
+          className={`flex-1 py-2 px-3 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all relative touch-press ${
+            mobileTab === "CART"
+              ? "bg-white text-blue-700 shadow-sm ring-1 ring-slate-200"
+              : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <ShoppingBag className="w-3.5 h-3.5" />
+          <span>Panier & Caisse</span>
+          {totalItemsCount > 0 && (
+            <span className="px-1.5 py-0.2 rounded-full bg-blue-600 text-white text-[10px] font-black shadow-xs">
+              {totalItemsCount}
+            </span>
+          )}
+        </button>
+      </div>
+
       {/* ========================================================================= */}
       {/* LEFT: Product Catalog Grid                                               */}
       {/* ========================================================================= */}
-      <div className="flex-1 flex flex-col min-w-0 h-full max-h-full min-h-0 overflow-hidden">
+      <div className={`${mobileTab === "CATALOG" ? "flex" : "hidden"} md:flex flex-1 flex-col min-w-0 h-full max-h-full min-h-0 overflow-hidden relative`}>
         {/* Top Header: 1. Tariff Options on Top -> 2. Search & Categories Below */}
         <div className="shrink-0 p-2.5 sm:p-3 bg-white border-b border-slate-200/90 shadow-2xs z-10 space-y-2">
           {/* LIGNE 1 (AU-DESSUS) : Grilles Tarifaires */}
@@ -794,7 +830,10 @@ export default function POSPage() {
               {heldOrders.map((order) => (
                 <button
                   key={order.id}
-                  onClick={() => handleRestoreHeldOrder(order)}
+                  onClick={() => {
+                    handleRestoreHeldOrder(order);
+                    setMobileTab("CART");
+                  }}
                   className="bg-white/95 hover:bg-white text-slate-900 px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-2xs hover:scale-105 transition-all touch-press"
                   title="Cliquer pour charger et encaisser cette facture"
                 >
@@ -936,15 +975,47 @@ export default function POSPage() {
             </div>
           )}
         </div>
+
+        {/* Sticky Mobile Floating Cart Bar (Bottom of Catalog) */}
+        {cart.length > 0 && (
+          <div className="md:hidden shrink-0 p-2.5 bg-white border-t border-slate-200 shadow-xl flex items-center justify-between gap-3 z-30 animate-in slide-in-from-bottom-2">
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold text-slate-500 block uppercase tracking-wider">
+                {totalItemsCount} article{totalItemsCount > 1 ? "s" : ""} sélectionné{totalItemsCount > 1 ? "s" : ""}
+              </span>
+              <span className="text-sm font-black text-blue-700 font-mono">
+                {formatMoney(totalAmount)}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setMobileTab("CART")}
+              className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-md shadow-blue-600/25 flex items-center gap-1.5 touch-press shrink-0"
+            >
+              <span>Voir Panier & Encaisser</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ========================================================================= */}
       {/* RIGHT: Modern Cart & Flexible Invoicing Checkout Panel                   */}
       {/* ========================================================================= */}
-      <div className="w-full md:w-[360px] lg:w-[390px] xl:w-[420px] bg-white border-t md:border-t-0 md:border-l border-slate-200 flex flex-col shadow-xl z-20 h-full max-h-full min-h-0 overflow-hidden shrink-0">
+      <div className={`${mobileTab === "CART" ? "flex" : "hidden"} md:flex w-full md:w-[360px] lg:w-[390px] xl:w-[420px] bg-white border-t md:border-t-0 md:border-l border-slate-200 flex-col shadow-xl z-20 h-full max-h-full min-h-0 overflow-hidden shrink-0`}>
         {/* Cart Header */}
         <div className="shrink-0 p-2.5 sm:p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
           <div className="flex items-center gap-2">
+            {/* Mobile Back Button to Catalog */}
+            <button
+              type="button"
+              onClick={() => setMobileTab("CATALOG")}
+              className="md:hidden p-1.5 -ml-1 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl flex items-center gap-1 text-xs font-bold transition-colors"
+              title="Retour aux articles"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
             <ShoppingBag className="w-4 h-4 text-blue-600" />
             <h2 className="font-extrabold text-slate-900 text-sm">Panier & Facture</h2>
             {totalItemsCount > 0 && (
