@@ -21,6 +21,7 @@ import {
   Coins,
   ArrowDownCircle,
   RefreshCw,
+  Smartphone,
 } from "lucide-react";
 
 export function PlanPaymentGate({ children }: { children: React.ReactNode }) {
