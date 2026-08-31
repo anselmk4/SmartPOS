@@ -67,8 +67,28 @@ export async function POST(req: NextRequest) {
       metadata: metadata || customData,
     });
 
-    const tenantId = metadata?.tenantId || customData?.tenantId;
-    const plan = (metadata?.plan || customData?.plan || "PRO") as SubscriptionPlan;
+    let tenantId = metadata?.tenantId || customData?.tenantId;
+    let plan = (metadata?.plan || customData?.plan || "PRO") as SubscriptionPlan;
+
+    // Handle array metadata format
+    if (Array.isArray(metadata)) {
+      const tItem = metadata.find((m: any) => m.name === "tenantId" || m.fieldName === "tenantId");
+      if (tItem) tenantId = tItem.value || tItem.fieldValue;
+
+      const pItem = metadata.find((m: any) => m.name === "plan" || m.fieldName === "plan");
+      if (pItem) plan = (pItem.value || pItem.fieldValue || "PRO") as SubscriptionPlan;
+    }
+
+    // Fallback: look up pending subscription by transactionId
+    if (!tenantId && transactionId) {
+      const pendingSub = await prisma.subscription.findFirst({
+        where: { transactionId },
+      });
+      if (pendingSub) {
+        tenantId = pendingSub.tenantId;
+        plan = pendingSub.plan;
+      }
+    }
 
     // If it's a deposit or checkout completion
     const currentStatus = String(status || event || "").toUpperCase();

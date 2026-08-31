@@ -139,35 +139,38 @@ export function PlanPaymentGate({ children }: { children: React.ReactNode }) {
 
         {/* Actions */}
         <div className="space-y-3 pt-2">
-          {/* Notice */}
-          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold text-center">
-            Le paiement Mobile Money des forfaits payants est temporairement indisponible. Activez le Forfait Gratuit pour accéder immédiatement à votre caisse.
-          </div>
+          {/* Primary: Pay with Mobile Money */}
+          <button
+            type="button"
+            onClick={() => setIsPaymentModalOpen(true)}
+            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-sm shadow-xl shadow-blue-600/30 transition-all flex items-center justify-center gap-2 touch-press"
+          >
+            <Smartphone className="w-4 h-4 text-white" />
+            <span>Payer {priceInfo.formatted} par Mobile Money</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
 
-          {/* Primary: Continue with Free Plan */}
+          {/* Secondary: Continue with Free Plan */}
           <button
             type="button"
             onClick={handleDowngradeToFree}
             disabled={isDowngrading}
-            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm shadow-xl shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 touch-press"
+            className="w-full py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/15 text-slate-300 hover:text-white font-bold text-xs border border-white/10 transition-all flex items-center justify-center gap-2"
           >
             {isDowngrading ? (
               <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                 <span>Activation du Forfait Gratuit...</span>
               </>
             ) : (
-              <>
-                <ArrowRight className="w-4 h-4" />
-                <span>Continuer Immédiatement avec le Forfait Gratuit (0 FC)</span>
-              </>
+              <span>Ou continuer avec le Forfait Gratuit Découverte (0 FC)</span>
             )}
           </button>
         </div>
 
-        <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500 pt-1 text-center">
-          <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-          <span>Accès immédiat et sécurisé sans frais</span>
+        <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400 pt-1 text-center">
+          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>Paiement sécurisé crypté SSL via PawaPay</span>
         </div>
       </div>
 

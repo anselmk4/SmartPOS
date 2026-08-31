@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
 import { db } from "@/lib/db/dexie-db";
@@ -26,6 +26,8 @@ import {
   Crown,
   Sparkles,
   ChevronDown,
+  RefreshCw,
+  Clock,
 } from "lucide-react";
 
 interface PawaPayModalProps {
@@ -58,6 +60,17 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [currentDepositId, setCurrentDepositId] = useState<string | null>(null);
+  const [isCheckingStatus, setIsCheckingStatus] = useState<boolean>(false);
+
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Stop polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, []);
 
   // Sync country & currency whenever modal opens or tenant country updates
   useEffect(() => {
@@ -78,6 +91,8 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
       }
       setStep("FORM");
       setErrorMessage("");
+      setCurrentDepositId(null);
+      if (pollingRef.current) clearInterval(pollingRef.current);
     }
   }, [isOpen, tenant?.countryCode, tenant?.phone, defaultCountryCode]);
 
@@ -98,6 +113,66 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
   const planAmount = PLAN_PRICES[plan]?.[selectedCurrency] ?? (selectedCurrency === "USD" ? 11 : 30000);
   const currencySymbol =
     countryConfig.currencies.find((c) => c.code === selectedCurrency)?.symbol || selectedCurrency;
+
+  const activeOp = countryConfig.operators.find((o) => o.id === selectedOperator) || countryConfig.operators[0];
+
+  const handleCompleteActivation = async (depositId: string, customMsg?: string) => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    if (!tenant) return;
+
+    try {
+      const now = new Date().toISOString();
+      const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      await db.subscriptions.put({
+        id: depositId || `sub_${Date.now()}`,
+        tenantId: tenant.id,
+        plan,
+        amount: planAmount,
+        currency: selectedCurrency,
+        paymentMethod: selectedOperator,
+        paymentStatus: "ACTIVE",
+        transactionId: depositId || `SUB-${Date.now()}`,
+        periodStart: now,
+        periodEnd,
+        createdAt: now,
+      });
+    } catch (subErr) {
+      console.warn("[PawaPay] Local subscription save warning:", subErr);
+    }
+
+    await updateTenantPlan(plan);
+    setSuccessMessage(customMsg || `Félicitations ! Votre forfait ${plan} a été activé avec succès pour 30 jours.`);
+    setStep("SUCCESS");
+    if (onSuccess) onSuccess(plan);
+  };
+
+  const checkDepositStatus = async (depositId: string) => {
+    if (!tenant || !depositId) return;
+    setIsCheckingStatus(true);
+
+    try {
+      const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
+      const apiUrl = isNative
+        ? `${baseUrl}/api/v1/payments/pawapay/status?depositId=${depositId}&tenantId=${tenant.id}&plan=${plan}`
+        : `/api/v1/payments/pawapay/status?depositId=${depositId}&tenantId=${tenant.id}&plan=${plan}`;
+
+      const res = await fetch(apiUrl, { cache: "no-store" });
+      const data = await res.json();
+
+      if (data.completed) {
+        await handleCompleteActivation(depositId, data.message);
+      } else if (data.failed) {
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        setErrorMessage(data.error || "Le paiement a été rejeté ou a échoué sur votre mobile.");
+        setStep("ERROR");
+      }
+    } catch (checkErr) {
+      console.warn("[PawaPay Polling Check Error]:", checkErr);
+    } finally {
+      setIsCheckingStatus(false);
+    }
+  };
 
   const handleInitiatePayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,37 +213,25 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
         throw new Error(data.error || "Échec de l'initiation du paiement");
       }
 
-      // If activated instantly (simulation or instant confirmation)
-      if (data.activated) {
-        try {
-          const now = new Date().toISOString();
-          const periodEnd = data.planExpiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-          await db.subscriptions.put({
-            id: data.transactionId || `sub_${Date.now()}`,
-            tenantId: tenant.id,
-            plan,
-            amount: planAmount,
-            currency: selectedCurrency,
-            paymentMethod: selectedOperator,
-            paymentStatus: "ACTIVE",
-            transactionId: data.transactionId || `SUB-${Date.now()}`,
-            periodStart: now,
-            periodEnd,
-            createdAt: now,
-          });
-        } catch (subErr) {
-          console.warn("[PawaPay] Local subscription save error:", subErr);
-        }
+      const depositId = data.depositId || data.transactionId;
+      setCurrentDepositId(depositId);
 
-        await updateTenantPlan(plan);
-        setSuccessMessage(data.message || `Votre forfait ${plan} a été activé avec succès !`);
-        setStep("SUCCESS");
-        if (onSuccess) onSuccess(plan);
+      // If activated instantly
+      if (data.activated) {
+        await handleCompleteActivation(depositId, data.message);
       } else {
-        setSuccessMessage(
-          data.message || "Veuillez valider le paiement Mobile Money (Push USSD) sur votre téléphone."
-        );
-        setStep("SUCCESS");
+        // Start active polling every 3.5 seconds
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        let attempts = 0;
+        pollingRef.current = setInterval(async () => {
+          attempts++;
+          if (attempts > 40) {
+            // Stop polling after ~2.5 minutes
+            if (pollingRef.current) clearInterval(pollingRef.current);
+          } else {
+            await checkDepositStatus(depositId);
+          }
+        }, 3500);
       }
     } catch (err: any) {
       setErrorMessage(err.message || "Une erreur est survenue lors de l'initiation du paiement Mobile Money");
@@ -186,7 +249,10 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
         {/* Header */}
         <div className="p-5 sm:p-6 bg-slate-950 text-white relative flex-shrink-0">
           <button
-            onClick={onClose}
+            onClick={() => {
+              if (pollingRef.current) clearInterval(pollingRef.current);
+              onClose();
+            }}
             className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 text-slate-300 hover:text-white flex items-center justify-center transition-colors"
           >
             <X className="w-4 h-4" />
@@ -197,7 +263,7 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
               <Crown className="w-4 h-4" />
             </div>
             <span className="text-xs uppercase tracking-widest font-black text-blue-400">
-              Paiement Sécurisé Mobile Money
+              Paiement Sécurisé PawaPay
             </span>
           </div>
 
@@ -205,7 +271,7 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
             Souscription Forfait {plan === "BASIC" ? "Commerçant Basic" : plan === "PRO" ? "Commerçant Pro" : "Business Multi-Magasins"}
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 mt-1">
-            Activation instantanée par Mobile Money • Sans engagement
+            Débit Mobile Money instantané par invite USSD sécurisée
           </p>
         </div>
 
@@ -336,7 +402,7 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
               {/* Phone Number with VISIBLE LOCKED Country Prefix */}
               <div>
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2">
-                  {countryConfig.currencies.length > 1 ? "4." : "3."} Numéro de compte Mobile Money à débiter
+                  {countryConfig.currencies.length > 1 ? "4." : "3."} Numéro de compte {activeOp.name} à débiter
                 </label>
 
                 <div className="relative flex items-center rounded-2xl border border-slate-300 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600/20 bg-white overflow-hidden shadow-sm">
@@ -351,7 +417,7 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
                     type="tel"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder={`ex: ${countryConfig.operators[0]?.samplePrefix || "81"} 000 00 00`}
+                    placeholder={`ex: ${activeOp.samplePrefix.split(",")[0]?.trim() || "81"} 000 00 00`}
                     className="w-full px-3.5 py-3.5 text-slate-900 font-bold text-sm sm:text-base outline-none placeholder:text-slate-400 placeholder:font-normal"
                     required
                   />
@@ -368,46 +434,66 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
                   <span>{errorMessage}</span>
                 </div>
               )}
-              {/* Temporary Unavailability Notice */}
-              <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-start gap-2.5">
-                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold block text-amber-950">Paiement en ligne temporairement indisponible</span>
-                  <span>La passerelle Mobile Money est en cours de configuration finale (clés API en attente). Le paiement des forfaits payants est momentanément suspendu. Vous pouvez utiliser le Forfait Gratuit Découverte.</span>
-                </div>
-              </div>
 
               {/* Submit Button */}
               <button
-                type="button"
-                onClick={onClose}
-                className="w-full py-4 px-6 rounded-2xl bg-slate-200 text-slate-500 font-black text-sm transition-all flex items-center justify-center gap-2 cursor-not-allowed"
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-sm shadow-xl shadow-blue-600/30 transition-all flex items-center justify-center gap-2 touch-press"
               >
-                <span>Paiement Temporairement Indisponible</span>
+                {isSubmitting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Envoi de la demande de paiement...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Payer {planAmount.toLocaleString("fr-FR")} {currencySymbol} avec {activeOp.name}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
 
               <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500 pt-1">
-                <ShieldCheck className="w-4 h-4 text-amber-600" />
-                <span>Service temporairement suspendu en attendant les clés d'accès</span>
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Paiement sécurisé crypté SSL via passerelle PawaPay Pan-Africaine</span>
               </div>
             </form>
           )}
 
           {step === "PROCESSING" && (
-            <div className="py-12 text-center space-y-4">
-              <div className="w-16 h-16 rounded-3xl bg-blue-50 text-blue-600 mx-auto flex items-center justify-center animate-pulse">
+            <div className="py-8 text-center space-y-5">
+              <div className="w-16 h-16 rounded-3xl bg-blue-50 text-blue-600 mx-auto flex items-center justify-center animate-pulse shadow-lg shadow-blue-500/10">
                 <Smartphone className="w-8 h-8 text-blue-600 animate-bounce" />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <h3 className="text-lg sm:text-xl font-black text-slate-900">
                   Validation sur votre téléphone en cours...
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">
-                  Une invite de validation USSD / Mobile Money a été envoyée au <b>{countryConfig.callingCode} {phoneNumber}</b>.
+                <p className="text-xs sm:text-sm text-slate-600 max-w-sm mx-auto leading-relaxed">
+                  Une invite de validation USSD Push a été envoyée au <b>{countryConfig.callingCode} {phoneNumber}</b> ({activeOp.name}).
                 </p>
-                <p className="text-xs text-blue-600 font-bold">
-                  Tapez votre code secret Mobile Money sur votre combiné pour confirmer.
+                <div className="p-3 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold max-w-sm mx-auto">
+                  📱 Veuillez composer votre code secret Mobile Money sur votre combiné pour approuver le débit de <b>{planAmount.toLocaleString("fr-FR")} {currencySymbol}</b>.
+                </div>
+              </div>
+
+              {/* Status polling button */}
+              <div className="pt-2 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => currentDepositId && checkDepositStatus(currentDepositId)}
+                  disabled={isCheckingStatus}
+                  className="w-full py-3 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isCheckingStatus ? "animate-spin text-blue-400" : ""}`} />
+                  <span>{isCheckingStatus ? "Vérification en cours..." : "J'ai validé le code PIN sur mon téléphone"}</span>
+                </button>
+
+                <p className="text-[11px] text-slate-400 flex items-center justify-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  Vérification automatique active en temps réel...
                 </p>
               </div>
             </div>
@@ -421,7 +507,7 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
 
               <div className="space-y-1">
                 <h3 className="text-xl font-black text-slate-900">
-                  Paiement & Activation Confirmés !
+                  Paiement & Forfait Confirmés !
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 mt-2 max-w-sm mx-auto">
                   {successMessage}

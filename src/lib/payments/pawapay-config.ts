@@ -42,7 +42,7 @@ export const PAWAPAY_COUNTRY_CONFIGS: Record<string, CountryPaymentConfig> = {
       {
         id: "MPESA",
         name: "Vodacom M-Pesa",
-        correspondent: "MPESA_COD",
+        correspondent: "VODACOM_MPESA_COD",
         color: "#E60000",
         bgLight: "bg-red-50 border-red-200 text-red-700",
         textColor: "text-red-600",
@@ -371,7 +371,7 @@ export const PAWAPAY_COUNTRY_CONFIGS: Record<string, CountryPaymentConfig> = {
       {
         id: "AIRTEL_MONEY",
         name: "Airtel Money Uganda",
-        correspondent: "AIRTEL_UGA",
+        correspondent: "AIRTEL_OAPI_UGA",
         color: "#FF0000",
         bgLight: "bg-red-50 border-red-200 text-red-700",
         textColor: "text-red-600",
@@ -464,7 +464,7 @@ export const PAWAPAY_COUNTRY_CONFIGS: Record<string, CountryPaymentConfig> = {
       {
         id: "MTN_MOMO",
         name: "MTN MoMo Bénin",
-        correspondent: "MTN_BEN",
+        correspondent: "MTN_MOMO_BEN",
         color: "#FFCC00",
         bgLight: "bg-amber-50 border-amber-200 text-amber-700",
         textColor: "text-amber-600",

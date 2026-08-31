@@ -7,6 +7,7 @@ import {
   PLAN_PRICES,
 } from "@/lib/payments/pawapay-config";
 import type { SubscriptionPlan, PaymentMethod } from "@/lib/shared/types";
+import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -38,18 +39,21 @@ export async function POST(req: NextRequest) {
     }
 
     const countryConfig = getCountryPaymentConfig(countryCode);
-    const selectedOp = countryConfig.operators.find((o) => o.id === operator) || countryConfig.operators[0];
+    const selectedOp =
+      countryConfig.operators.find((o) => o.id === operator) || countryConfig.operators[0];
     const msisdn = formatToMsisdn(countryConfig.callingCode, rawPhoneNumber);
 
     // Calculate plan amount
     const planKey = (plan as SubscriptionPlan) || "PRO";
-    const expectedAmount = PLAN_PRICES[planKey]?.[currency] ?? (currency === "USD" ? 15 : 40000);
+    const expectedAmount =
+      PLAN_PRICES[planKey]?.[currency] ?? (currency === "USD" ? 11 : 30000);
 
-    const depositId = `SUB-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    // Generate valid UUID v4 for PawaPay deposit
+    const depositId = crypto.randomUUID();
     const now = new Date();
     const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days validity
 
-    // Initiate payment with PawaPay (or sandbox simulation)
+    // Initiate payment with PawaPay v2
     const pawaRes = await initiatePawaPayDeposit({
       depositId,
       amount: expectedAmount,
@@ -57,7 +61,6 @@ export async function POST(req: NextRequest) {
       country: countryConfig.pawapayCountry,
       correspondent: selectedOp.correspondent,
       phoneNumber: msisdn,
-      statementDescription: `Kuettu Global POS Forfait ${planKey}`,
       metadata: {
         tenantId,
         plan: planKey,
@@ -68,15 +71,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: pawaRes.error || "Le paiement Mobile Money a échoué. Veuillez réessayer.",
+          error: pawaRes.error || "Le paiement Mobile Money a été rejeté. Veuillez vérifier votre numéro.",
         },
         { status: 400 }
       );
     }
 
-    // If completed (or simulated), activate the tenant plan immediately
-    if (pawaRes.status === "COMPLETED" || pawaRes.isSimulated) {
-      // 1. Update Tenant in PostgreSQL
+    // If completed immediately
+    if (pawaRes.status === "COMPLETED") {
       try {
         await prisma.tenant.upsert({
           where: { id: tenantId },
@@ -100,7 +102,6 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // 2. Create Subscription log in PostgreSQL
         await prisma.subscription.create({
           data: {
             tenantId,
@@ -121,23 +122,43 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         activated: true,
-        isSimulated: pawaRes.isSimulated,
+        isSimulated: false,
         plan: planKey,
         planStatus: "ACTIVE",
         planExpiresAt: periodEnd.toISOString(),
         transactionId: pawaRes.pawapayReference || depositId,
-        message: pawaRes.message || `Félicitations ! Votre forfait ${planKey} est désormais actif pour 30 jours.`,
+        message: `Félicitations ! Votre forfait ${planKey} est désormais actif pour 30 jours.`,
       });
     }
 
-    // If asynchronous (Push USSD sent to customer phone)
+    // Asynchronous USSD Push (ACCEPTED or SUBMITTED)
+    // Save pending record so webhook or polling can easily match
+    try {
+      await prisma.subscription.create({
+        data: {
+          tenantId,
+          plan: planKey,
+          amount: expectedAmount,
+          currency,
+          paymentMethod: selectedOp.id as PaymentMethod,
+          paymentStatus: "PENDING",
+          transactionId: depositId,
+          periodStart: now,
+          periodEnd,
+        },
+      });
+    } catch (pendingErr: any) {
+      console.warn("[PawaPay Initiate] Pending subscription warning:", pendingErr.message);
+    }
+
     return NextResponse.json({
       success: true,
       activated: false,
       isSimulated: false,
       depositId,
-      transactionId: pawaRes.pawapayReference,
-      message: "Veuillez valider le paiement Mobile Money (Push USSD) sur votre téléphone.",
+      transactionId: pawaRes.pawapayReference || depositId,
+      status: pawaRes.status,
+      message: pawaRes.message || "Demande de paiement envoyée. Veuillez valider le code PIN sur votre téléphone.",
     });
   } catch (error: any) {
     console.error("[PawaPay Initiate Error]:", error);
