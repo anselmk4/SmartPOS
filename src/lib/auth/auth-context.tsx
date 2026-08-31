@@ -199,7 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (u && t && u.isActive) {
             // If this is the main owner user and their role got switched to cashier/waiter, restore OWNER role
             const totalUsersInTenant = await db.users.where("tenantId").equals(t.id).count();
-            const isTenantOwnerName = t.ownerName && u.name && t.ownerName.trim().toLowerCase() === u.name.trim().toLowerCase();
+            const isTenantOwnerName = s?.ownerName && u.name && s.ownerName.trim().toLowerCase() === u.name.trim().toLowerCase();
             if ((totalUsersInTenant <= 1 || isTenantOwnerName) && u.role !== "OWNER") {
               u = { ...u, role: "OWNER", updatedAt: new Date().toISOString() };
               await db.users.put(u);
