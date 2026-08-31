@@ -40,17 +40,34 @@ export async function GET(req: NextRequest) {
             },
           });
 
-          await prisma.subscription.updateMany({
-            where: {
-              tenantId,
-              transactionId: depositId,
-            },
-            data: {
-              paymentStatus: "ACTIVE",
-              periodStart: now,
-              periodEnd,
-            },
+          const existingSub = await prisma.subscription.findFirst({
+            where: { transactionId: depositId },
           });
+
+          if (existingSub) {
+            await prisma.subscription.update({
+              where: { id: existingSub.id },
+              data: {
+                paymentStatus: "ACTIVE",
+                periodStart: now,
+                periodEnd,
+              },
+            });
+          } else {
+            await prisma.subscription.create({
+              data: {
+                tenantId,
+                plan,
+                amount: Number(checkRes.amount || 0),
+                currency: checkRes.currency || "CDF",
+                paymentMethod: "MPESA",
+                paymentStatus: "ACTIVE",
+                transactionId: depositId,
+                periodStart: now,
+                periodEnd,
+              },
+            });
+          }
         } catch (dbErr: any) {
           console.warn("[PawaPay Status Check] DB update error:", dbErr.message);
         }

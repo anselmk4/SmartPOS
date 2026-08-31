@@ -132,25 +132,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Asynchronous USSD Push (ACCEPTED or SUBMITTED)
-    // Save pending record so webhook or polling can easily match
-    try {
-      await prisma.subscription.create({
-        data: {
-          tenantId,
-          plan: planKey,
-          amount: expectedAmount,
-          currency,
-          paymentMethod: selectedOp.id as PaymentMethod,
-          paymentStatus: "PENDING",
-          transactionId: depositId,
-          periodStart: now,
-          periodEnd,
-        },
-      });
-    } catch (pendingErr: any) {
-      console.warn("[PawaPay Initiate] Pending subscription warning:", pendingErr.message);
-    }
-
     return NextResponse.json({
       success: true,
       activated: false,
