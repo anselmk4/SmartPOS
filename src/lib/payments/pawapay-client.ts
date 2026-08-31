@@ -30,12 +30,16 @@ export interface PawaPayStatusResponse {
   raw?: any;
 }
 
-const PAWAPAY_API_TOKEN = process.env.PAWAPAY_API_TOKEN || "";
-const PAWAPAY_ENV = process.env.PAWAPAY_ENVIRONMENT || "sandbox"; // 'sandbox' | 'production'
-const PAWAPAY_BASE_URL =
-  PAWAPAY_ENV === "production"
+function getPawaPayBaseUrl(): string {
+  const env = process.env.PAWAPAY_ENVIRONMENT || "sandbox";
+  return env === "production"
     ? "https://api.pawapay.io"
     : "https://api.sandbox.pawapay.io";
+}
+
+function getPawaPayToken(): string {
+  return (process.env.PAWAPAY_API_TOKEN || "").trim();
+}
 
 /**
  * Initiates a Mobile Money payment deposit through PawaPay v2 API
@@ -54,22 +58,23 @@ export async function initiatePawaPayDeposit(
   } = params;
 
   // 1. Check API Token
-  const token = PAWAPAY_API_TOKEN.trim();
+  const token = getPawaPayToken();
   if (!token || token.length < 10) {
     console.warn("[PawaPay Client] ⚠️ PAWAPAY_API_TOKEN manquant");
     return {
       depositId,
       status: "FAILED",
       isSimulated: false,
-      error: "Clé API PawaPay non configurée. Veuillez renseigner PAWAPAY_API_TOKEN.",
+      error: "Clé API PawaPay non configurée sur le serveur. Veuillez définir PAWAPAY_API_TOKEN dans les variables d'environnement.",
     };
   }
 
   // 2. Real PawaPay v2 API Call
   try {
+    // In PawaPay v2, metadata must be an array of unique-key objects like [{ tenantId: "..." }, { plan: "PRO" }]
     const metaArray = metadata
-      ? Object.entries(metadata).map(([k, v]) => ({ name: k, value: String(v) }))
-      : [{ name: "plan", value: "PRO" }];
+      ? Object.entries(metadata).map(([k, v]) => ({ [k]: String(v) }))
+      : [{ plan: "PRO" }];
 
     const payload = {
       depositId,
@@ -85,7 +90,8 @@ export async function initiatePawaPayDeposit(
       metadata: metaArray,
     };
 
-    console.log(`[PawaPay Client] Calling POST ${PAWAPAY_BASE_URL}/v2/deposits`, {
+    const baseUrl = getPawaPayBaseUrl();
+    console.log(`[PawaPay Client] Calling POST ${baseUrl}/v2/deposits`, {
       depositId,
       amount,
       currency,
@@ -93,7 +99,7 @@ export async function initiatePawaPayDeposit(
       phoneNumber,
     });
 
-    const res = await fetch(`${PAWAPAY_BASE_URL}/v2/deposits`, {
+    const res = await fetch(`${baseUrl}/v2/deposits`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -105,7 +111,7 @@ export async function initiatePawaPayDeposit(
     const data = await res.json();
 
     if (!res.ok) {
-      console.error("[PawaPay API Error]:", res.status, data);
+      console.error("[PawaPay API Error Response]:", res.status, data);
       const errMsg =
         data.failureReason?.failureMessage ||
         data.errorMessage ||
@@ -151,7 +157,7 @@ export async function initiatePawaPayDeposit(
 export async function checkPawaPayDepositStatus(
   depositId: string
 ): Promise<PawaPayStatusResponse> {
-  const token = PAWAPAY_API_TOKEN.trim();
+  const token = getPawaPayToken();
   if (!token) {
     return {
       depositId,
@@ -161,7 +167,8 @@ export async function checkPawaPayDepositStatus(
   }
 
   try {
-    const res = await fetch(`${PAWAPAY_BASE_URL}/v2/deposits/${depositId}`, {
+    const baseUrl = getPawaPayBaseUrl();
+    const res = await fetch(`${baseUrl}/v2/deposits/${depositId}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
