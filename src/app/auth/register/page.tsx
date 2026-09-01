@@ -163,7 +163,7 @@ function RegisterForm() {
       countryCode,
       currency,
       pinCode: pinCode.trim(),
-      plan: "FREE",
+      plan: selectedPlan,
       captchaToken: captchaState.captchaToken,
       captchaAnswer: captchaState.captchaAnswer,
       honeypot: captchaState.honeypot,
@@ -175,12 +175,16 @@ function RegisterForm() {
         const query = new URLSearchParams();
         if (phone.trim()) query.set("phone", phone.trim());
         if (email.trim()) query.set("email", email.trim());
-        query.set("plan", "FREE");
+        query.set("plan", selectedPlan);
         if (res.verificationMethod) query.set("method", res.verificationMethod);
         if (res.simCode) query.set("simCode", res.simCode);
         router.push(`/auth/verify?${query.toString()}`);
       } else {
-        router.push("/pos");
+        if (selectedPlan !== "FREE") {
+          router.push(`/billing?plan=${selectedPlan}&checkout=true&required=true`);
+        } else {
+          router.push("/pos");
+        }
       }
     } else {
       setErrorMsg(res.message);
