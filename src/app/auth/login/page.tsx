@@ -223,13 +223,20 @@ export default function LoginPage() {
           <div>
             {!selectedStaffId ? (
               /* Staff Selection List */
-              <div className="space-y-3 mb-4">
-                <div className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                  <Users className="w-4 h-4 text-blue-600" />
-                  <span>Sélectionnez votre profil :</span>
+              <div className="space-y-2.5 mb-4">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 px-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-blue-600" />
+                    <span>Sélectionnez votre profil :</span>
+                  </div>
+                  {terminalUsers.length > 0 && (
+                    <span className="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded-full border border-blue-200">
+                      {terminalUsers.length} profil{terminalUsers.length > 1 ? "s" : ""}
+                    </span>
+                  )}
                 </div>
 
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-[55vh] sm:max-h-[360px] overflow-y-auto overscroll-contain pr-1 touch-pan-y scrollbar-thin scrollbar-thumb-slate-300">
                   {terminalUsers.length > 0 ? (
                     terminalUsers.map((u) => (
                       <button
@@ -240,30 +247,36 @@ export default function LoginPage() {
                           setPinCode("");
                           setErrorMsg(null);
                         }}
-                        className="w-full p-3 rounded-2xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 bg-white transition-all text-left flex items-center justify-between group touch-press shadow-sm"
+                        className="w-full p-2.5 sm:p-3 rounded-2xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 bg-white transition-all text-left flex items-center justify-between group touch-press shadow-xs active:scale-[0.99]"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-sm flex items-center justify-center shadow-sm">
+                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-xs sm:text-sm flex items-center justify-center shadow-xs shrink-0">
                             {u.name.slice(0, 2).toUpperCase()}
                           </div>
-                          <div>
-                            <div className="font-bold text-slate-900 text-sm group-hover:text-blue-700">
+                          <div className="min-w-0">
+                            <div className="font-bold text-slate-900 text-xs sm:text-sm group-hover:text-blue-700 truncate">
                               {u.name}
                             </div>
-                            <div className="text-[11px] text-slate-500 mt-0.5">
+                            <div className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5">
                               {getRoleBadge(u.role)}
                             </div>
                           </div>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
                       </button>
                     ))
                   ) : (
-                    <div className="text-center py-6 text-slate-400 text-xs">
+                    <div className="text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-2xl border border-slate-100">
                       Aucun caissier configuré sur cette boutique.
                     </div>
                   )}
                 </div>
+
+                {terminalUsers.length > 3 && (
+                  <div className="text-center text-[10px] text-slate-400 font-medium pt-1">
+                    ↓ Faites défiler pour voir tous les utilisateurs ({terminalUsers.length})
+                  </div>
+                )}
               </div>
             ) : (
               /* Selected Staff Keypad */

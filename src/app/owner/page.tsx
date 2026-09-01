@@ -365,40 +365,40 @@ export default function OwnerSupervisionPage() {
         </div>
 
         {/* Demo Quick Role Switcher */}
-        <div className="bg-white/10 backdrop-blur p-3 rounded-2xl border border-white/10 flex flex-col gap-1.5 shrink-0">
+        <div className="bg-white/10 backdrop-blur p-3 rounded-2xl border border-white/10 flex flex-col gap-1.5 shrink-0 w-full sm:w-auto">
           <span className="text-[10px] uppercase font-bold text-slate-300 tracking-wider">
             Rôle Actif (Simulation) :
           </span>
-          <div className="flex items-center gap-1 flex-wrap">
+          <div className="grid grid-cols-3 gap-1 w-full">
             <button
               onClick={() => switchRole("OWNER")}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all text-center ${
                 role === "OWNER"
                   ? "bg-blue-600 text-white shadow-md"
                   : "bg-white/10 text-slate-300 hover:bg-white/20"
               }`}
             >
-              Propriétaire (Gérant)
+              Gérant
             </button>
             <button
               onClick={() => switchRole("CASHIER")}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all text-center ${
                 role === "CASHIER"
                   ? "bg-blue-600 text-white shadow-md"
                   : "bg-white/10 text-slate-300 hover:bg-white/20"
               }`}
             >
-              Caissier (Encaissement)
+              Caissier
             </button>
             <button
               onClick={() => switchRole("WAITER")}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all text-center ${
                 role === "WAITER"
                   ? "bg-purple-600 text-white shadow-md"
                   : "bg-white/10 text-slate-300 hover:bg-white/20"
               }`}
             >
-              Serveur(se) (Prise de commande)
+              Serveur
             </button>
           </div>
         </div>
