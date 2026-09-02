@@ -423,6 +423,7 @@ export async function POST(req: NextRequest) {
               where: { id: data.id },
               update: {
                 name: data.name,
+                businessType: data.businessType !== undefined ? data.businessType : undefined,
                 plan: data.plan,
                 planStatus: data.planStatus,
                 phone: data.phone,
@@ -432,6 +433,7 @@ export async function POST(req: NextRequest) {
                 id: data.id,
                 name: data.name,
                 slug: data.slug || data.name.toLowerCase().replace(/[^a-z0-9]/g, "-"),
+                businessType: data.businessType || undefined,
                 countryCode: data.countryCode || "CD",
                 currency: data.currency || "CDF",
                 plan: data.plan || "PRO",
@@ -447,6 +449,7 @@ export async function POST(req: NextRequest) {
               where: { id: data.id },
               update: {
                 name: data.name,
+                businessType: data.businessType !== undefined ? data.businessType : undefined,
                 currency: data.currency ?? "CDF",
                 phone: data.phone,
                 address: data.address,
@@ -457,6 +460,7 @@ export async function POST(req: NextRequest) {
                 id: data.id,
                 tenantId: data.tenantId || tenantId,
                 name: data.name,
+                businessType: data.businessType || undefined,
                 currency: data.currency || "CDF",
                 phone: data.phone,
                 address: data.address,
@@ -547,7 +551,7 @@ export async function POST(req: NextRequest) {
     if (isDbConnected && lastPulledAt) {
       try {
         const pullSince = new Date(lastPulledAt);
-        const [updatedProducts, updatedCustomers, updatedSales, updatedPayments] =
+        const [updatedProducts, updatedCustomers, updatedSales, updatedPayments, updatedTenant, updatedStores] =
           await Promise.all([
             prisma.product.findMany({
               where: { tenantId, storeId, updatedAt: { gt: pullSince } },
@@ -568,9 +572,26 @@ export async function POST(req: NextRequest) {
             prisma.debtPayment.findMany({
               where: { tenantId, storeId, updatedAt: { gt: pullSince } },
             }),
+            prisma.tenant.findUnique({
+              where: { id: tenantId },
+            }),
+            prisma.store.findMany({
+              where: { tenantId },
+            }),
           ]);
 
         updates = {
+          tenant: updatedTenant ? {
+            ...updatedTenant,
+            createdAt: updatedTenant.createdAt.toISOString(),
+            updatedAt: updatedTenant.updatedAt.toISOString(),
+            planExpiresAt: updatedTenant.planExpiresAt ? updatedTenant.planExpiresAt.toISOString() : undefined,
+          } as any : undefined,
+          stores: updatedStores ? updatedStores.map((s) => ({
+            ...s,
+            createdAt: s.createdAt.toISOString(),
+            updatedAt: s.updatedAt.toISOString(),
+          })) : undefined,
           products: updatedProducts.map((p) => ({
             ...p,
             createdAt: p.createdAt.toISOString(),

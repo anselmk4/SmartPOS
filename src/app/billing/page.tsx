@@ -59,6 +59,7 @@ function BillingPageContent() {
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   const [displayCurrency, setDisplayCurrency] = useState<string>(rawCurrency || "CDF");
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [cloudSubscriptions, setCloudSubscriptions] = useState<Subscription[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [selectedInvoiceSubscription, setSelectedInvoiceSubscription] = useState<Subscription | null>(null);
@@ -175,7 +176,7 @@ function BillingPageContent() {
         "Caisses et caissiers illimités (PIN dédié)",
         "Carnet de dettes clients illimité",
         "Bilan Personnalisé & Synthèse Fiscale A4",
-        "Tarifs Dynamiques (Karaoké +500FC & Promos)",
+        "Tarifs Dynamiques (Soirée Karaoké & Promos)",
         "Factures en attente & Additions serveurs",
         "Filtres de dates & Classement du personnel",
         "Calcul des marges nettes & bénéfice en direct",
@@ -218,7 +219,7 @@ function BillingPageContent() {
     { title: "Calcul des marges & bénéfice net en direct", free: false, basic: false, pro: true, biz: true },
     { title: "Supervision Gérant sur smartphone", free: false, basic: false, pro: true, biz: true },
     { title: "Bilan Personnalisé & Synthèse Fiscale Déclarative", free: false, basic: false, pro: true, biz: true },
-    { title: "Moteur Tarifs Dynamiques (Karaoké & Promos)", free: false, basic: false, pro: true, biz: true },
+    { title: "Moteur Tarifs Dynamiques (Soirée Karaoké & Promos)", free: false, basic: false, pro: true, biz: true },
     { title: "Multi-Commerces & Dépôts connectés", free: "1 seul", basic: "1 seul", pro: "1 seul", biz: "Jusqu'à 10 points" },
     { title: "Transferts de stock inter-magasins", free: false, basic: false, pro: false, biz: true },
     { title: "Gestion de la Paie & Bulletins de Salaire", free: false, basic: false, pro: false, biz: true },
@@ -645,28 +646,60 @@ function BillingPageContent() {
           Payez instantanément par <b>M-Pesa</b>, <b>Airtel Money</b>, <b>Orange Money</b>, <b>MTN MoMo</b> ou <b>Wave</b> selon votre devise locale.
         </p>
 
-        {/* Currency Switcher */}
-        <div className="flex flex-wrap items-center justify-center gap-1.5 p-1 bg-slate-100 rounded-2xl text-xs font-bold w-fit mx-auto mt-4">
-          {[
-            { code: "CDF", label: "🇨🇩 Franc Congolais (FC)" },
-            { code: "USD", label: "🇺🇸 Dollar US ($)" },
-            { code: "XOF", label: "🇸🇳/🇨🇮 Franc CFA (XOF)" },
-            { code: "XAF", label: "🇨🇲/🇬🇦 Franc CFA (XAF)" },
-            { code: "GNF", label: "🇬🇳 Franc Guinéen (FG)" },
-          ].map((c) => (
+        {/* Controls: Billing Cycle & Currency Switcher */}
+        <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
+          {/* Billing Cycle Pill */}
+          <div className="inline-flex items-center p-1 rounded-2xl border bg-slate-100 border-slate-200">
             <button
-              key={c.code}
               type="button"
-              onClick={() => setDisplayCurrency(c.code)}
-              className={`px-3 py-1.5 rounded-xl transition-all ${
-                displayCurrency === c.code
+              onClick={() => setBillingCycle("monthly")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                billingCycle === "monthly"
                   ? "bg-white text-slate-900 shadow-sm"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              {c.label}
+              Paiement Mensuel
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={() => setBillingCycle("annual")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                billingCycle === "annual"
+                  ? "bg-emerald-600 text-white font-black shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <span>Annuel</span>
+              <span className="text-[10px] bg-emerald-950 text-emerald-300 px-1.5 py-0.5 rounded-full font-bold">
+                2 mois offerts
+              </span>
+            </button>
+          </div>
+
+          {/* Currency Switcher */}
+          <div className="flex flex-wrap items-center justify-center gap-1 p-1 bg-slate-100 border border-slate-200 rounded-2xl text-xs font-bold">
+            {[
+              { code: "CDF", label: "🇨🇩 FC" },
+              { code: "USD", label: "🇺🇸 $" },
+              { code: "XOF", label: "🇸🇳/🇨🇮 XOF" },
+              { code: "XAF", label: "🇨🇲/🇬🇦 XAF" },
+              { code: "GNF", label: "🇬🇳 FG" },
+            ].map((c) => (
+              <button
+                key={c.code}
+                type="button"
+                onClick={() => setDisplayCurrency(c.code)}
+                className={`px-3 py-2 rounded-xl transition-all ${
+                  displayCurrency === c.code
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -674,6 +707,13 @@ function BillingPageContent() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {plans.map((p) => {
           const isCurrent = currentPlan === p.id && !isCancelled;
+          const isAnnual = billingCycle === "annual";
+          const displayPrice =
+            p.id === "FREE"
+              ? p.priceInfo.formatted
+              : isAnnual
+              ? `${(p.priceInfo.amount * 10).toLocaleString()} ${displayCurrency}`
+              : p.priceInfo.formatted;
 
           return (
             <div
@@ -703,10 +743,14 @@ function BillingPageContent() {
 
                 <div className="mt-3 mb-6">
                   <div className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">
-                    {p.priceInfo.formatted}
+                    {displayPrice}
                   </div>
                   <span className="text-xs text-slate-400 block mt-0.5">
-                    {p.id === "FREE" ? "Gratuit à vie" : "Facturé chaque mois"}
+                    {p.id === "FREE"
+                      ? "Gratuit à vie"
+                      : isAnnual
+                      ? "Facturé chaque année (2 mois offerts)"
+                      : "Facturé chaque mois"}
                   </span>
                 </div>
 
@@ -824,9 +868,10 @@ function BillingPageContent() {
             }
           }}
           plan={selectedPlanToBuy}
+          billingCycle={billingCycle}
           onSuccess={() => {
             setSelectedPlanToBuy(null);
-            setSuccessToast(`Félicitations ! Votre forfait ${selectedPlanToBuy} est désormais actif.`);
+            setSuccessToast(`Félicitations ! Votre forfait ${selectedPlanToBuy} (${billingCycle === "annual" ? "Annuel" : "Mensuel"}) est désormais actif.`);
             setTimeout(() => {
               window.location.href = "/pos";
             }, 1200);

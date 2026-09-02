@@ -34,10 +34,11 @@ interface PawaPayModalProps {
   isOpen: boolean;
   onClose: () => void;
   plan: SubscriptionPlan;
+  billingCycle?: "monthly" | "annual";
   onSuccess?: (plan: SubscriptionPlan) => void;
 }
 
-export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalProps) {
+export function PawaPayModal({ isOpen, onClose, plan, billingCycle = "monthly", onSuccess }: PawaPayModalProps) {
   const { tenant, updateTenantPlan } = useAuth();
   const { countryCode: defaultCountryCode } = useSync();
 
@@ -110,7 +111,11 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
 
   if (!isOpen) return null;
 
-  const planAmount = PLAN_PRICES[plan]?.[selectedCurrency] ?? (selectedCurrency === "USD" ? 11 : 30000);
+  const isAnnual = billingCycle === "annual";
+  const durationDays = isAnnual ? 365 : 30;
+  const rawBaseAmount = PLAN_PRICES[plan]?.[selectedCurrency] ?? (selectedCurrency === "USD" ? 13 : 30000);
+  const planAmount = isAnnual ? rawBaseAmount * 10 : rawBaseAmount;
+
   const currencySymbol =
     countryConfig.currencies.find((c) => c.code === selectedCurrency)?.symbol || selectedCurrency;
 
@@ -122,7 +127,7 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
 
     try {
       const now = new Date().toISOString();
-      const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const periodEnd = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString();
       await db.subscriptions.put({
         id: depositId || `sub_${Date.now()}`,
         tenantId: tenant.id,
@@ -141,7 +146,7 @@ export function PawaPayModal({ isOpen, onClose, plan, onSuccess }: PawaPayModalP
     }
 
     await updateTenantPlan(plan);
-    setSuccessMessage(customMsg || `Félicitations ! Votre forfait ${plan} a été activé avec succès pour 30 jours.`);
+    setSuccessMessage(customMsg || `Félicitations ! Votre forfait ${plan} a été activé avec succès pour ${isAnnual ? "1 an (12 mois)" : "30 jours"}.`);
     setStep("SUCCESS");
     if (onSuccess) onSuccess(plan);
   };

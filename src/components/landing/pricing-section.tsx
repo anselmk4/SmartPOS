@@ -76,7 +76,7 @@ export default function PricingSection() {
         "Ventes & Transactions ILLIMITÉES",
         "Caisses & Caissiers ILLIMITÉS (PIN)",
         "Bilan Personnalisé & Synthèse Fiscale A4",
-        "Tarifs Dynamiques (Karaoké +500FC & Promos)",
+        "Tarifs Dynamiques (Soirée Karaoké & Promos)",
         "Factures en attente & Additions serveurs",
         "Filtres de dates & Classement personnel",
         "Calcul des marges nettes & bénéfices réels",

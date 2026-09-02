@@ -82,6 +82,26 @@ export function Sidebar() {
   const nextPlan = plan === "FREE" ? "BASIC" : plan === "BASIC" ? "PRO" : plan === "PRO" ? "BUSINESS" : null;
   const nextPriceInfo = nextPlan ? getPlanPriceInfo(nextPlan, rawCurrency) : null;
 
+  // Reactively resolve business activity type across browsers, stores, and tenants
+  const liveBusinessType =
+    useLiveQuery(async () => {
+      if (store?.businessType) return store.businessType;
+      if (tenant?.businessType) return tenant.businessType;
+      if (store?.id) {
+        const s = await db.stores.get(store.id);
+        if (s?.businessType) return s.businessType;
+      }
+      if (tenant?.id) {
+        const t = await db.tenants.get(tenant.id);
+        if (t?.businessType) return t.businessType;
+      }
+      const firstStore = await db.stores.first();
+      if (firstStore?.businessType) return firstStore.businessType;
+      const firstTenant = await db.tenants.first();
+      if (firstTenant?.businessType) return firstTenant.businessType;
+      return null;
+    }, [store?.id, store?.businessType, tenant?.id, tenant?.businessType]) || store?.businessType || tenant?.businessType;
+
   // Modals state
   const [isCashClosingOpen, setIsCashClosingOpen] = useState(false);
   const [isExportReportOpen, setIsExportReportOpen] = useState(false);
@@ -277,15 +297,15 @@ export function Sidebar() {
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 no-scrollbar">
         {!isCollapsed && (
           <div className="space-y-2 mb-2">
-            {(store?.businessType || tenant?.businessType) && (
+            {liveBusinessType && (
               <div className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50/70 border border-blue-100/90 rounded-2xl flex items-center gap-2 shadow-xs">
                 <div className="w-5 h-5 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
                   <Briefcase className="w-3 h-3" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-[9px] font-extrabold uppercase text-blue-500 tracking-wider">Activité</div>
-                  <div className="text-[11px] font-bold text-slate-800 truncate" title={store?.businessType || tenant?.businessType}>
-                    {store?.businessType || tenant?.businessType}
+                  <div className="text-[11px] font-bold text-slate-800 truncate" title={liveBusinessType}>
+                    {liveBusinessType}
                   </div>
                 </div>
               </div>

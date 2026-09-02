@@ -368,6 +368,7 @@ export interface SyncPushResponse {
     expenses?: Expense[];
     users?: User[];
     tenant?: Tenant;
+    stores?: Store[];
   };
 }
 
