@@ -263,3 +263,79 @@ export function calculateCartItemSubtotal(
     tariffApplied: "NORMAL",
   };
 }
+
+/**
+ * Détermine avec précision si un commerce est strictement un Bar, Restaurant, Lounge, Pub ou Fast-Food (HORECA).
+ * Exclut formellement les imprimeries, cybercafés, quincailleries, alimentations, boutiques, etc.
+ */
+export function isHorecaBusiness(businessType?: string | null): boolean {
+  if (!businessType) return false;
+  const bt = businessType.toLowerCase().trim();
+
+  // Exclusions explicites pour commerces non-HORECA
+  if (
+    bt.includes("cyber") ||
+    bt.includes("imprimerie") ||
+    bt.includes("sérigraphie") ||
+    bt.includes("serigraphie") ||
+    bt.includes("coiffure") ||
+    bt.includes("barbier") ||
+    bt.includes("esthétique") ||
+    bt.includes("esthetique") ||
+    bt.includes("quincaillerie") ||
+    bt.includes("pharmacie") ||
+    bt.includes("médical") ||
+    bt.includes("medical") ||
+    bt.includes("prêt-à-porter") ||
+    bt.includes("pret-a-porter") ||
+    bt.includes("habillement") ||
+    bt.includes("chaussure") ||
+    bt.includes("bijouterie") ||
+    bt.includes("électronique") ||
+    bt.includes("electronique") ||
+    bt.includes("librairie") ||
+    bt.includes("papeterie") ||
+    bt.includes("meuble") ||
+    bt.includes("blanchisserie") ||
+    bt.includes("pressing") ||
+    bt.includes("alimentation") ||
+    bt.includes("superette") ||
+    bt.includes("supérette") ||
+    bt.includes("épicerie") ||
+    bt.includes("epicerie") ||
+    bt.includes("optique") ||
+    bt.includes("auto") ||
+    bt.includes("moto")
+  ) {
+    return false;
+  }
+
+  // Mots-clés stricts de Restauration, Bars, Lounges et Boîtes de nuit
+  const horecaKeywords = [
+    "restaurant",
+    "fast-food",
+    "fastfood",
+    "bar, lounge",
+    "bar & lounge",
+    "lounge",
+    "pub & terrasse",
+    "pub",
+    "terrasse",
+    "snack",
+    "brasserie",
+    "karaoke",
+    "karaoké",
+    "discothèque",
+    "discotheque",
+    "night-club",
+    "nightclub",
+    "boîte de nuit",
+    "boite de nuit",
+  ];
+
+  return (
+    horecaKeywords.some((k) => bt.includes(k)) ||
+    /\b(bar|resto|restaurant|lounge|pub|snack)\b/i.test(bt)
+  );
+}
+

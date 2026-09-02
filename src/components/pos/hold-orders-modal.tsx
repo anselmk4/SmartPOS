@@ -17,6 +17,8 @@ import {
   Receipt,
 } from "lucide-react";
 
+import { isHorecaBusiness } from "@/lib/constants/tariffs";
+
 interface HoldOrdersModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -50,25 +52,7 @@ export function HoldOrdersModal({
   const [searchQuery, setSearchQuery] = useState("");
 
   const isHorecaOrDepot = useMemo(() => {
-    if (!businessType) return false;
-    const lower = businessType.toLowerCase();
-    return (
-      lower.includes("restaurant") ||
-      lower.includes("bar") ||
-      lower.includes("lounge") ||
-      lower.includes("pub") ||
-      lower.includes("terrasse") ||
-      lower.includes("café") ||
-      lower.includes("cafe") ||
-      lower.includes("snack") ||
-      lower.includes("fastfood") ||
-      lower.includes("fast-food") ||
-      lower.includes("traiteur") ||
-      lower.includes("boisson") ||
-      lower.includes("depot") ||
-      lower.includes("dépôt") ||
-      lower.includes("brasserie")
-    );
+    return isHorecaBusiness(businessType);
   }, [businessType]);
 
   if (!isOpen) return null;

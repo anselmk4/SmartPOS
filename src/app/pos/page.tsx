@@ -17,6 +17,7 @@ import {
   calculateEffectiveProductPrice,
   calculateCartItemSubtotal,
   isDrinkCategory,
+  isHorecaBusiness,
 } from "@/lib/constants/tariffs";
 import type {
   Product,
@@ -171,29 +172,7 @@ function POSPageContent() {
     "";
 
   const isHoreca = useMemo(() => {
-    const bt = activeBusinessType.toLowerCase();
-    return (
-      bt.includes("restaurant") ||
-      bt.includes("bar") ||
-      bt.includes("lounge") ||
-      bt.includes("pub") ||
-      bt.includes("terrasse") ||
-      bt.includes("café") ||
-      bt.includes("cafe") ||
-      bt.includes("snack") ||
-      bt.includes("fastfood") ||
-      bt.includes("fast-food") ||
-      bt.includes("traiteur") ||
-      bt.includes("boisson") ||
-      bt.includes("brasserie") ||
-      bt.includes("karaoke") ||
-      bt.includes("karaoké") ||
-      bt.includes("boîte") ||
-      bt.includes("boite") ||
-      bt.includes("night-club") ||
-      bt.includes("discothèque") ||
-      bt.includes("discotheque")
-    );
+    return isHorecaBusiness(activeBusinessType);
   }, [activeBusinessType]);
 
   // Quota Découverte: 100 sales / month
