@@ -453,16 +453,27 @@ export default function OwnerSupervisionPage() {
   };
 
   const handlePrintPaySlip = async (p: PayrollRecord) => {
-    const storeName = store?.name || tenant?.name || "Kuettu Global POS";
-    const storeLogo = store?.logoUrl || tenant?.logoUrl;
+    const storeName = authStore?.name || tenant?.name || "Kuettu Global POS";
+    const storeLogo = authStore?.logoUrl || tenant?.logoUrl;
     const dateStr = new Date(p.paidAt || p.createdAt).toLocaleDateString("fr-FR");
+
+    let bonusRow = "";
+    if (p.bonuses > 0) {
+      bonusRow = '<tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 8px;"><b>Primes de Rendement & Avantages</b></td><td style="padding: 10px 8px; text-align: right; color: #15803d; font-weight: bold;">+' + formatMoney(p.bonuses) + '</td><td style="padding: 10px 8px; text-align: right; color: #94a3b8;">-</td></tr>';
+    }
+
+    let deductionRow = "";
+    if (p.deductions > 0) {
+      deductionRow = '<tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 8px;"><b>Avances sur Salaire & Retenues</b></td><td style="padding: 10px 8px; text-align: right; color: #94a3b8;">-</td><td style="padding: 10px 8px; text-align: right; color: #b91c1c; font-weight: bold;">-' + formatMoney(p.deductions) + '</td></tr>';
+    }
+
+    const logoHtml = storeLogo ? '<img src="' + storeLogo + '" alt="' + storeName + '" style="max-height: 50px; max-width: 160px; object-fit: contain; margin-bottom: 6px;" />' : '';
 
     const bodyHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #0f172a; max-width: 800px; margin: 0 auto; padding: 20px;">
-        <!-- Header -->
         <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 14px; margin-bottom: 20px;">
           <div>
-            ${storeLogo ? `<img src="${storeLogo}" alt="${storeName}" style="max-height: 50px; max-width: 160px; object-fit: contain; margin-bottom: 6px;" />` : ""}
+            ${logoHtml}
             <h1 style="font-size: 20px; font-weight: 900; margin: 0; text-transform: uppercase;">${storeName}</h1>
             <p style="margin: 2px 0; font-size: 11px; color: #475569;">Direction des Ressources Humaines & Paie</p>
           </div>
@@ -474,7 +485,6 @@ export default function OwnerSupervisionPage() {
           </div>
         </div>
 
-        <!-- Employee Info Card -->
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 12px;">
           <div>
             <span style="font-size: 10px; color: #64748b; font-weight: bold; text-transform: uppercase;">Salarié(e) :</span>
@@ -488,7 +498,6 @@ export default function OwnerSupervisionPage() {
           </div>
         </div>
 
-        <!-- Salary Lines Table -->
         <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px;">
           <thead>
             <tr style="background: #f1f5f9; color: #0f172a; text-align: left; border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1;">
@@ -503,20 +512,8 @@ export default function OwnerSupervisionPage() {
               <td style="padding: 10px 8px; text-align: right; font-weight: bold;">${formatMoney(p.baseSalary)}</td>
               <td style="padding: 10px 8px; text-align: right; color: #94a3b8;">-</td>
             </tr>
-            ${p.bonuses > 0 ? `
-              <tr style="border-bottom: 1px solid #f1f5f9;">
-                <td style="padding: 10px 8px;"><b>Primes de Rendement & Avantages</b></td>
-                <td style="padding: 10px 8px; text-align: right; color: #15803d; font-weight: bold;">+${formatMoney(p.bonuses)}</td>
-                <td style="padding: 10px 8px; text-align: right; color: #94a3b8;">-</td>
-              </tr>
-            ` : ""}
-            ${p.deductions > 0 ? `
-              <tr style="border-bottom: 1px solid #f1f5f9;">
-                <td style="padding: 10px 8px;"><b>Avances sur Salaire & Retenues</b></td>
-                <td style="padding: 10px 8px; text-align: right; color: #94a3b8;">-</td>
-                <td style="padding: 10px 8px; text-align: right; color: #b91c1c; font-weight: bold;">-${formatMoney(p.deductions)}</td>
-              </tr>
-            ` : ""}
+            ${bonusRow}
+            ${deductionRow}
             <tr style="background: #f8fafc; border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a;">
               <td style="padding: 12px 8px; font-weight: 900; font-size: 13px; text-transform: uppercase;">NET À PAYER AU SALARIÉ</td>
               <td colspan="2" style="padding: 12px 8px; text-align: right; font-weight: 900; font-size: 15px; color: #1e3a8a;">${formatMoney(p.netSalary)}</td>
@@ -524,7 +521,6 @@ export default function OwnerSupervisionPage() {
           </tbody>
         </table>
 
-        <!-- Signatures -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 30px; margin-bottom: 30px;">
           <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; height: 90px; text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
             <span style="font-size: 10px; font-weight: bold; color: #64748b;">Signature de l'Employé(e)</span>
@@ -922,6 +918,10 @@ export default function OwnerSupervisionPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+      </div>
+
       {/* Staff Payroll & Fiches de Paie (Multi-Store / Business Plan) */}
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
