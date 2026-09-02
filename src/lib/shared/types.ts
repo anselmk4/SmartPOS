@@ -89,6 +89,8 @@ export interface Tenant {
   phone?: string;
   email?: string;
   address?: string;
+  nifNumber?: string;
+  rccmNumber?: string;
   countryCode: string;
   currency: string; // CDF, USD, XOF, XAF, GNF, RWF, EUR, etc.
   plan: SubscriptionPlan;
@@ -139,6 +141,8 @@ export interface Store {
   phone?: string;
   email?: string;
   address?: string;
+  nifNumber?: string;
+  rccmNumber?: string;
   ownerName?: string;
   managerId?: string;
   managerName?: string;
