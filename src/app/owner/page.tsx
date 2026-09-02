@@ -8,7 +8,8 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
 import { UpgradePromptModal } from "@/components/plans/upgrade-prompt-modal";
-import type { User, UserRole, Store } from "@/lib/shared/types";
+import type { User, UserRole, Store, PayrollRecord, LeaveRecord } from "@/lib/shared/types";
+import { printIsolatedDocument } from "@/lib/native/print-service";
 import {
   ShieldAlert,
   Users,
@@ -33,6 +34,11 @@ import {
   Edit2,
   Trash2,
   X,
+  FileSpreadsheet,
+  Calendar,
+  Award,
+  Printer,
+  FileCheck,
 } from "lucide-react";
 
 export default function OwnerSupervisionPage() {
@@ -95,9 +101,36 @@ export default function OwnerSupervisionPage() {
   const [assignNewPhone, setAssignNewPhone] = useState("");
   const [assignNewPin, setAssignNewPin] = useState("1234");
 
+  // Payroll Form State
+  const [isAddPayrollModalOpen, setIsAddPayrollModalOpen] = useState(false);
+  const [payrollUserId, setPayrollUserId] = useState("");
+  const [payrollMonth, setPayrollMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [payrollBaseSalary, setPayrollBaseSalary] = useState<number>(150000);
+  const [payrollBonus, setPayrollBonus] = useState<number>(0);
+  const [payrollDeductions, setPayrollDeductions] = useState<number>(0);
+  const [payrollNotes, setPayrollNotes] = useState("");
+
+  // Leave Form State
+  const [isAddLeaveModalOpen, setIsAddLeaveModalOpen] = useState(false);
+  const [leaveUserId, setLeaveUserId] = useState("");
+  const [leaveType, setLeaveType] = useState<"ANNUAL" | "SICK" | "MATERNITY" | "UNPAID" | "OTHER">("ANNUAL");
+  const [leaveStartDate, setLeaveStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [leaveEndDate, setLeaveEndDate] = useState(new Date().toISOString().split("T")[0]);
+  const [leaveReason, setLeaveReason] = useState("");
+
   const users = useLiveQuery(async () => {
     if (!currentTenantId) return [];
     return await db.users.filter((u) => u.tenantId === currentTenantId || !u.tenantId).toArray();
+  }, [currentTenantId]) || [];
+
+  const payrollRecords = useLiveQuery(async () => {
+    if (!currentTenantId) return [];
+    return await db.payrollRecords.filter((p) => p.tenantId === currentTenantId).reverse().sortBy("createdAt");
+  }, [currentTenantId]) || [];
+
+  const leaveRecords = useLiveQuery(async () => {
+    if (!currentTenantId) return [];
+    return await db.leaveRecords.filter((l) => l.tenantId === currentTenantId).reverse().sortBy("createdAt");
   }, [currentTenantId]) || [];
 
   const allProducts = useLiveQuery(() => db.products.toArray()) || [];
@@ -344,6 +377,176 @@ export default function OwnerSupervisionPage() {
     } catch (err: any) {
       alert("Erreur attribution gérant : " + err.message);
     }
+  };
+
+  const handleCreatePayrollRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!payrollUserId) {
+      alert("Veuillez sélectionner un employé.");
+      return;
+    }
+
+    const employee = users.find((u) => u.id === payrollUserId);
+    const assignedStore = stores.find((st) => st.id === employee?.storeId) || authStore;
+    const netSalary = Math.max(0, Number(payrollBaseSalary) + Number(payrollBonus) - Number(payrollDeductions));
+
+    const record: PayrollRecord = {
+      id: generateUUID(),
+      tenantId: currentTenantId,
+      storeId: assignedStore?.id || currentStoreId,
+      userId: payrollUserId,
+      userName: employee?.name || "Employé",
+      userRole: employee?.role || "CASHIER",
+      month: payrollMonth,
+      baseSalary: Number(payrollBaseSalary),
+      bonuses: Number(payrollBonus),
+      deductions: Number(payrollDeductions),
+      netSalary,
+      status: "PAID",
+      paidAt: new Date().toISOString(),
+      notes: payrollNotes.trim() || undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await db.payrollRecords.add(record);
+    setIsAddPayrollModalOpen(false);
+    setPayrollNotes("");
+    setPayrollBonus(0);
+    setPayrollDeductions(0);
+  };
+
+  const handleCreateLeaveRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!leaveUserId) {
+      alert("Veuillez sélectionner un employé.");
+      return;
+    }
+
+    const employee = users.find((u) => u.id === leaveUserId);
+    const assignedStore = stores.find((st) => st.id === employee?.storeId) || authStore;
+
+    const start = new Date(leaveStartDate);
+    const end = new Date(leaveEndDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const daysCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    const record: LeaveRecord = {
+      id: generateUUID(),
+      tenantId: currentTenantId,
+      storeId: assignedStore?.id || currentStoreId,
+      userId: leaveUserId,
+      userName: employee?.name || "Employé",
+      leaveType,
+      startDate: leaveStartDate,
+      endDate: leaveEndDate,
+      daysCount: Math.max(1, daysCount),
+      status: "APPROVED",
+      reason: leaveReason.trim() || undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await db.leaveRecords.add(record);
+    setIsAddLeaveModalOpen(false);
+    setLeaveReason("");
+  };
+
+  const handlePrintPaySlip = async (p: PayrollRecord) => {
+    const storeName = store?.name || tenant?.name || "Kuettu Global POS";
+    const storeLogo = store?.logoUrl || tenant?.logoUrl;
+    const dateStr = new Date(p.paidAt || p.createdAt).toLocaleDateString("fr-FR");
+
+    const bodyHtml = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #0f172a; max-width: 800px; margin: 0 auto; padding: 20px;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 14px; margin-bottom: 20px;">
+          <div>
+            ${storeLogo ? `<img src="${storeLogo}" alt="${storeName}" style="max-height: 50px; max-width: 160px; object-fit: contain; margin-bottom: 6px;" />` : ""}
+            <h1 style="font-size: 20px; font-weight: 900; margin: 0; text-transform: uppercase;">${storeName}</h1>
+            <p style="margin: 2px 0; font-size: 11px; color: #475569;">Direction des Ressources Humaines & Paie</p>
+          </div>
+          <div style="text-align: right;">
+            <div style="background: #eff6ff; color: #1e3a8a; padding: 6px 14px; border-radius: 6px; font-weight: 900; font-size: 13px; border: 1px solid #bfdbfe; display: inline-block;">
+              BULLETIN DE PAIE • ${p.month}
+            </div>
+            <p style="margin: 4px 0 2px 0; font-size: 11px; color: #64748b;">Date de règlement : <b>${dateStr}</b></p>
+          </div>
+        </div>
+
+        <!-- Employee Info Card -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 12px;">
+          <div>
+            <span style="font-size: 10px; color: #64748b; font-weight: bold; text-transform: uppercase;">Salarié(e) :</span>
+            <div style="font-size: 14px; font-weight: bold; color: #0f172a; margin-top: 2px;">${p.userName}</div>
+            <div style="font-size: 11px; color: #475569; margin-top: 2px;">Poste : <b>${p.userRole}</b></div>
+          </div>
+          <div>
+            <span style="font-size: 10px; color: #64748b; font-weight: bold; text-transform: uppercase;">Magasin d'Affectation :</span>
+            <div style="font-size: 13px; font-weight: bold; color: #0f172a; margin-top: 2px;">${storeName}</div>
+            <div style="font-size: 11px; color: #15803d; font-weight: bold; margin-top: 2px;">Statut : Payé / Soldé</div>
+          </div>
+        </div>
+
+        <!-- Salary Lines Table -->
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px;">
+          <thead>
+            <tr style="background: #f1f5f9; color: #0f172a; text-align: left; border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1;">
+              <th style="padding: 10px 8px;">Désignation</th>
+              <th style="padding: 10px 8px; width: 140px; text-align: right;">Gains</th>
+              <th style="padding: 10px 8px; width: 140px; text-align: right;">Retenues</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 10px 8px;"><b>Salaire de Base Conventionnel</b></td>
+              <td style="padding: 10px 8px; text-align: right; font-weight: bold;">${formatMoney(p.baseSalary)}</td>
+              <td style="padding: 10px 8px; text-align: right; color: #94a3b8;">-</td>
+            </tr>
+            ${p.bonuses > 0 ? `
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px 8px;"><b>Primes de Rendement & Avantages</b></td>
+                <td style="padding: 10px 8px; text-align: right; color: #15803d; font-weight: bold;">+${formatMoney(p.bonuses)}</td>
+                <td style="padding: 10px 8px; text-align: right; color: #94a3b8;">-</td>
+              </tr>
+            ` : ""}
+            ${p.deductions > 0 ? `
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px 8px;"><b>Avances sur Salaire & Retenues</b></td>
+                <td style="padding: 10px 8px; text-align: right; color: #94a3b8;">-</td>
+                <td style="padding: 10px 8px; text-align: right; color: #b91c1c; font-weight: bold;">-${formatMoney(p.deductions)}</td>
+              </tr>
+            ` : ""}
+            <tr style="background: #f8fafc; border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a;">
+              <td style="padding: 12px 8px; font-weight: 900; font-size: 13px; text-transform: uppercase;">NET À PAYER AU SALARIÉ</td>
+              <td colspan="2" style="padding: 12px 8px; text-align: right; font-weight: 900; font-size: 15px; color: #1e3a8a;">${formatMoney(p.netSalary)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Signatures -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 30px; margin-bottom: 30px;">
+          <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; height: 90px; text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
+            <span style="font-size: 10px; font-weight: bold; color: #64748b;">Signature de l'Employé(e)</span>
+            <div style="border-bottom: 1px dashed #cbd5e1; width: 60%; margin: 0 auto;"></div>
+          </div>
+          <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; height: 90px; text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
+            <span style="font-size: 10px; font-weight: bold; color: #64748b;">Signature & Cachet de l'Employeur</span>
+            <div style="border-bottom: 1px dashed #cbd5e1; width: 60%; margin: 0 auto;"></div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; text-align: center; font-size: 9px; color: #94a3b8;">
+          Document édité par Kuettu Global POS • Gestion des Ressources Humaines
+        </div>
+      </div>
+    `;
+
+    await printIsolatedDocument({
+      title: `Bulletin_Paie_${p.userName}_${p.month}`,
+      width: "a4",
+      bodyHtml,
+    });
   };
 
   return (
@@ -719,6 +922,193 @@ export default function OwnerSupervisionPage() {
                 </div>
               );
             })}
+      {/* Staff Payroll & Fiches de Paie (Multi-Store / Business Plan) */}
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-2">
+                <Award className="w-5 h-5 text-emerald-600" />
+                <span>Gestion de la Paie & Salaires du Personnel</span>
+              </h3>
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                Multi-Magasins
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Édition des fiches de paie, gestion des salaires de base, primes et avances par magasin
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              if (users.length === 0) {
+                alert("Veuillez d'abord ajouter des membres du personnel.");
+                return;
+              }
+              setPayrollUserId(users[0]?.id || "");
+              setIsAddPayrollModalOpen(true);
+            }}
+            className="py-2.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 touch-press"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nouveau Bulletin de Paie</span>
+          </button>
+        </div>
+
+        {payrollRecords.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 bg-slate-50 rounded-2xl border border-slate-100">
+            <Award className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+            <p className="text-xs font-bold text-slate-700">Aucun bulletin de paie enregistré ce mois</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Cliquez sur "Nouveau Bulletin de Paie" pour enregistrer les règlements de salaire de vos employés.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
+                  <th className="py-2.5 px-3">Mois</th>
+                  <th className="py-2.5 px-3">Employé</th>
+                  <th className="py-2.5 px-3">Rôle</th>
+                  <th className="py-2.5 px-3 text-right">Salaire Base</th>
+                  <th className="py-2.5 px-3 text-right">Primes</th>
+                  <th className="py-2.5 px-3 text-right">Retenues</th>
+                  <th className="py-2.5 px-3 text-right">Net Payé</th>
+                  <th className="py-2.5 px-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                {payrollRecords.map((p) => (
+                  <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="py-2.5 px-3 font-mono font-bold text-blue-700">{p.month}</td>
+                    <td className="py-2.5 px-3 font-bold text-slate-900">{p.userName}</td>
+                    <td className="py-2.5 px-3">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                        {p.userRole}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-mono">{formatMoney(p.baseSalary)}</td>
+                    <td className="py-2.5 px-3 text-right font-mono text-emerald-700">
+                      {p.bonuses > 0 ? `+${formatMoney(p.bonuses)}` : "-"}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-mono text-rose-600">
+                      {p.deductions > 0 ? `-${formatMoney(p.deductions)}` : "-"}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-black text-slate-900 font-mono">
+                      {formatMoney(p.netSalary)}
+                    </td>
+                    <td className="py-2.5 px-3 text-center">
+                      <button
+                        onClick={() => handlePrintPaySlip(p)}
+                        className="py-1 px-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] inline-flex items-center gap-1 shadow-2xs"
+                        title="Imprimer bulletin de paie"
+                      >
+                        <Printer className="w-3 h-3" />
+                        <span>Bulletin</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Staff Leaves & Absences (Multi-Store / Business Plan) */}
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-indigo-600" />
+                <span>Gestion des Congés & Absences</span>
+              </h3>
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                Multi-Magasins
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Suivi des congés payés, arrêts maladie, maternité et autorisations d'absence
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              if (users.length === 0) {
+                alert("Veuillez d'abord ajouter des membres du personnel.");
+                return;
+              }
+              setLeaveUserId(users[0]?.id || "");
+              setIsAddLeaveModalOpen(true);
+            }}
+            className="py-2.5 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 touch-press"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Accorder un Congé</span>
+          </button>
+        </div>
+
+        {leaveRecords.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 bg-slate-50 rounded-2xl border border-slate-100">
+            <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+            <p className="text-xs font-bold text-slate-700">Aucun congé ou absence enregistré</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Toute l'équipe est présente et disponible sur vos points de vente.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {leaveRecords.map((l) => (
+              <div key={l.id} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-900 text-sm">{l.userName}</span>
+                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                    l.leaveType === "ANNUAL"
+                      ? "bg-blue-100 text-blue-800"
+                      : l.leaveType === "SICK"
+                      ? "bg-rose-100 text-rose-800"
+                      : l.leaveType === "MATERNITY"
+                      ? "bg-purple-100 text-purple-800"
+                      : "bg-slate-200 text-slate-700"
+                  }`}>
+                    {l.leaveType === "ANNUAL"
+                      ? "Congé Annuel"
+                      : l.leaveType === "SICK"
+                      ? "Maladie"
+                      : l.leaveType === "MATERNITY"
+                      ? "Maternité"
+                      : "Sans Solde"}
+                  </span>
+                </div>
+
+                <div className="text-[11px] text-slate-600">
+                  Du <b>{l.startDate}</b> au <b>{l.endDate}</b> ({l.daysCount} jour{l.daysCount > 1 ? "s" : ""})
+                </div>
+
+                {l.reason && (
+                  <div className="text-[10px] text-slate-500 italic bg-white p-2 rounded-xl border border-slate-200">
+                    Motif : {l.reason}
+                  </div>
+                )}
+
+                <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-[10px]">
+                  <span className="font-bold text-emerald-700">🟢 Statut : Approuvé</span>
+                  <button
+                    onClick={async () => {
+                      if (confirm("Supprimer cet enregistrement de congé ?")) {
+                        await db.leaveRecords.delete(l.id);
+                      }
+                    }}
+                    className="text-rose-600 hover:underline font-semibold"
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -1295,6 +1685,237 @@ export default function OwnerSupervisionPage() {
                 className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20"
               >
                 Enregistrer
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL: Add Payroll Slip */}
+      {isAddPayrollModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <form
+            onSubmit={handleCreatePayrollRecord}
+            className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-100"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <Award className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-bold text-slate-900 text-base">Éditer un Bulletin de Paie</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddPayrollModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 mb-5 text-xs">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  Employé Bénéficiaire *
+                </label>
+                <select
+                  value={payrollUserId}
+                  onChange={(e) => setPayrollUserId(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold"
+                  required
+                >
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} ({u.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Mois Concerné</label>
+                  <input
+                    type="month"
+                    value={payrollMonth}
+                    onChange={(e) => setPayrollMonth(e.target.value)}
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Salaire de Base</label>
+                  <input
+                    type="number"
+                    value={payrollBaseSalary}
+                    onChange={(e) => setPayrollBaseSalary(Number(e.target.value))}
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold font-mono"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Primes / Avantages (+)</label>
+                  <input
+                    type="number"
+                    value={payrollBonus}
+                    onChange={(e) => setPayrollBonus(Number(e.target.value))}
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold font-mono text-emerald-700"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Retenues / Avances (-)</label>
+                  <input
+                    type="number"
+                    value={payrollDeductions}
+                    onChange={(e) => setPayrollDeductions(Number(e.target.value))}
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold font-mono text-rose-600"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 flex justify-between items-center">
+                <span className="font-bold text-emerald-900">Net Final à Payer :</span>
+                <span className="text-base font-black text-emerald-800 font-mono">
+                  {formatMoney(Math.max(0, payrollBaseSalary + payrollBonus - payrollDeductions))}
+                </span>
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Notes / Commentaires</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Prime spéciale inventaire réussi..."
+                  value={payrollNotes}
+                  onChange={(e) => setPayrollNotes(e.target.value)}
+                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsAddPayrollModalOpen(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20"
+              >
+                Enregistrer & Valider
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL: Add Leave / Absence */}
+      {isAddLeaveModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <form
+            onSubmit={handleCreateLeaveRecord}
+            className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-100"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-indigo-600" />
+                <h3 className="font-bold text-slate-900 text-base">Accorder un Congé / Absence</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddLeaveModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 mb-5 text-xs">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  Employé Concerné *
+                </label>
+                <select
+                  value={leaveUserId}
+                  onChange={(e) => setLeaveUserId(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold"
+                  required
+                >
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} ({u.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Type de Congé</label>
+                <select
+                  value={leaveType}
+                  onChange={(e) => setLeaveType(e.target.value as any)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold"
+                >
+                  <option value="ANNUAL">Congé Annuel Payé</option>
+                  <option value="SICK">Arrêt Maladie</option>
+                  <option value="MATERNITY">Congé de Maternité</option>
+                  <option value="UNPAID">Absence Sans Solde</option>
+                  <option value="OTHER">Autre Motif Exceptionnel</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Date Début</label>
+                  <input
+                    type="date"
+                    value={leaveStartDate}
+                    onChange={(e) => setLeaveStartDate(e.target.value)}
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Date Fin</label>
+                  <input
+                    type="date"
+                    value={leaveEndDate}
+                    onChange={(e) => setLeaveEndDate(e.target.value)}
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Motif / Justificatif</label>
+                <textarea
+                  rows={2}
+                  placeholder="Préciser les détails ou motifs de la permission..."
+                  value={leaveReason}
+                  onChange={(e) => setLeaveReason(e.target.value)}
+                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsAddLeaveModalOpen(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20"
+              >
+                Approuver & Enregistrer
               </button>
             </div>
           </form>

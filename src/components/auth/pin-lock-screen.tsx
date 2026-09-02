@@ -122,15 +122,17 @@ export function PinLockScreen({ title = "Caisse Verrouillée" }: { title?: strin
             title="Fermer la session actuelle"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>Déconnexion</span>
+            <span>Changer d'utilisateur / Déconnexion</span>
           </button>
-          <Link
-            href="/auth/register"
-            className="text-blue-400 font-bold hover:underline flex items-center gap-0.5"
-          >
-            <span>Créer un commerce</span>
-            <ArrowRight className="w-3 h-3" />
-          </Link>
+          {!tenant && (
+            <Link
+              href="/auth/register"
+              className="text-blue-400 font-bold hover:underline flex items-center gap-0.5"
+            >
+              <span>Créer un commerce</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          )}
         </div>
       </div>
     </div>

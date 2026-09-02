@@ -438,18 +438,20 @@ export default function LoginPage() {
         )}
 
         {/* Footer: Register link */}
-        <div className="pt-4 border-t border-slate-100 text-center">
-          <p className="text-xs text-slate-500 mb-1.5">
-            Nouvelle boutique ?
-          </p>
-          <Link
-            href="/auth/register"
-            className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1"
-          >
-            <span>Créer un compte boutique SaaS gratuitement</span>
-            <Sparkles className="w-3.5 h-3.5" />
-          </Link>
-        </div>
+        {!isTerminalLinked && (
+          <div className="pt-4 border-t border-slate-100 text-center">
+            <p className="text-xs text-slate-500 mb-1.5">
+              Nouvelle boutique ?
+            </p>
+            <Link
+              href="/auth/register"
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1"
+            >
+              <span>Créer un compte boutique SaaS gratuitement</span>
+              <Sparkles className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

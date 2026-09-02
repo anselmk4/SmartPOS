@@ -78,6 +78,19 @@ export default function SettingsPage() {
   const [isSaved, setIsSaved] = useState(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
 
+  // Security & Password change state
+  const [currentPinInput, setCurrentPinInput] = useState("");
+  const [newPinInput, setNewPinInput] = useState("");
+  const [confirmPinInput, setConfirmPinInput] = useState("");
+
+  const [currentPasswordInput, setCurrentPasswordInput] = useState("");
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState("");
+
+  const [securitySuccessMsg, setSecuritySuccessMsg] = useState<string | null>(null);
+  const [securityErrorMsg, setSecurityErrorMsg] = useState<string | null>(null);
+  const [isUpdatingSecurity, setIsUpdatingSecurity] = useState(false);
+
   useEffect(() => {
     if (authStore || tenant) {
       setStoreName(authStore?.name || tenant?.name || "");
@@ -91,6 +104,92 @@ export default function SettingsPage() {
       setOwnerName(authStore?.ownerName || user?.name || "");
     }
   }, [authStore, tenant, user]);
+
+  const handleChangePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSecurityErrorMsg(null);
+    setSecuritySuccessMsg(null);
+
+    if (newPinInput.length !== 4 || !/^\d{4}$/.test(newPinInput)) {
+      setSecurityErrorMsg("Le nouveau code PIN doit comporter exactement 4 chiffres.");
+      return;
+    }
+
+    if (newPinInput !== confirmPinInput) {
+      setSecurityErrorMsg("La confirmation du nouveau code PIN ne correspond pas.");
+      return;
+    }
+
+    setIsUpdatingSecurity(true);
+    try {
+      if (user?.id) {
+        await db.users.update(user.id, {
+          pinCode: newPinInput,
+          updatedAt: new Date().toISOString(),
+        });
+
+        await enqueueSync({
+          tenantId: currentTenantId,
+          storeId: currentStoreId,
+          entity: "user",
+          action: "UPDATE",
+          payload: JSON.stringify({ id: user.id, pinCode: newPinInput }),
+        });
+
+        setSecuritySuccessMsg("Code PIN de sécurité mis à jour avec succès !");
+        setCurrentPinInput("");
+        setNewPinInput("");
+        setConfirmPinInput("");
+      }
+    } catch (err: any) {
+      setSecurityErrorMsg("Erreur lors de la mise à jour du code PIN.");
+    } finally {
+      setIsUpdatingSecurity(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSecurityErrorMsg(null);
+    setSecuritySuccessMsg(null);
+
+    if (newPasswordInput.length < 6) {
+      setSecurityErrorMsg("Le mot de passe doit contenir au moins 6 caractères.");
+      return;
+    }
+
+    if (newPasswordInput !== confirmPasswordInput) {
+      setSecurityErrorMsg("Les nouveaux mots de passe saisis ne sont pas identiques.");
+      return;
+    }
+
+    setIsUpdatingSecurity(true);
+    try {
+      if (user?.id) {
+        await db.users.update(user.id, {
+          passwordHash: newPasswordInput,
+          updatedAt: new Date().toISOString(),
+        });
+
+        await enqueueSync({
+          tenantId: currentTenantId,
+          storeId: currentStoreId,
+          entity: "user",
+          action: "UPDATE",
+          payload: JSON.stringify({ id: user.id, password: newPasswordInput }),
+        });
+
+        setSecuritySuccessMsg("Mot de passe principal mis à jour avec succès !");
+        setCurrentPasswordInput("");
+        setNewPasswordInput("");
+        setConfirmPasswordInput("");
+      }
+    } catch (err: any) {
+      setSecurityErrorMsg("Erreur lors du changement de mot de passe.");
+    } finally {
+      setIsUpdatingSecurity(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -499,16 +598,136 @@ export default function SettingsPage() {
           </div>
 
           {/* Dedicated Session & Security Section */}
-          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm">
-            <h3 className="font-bold text-slate-900 text-base mb-2 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-blue-600" />
-              <span>Session, Sécurité & Déconnexion</span>
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">
-              Gérez votre état de connexion ou fermez votre session sur cet appareil.
-            </p>
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm space-y-5">
+            <div>
+              <h3 className="font-bold text-slate-900 text-base mb-1 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-blue-600" />
+                <span>Sécurité, Code PIN & Mots de Passe</span>
+              </h3>
+              <p className="text-xs text-slate-500">
+                Modifiez votre code PIN superviseur à 4 chiffres ou votre mot de passe d'accès Cloud.
+              </p>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {securitySuccessMsg && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs font-bold text-emerald-800 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{securitySuccessMsg}</span>
+              </div>
+            )}
+
+            {securityErrorMsg && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-xs font-bold text-rose-800 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{securityErrorMsg}</span>
+              </div>
+            )}
+
+            {/* Change PIN & Change Password Forms */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 1. Formulaire Code PIN à 4 chiffres */}
+              <form onSubmit={handleChangePin} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-blue-600" />
+                  <h4 className="font-bold text-xs text-slate-900">Changer mon Code PIN (4 chiffres)</h4>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Utilisé pour déverrouiller la caisse et autoriser les remises ou changements de tarifs.
+                </p>
+
+                <div className="space-y-2 pt-1">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">
+                      Nouveau Code PIN (4 chiffres)
+                    </label>
+                    <input
+                      type="password"
+                      maxLength={4}
+                      placeholder="Ex: 8492"
+                      value={newPinInput}
+                      onChange={(e) => setNewPinInput(e.target.value.replace(/\D/g, ""))}
+                      className="w-full p-2 bg-white rounded-xl text-xs font-mono font-bold border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-center tracking-widest"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">
+                      Confirmer le Nouveau Code PIN
+                    </label>
+                    <input
+                      type="password"
+                      maxLength={4}
+                      placeholder="Répétez les 4 chiffres"
+                      value={confirmPinInput}
+                      onChange={(e) => setConfirmPinInput(e.target.value.replace(/\D/g, ""))}
+                      className="w-full p-2 bg-white rounded-xl text-xs font-mono font-bold border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-center tracking-widest"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isUpdatingSecurity || newPinInput.length !== 4}
+                    className="w-full mt-2 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors disabled:opacity-50"
+                  >
+                    Mettre à Jour mon Code PIN
+                  </button>
+                </div>
+              </form>
+
+              {/* 2. Formulaire Mot de Passe Principal */}
+              <form onSubmit={handleChangePassword} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <h4 className="font-bold text-xs text-slate-900">Changer mon Mot de Passe</h4>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Mot de passe de connexion à votre compte propriétaire sur le Web et Mobile.
+                </p>
+
+                <div className="space-y-2 pt-1">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">
+                      Nouveau Mot de Passe (min. 6 car.)
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={newPasswordInput}
+                      onChange={(e) => setNewPasswordInput(e.target.value)}
+                      className="w-full p-2 bg-white rounded-xl text-xs font-bold border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">
+                      Confirmer le Mot de Passe
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPasswordInput}
+                      onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                      className="w-full p-2 bg-white rounded-xl text-xs font-bold border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isUpdatingSecurity || newPasswordInput.length < 6}
+                    className="w-full mt-2 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors disabled:opacity-50"
+                  >
+                    Mettre à Jour le Mot de Passe
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Quick Session Actions */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
               {/* Lock Terminal Card */}
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col justify-between">
                 <div>

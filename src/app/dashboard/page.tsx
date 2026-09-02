@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
 import { UpgradePromptModal } from "@/components/plans/upgrade-prompt-modal";
 import ExportReportModal from "@/components/reports/export-report-modal";
+import { CustomAdjustedReportModal } from "@/components/reports/custom-adjusted-report-modal";
 import { EXPENSE_CATEGORIES } from "@/lib/shared/types";
 import {
   TrendingUp,
@@ -34,6 +35,8 @@ import {
   ChevronRight,
   Percent,
   Settings,
+  Shield,
+  FileCheck,
 } from "lucide-react";
 
 type TimeRange = "HOURLY" | "7_DAYS" | "30_DAYS" | "MONTHLY";
@@ -47,7 +50,9 @@ export default function DashboardPage() {
 
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isCustomAdjustedModalOpen, setIsCustomAdjustedModalOpen] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>("7_DAYS");
+  const [topSectionView, setTopSectionView] = useState<"PRODUCTS" | "STAFF">("PRODUCTS");
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);
 
   // Live Queries
@@ -58,6 +63,13 @@ export default function DashboardPage() {
       .reverse()
       .sortBy("createdAt");
   }, [currentStoreId]) || [];
+
+  const storeUsers = useLiveQuery(async () => {
+    if (!currentStoreId) return [];
+    return await db.users
+      .filter((u) => u.storeId === currentStoreId || (currentTenantId && u.tenantId === currentTenantId))
+      .toArray();
+  }, [currentStoreId, currentTenantId]) || [];
 
   const allTenantSales = useLiveQuery(async () => {
     if (!currentTenantId) return [];
@@ -315,10 +327,33 @@ export default function DashboardPage() {
     1000
   );
 
-  // 1. Calculate Real Best Selling Products & Statistics
+  // Filter sales according to the selected time range for top stats
+  const filteredSalesForTopStats = useMemo(() => {
+    const now = new Date();
+    if (timeRange === "HOURLY") {
+      return sales.filter((s) => s.createdAt.startsWith(todayStr));
+    }
+    if (timeRange === "7_DAYS") {
+      const start = new Date(now);
+      start.setDate(start.getDate() - 7);
+      return sales.filter((s) => new Date(s.createdAt) >= start);
+    }
+    if (timeRange === "30_DAYS") {
+      const start = new Date(now);
+      start.setDate(start.getDate() - 30);
+      return sales.filter((s) => new Date(s.createdAt) >= start);
+    }
+    const currentYear = now.getFullYear().toString();
+    return sales.filter((s) => s.createdAt.startsWith(currentYear));
+  }, [sales, timeRange, todayStr]);
+
+  // 1. Calculate Real Best Selling Products & Statistics filtered by timeRange
   const topProductsStats = useMemo(() => {
+    const targetSaleIds = new Set(filteredSalesForTopStats.map((s) => s.id));
+    const relevantItems = saleItems.filter((it) => targetSaleIds.has(it.saleId));
+
     const qtyByProduct: Record<string, { qty: number; revenue: number }> = {};
-    saleItems.forEach((it) => {
+    relevantItems.forEach((it) => {
       if (!it.productId) return;
       if (!qtyByProduct[it.productId]) {
         qtyByProduct[it.productId] = { qty: 0, revenue: 0 };
@@ -339,35 +374,58 @@ export default function DashboardPage() {
     // Sort by sales volume then revenue
     list.sort((a, b) => b.totalSold - a.totalSold || b.totalRevenue - a.totalRevenue);
     return list;
-  }, [products, saleItems]);
+  }, [products, saleItems, filteredSalesForTopStats]);
 
   const bestSeller = topProductsStats[0] || (products[0] ? { ...products[0], totalSold: 0, totalRevenue: 0 } : null);
 
-  // 2. Real Sellers & Roles in the store
+  // 2. Real Sellers, Servers & Roles in the store filtered by timeRange
   const topSellersList = useMemo(() => {
-    const staffList: Array<{ name: string; role: string; count: number; total: number }> = [];
+    const staffMap = new Map<string, { id: string; name: string; role: string; count: number; total: number }>();
 
-    const defaultSellerName = user?.name || authStore?.ownerName || "Ansel Makomo";
-    const defaultSellerRole = isOwner ? "Gérant Propriétaire" : isCashier ? "Caissier Principal" : "Responsable Caisse";
-
-    staffList.push({
-      name: defaultSellerName,
-      role: defaultSellerRole,
-      count: sales.length,
-      total: sales.reduce((acc, s) => acc + s.totalAmount, 0),
+    // Initialize known users from storeUsers
+    storeUsers.forEach((u) => {
+      staffMap.set(u.id, {
+        id: u.id,
+        name: u.name,
+        role: u.role === "OWNER" ? "Gérant Propriétaire" : u.role === "MANAGER" ? "Gérant" : u.role === "WAITER" ? "Serveur" : "Caissier",
+        count: 0,
+        total: 0,
+      });
     });
 
-    if (authStore?.managerName && authStore.managerName !== defaultSellerName) {
-      staffList.push({
-        name: authStore.managerName,
-        role: "Gérant de Magasin",
-        count: Math.floor(sales.length * 0.4),
-        total: Math.floor(sales.reduce((acc, s) => acc + s.totalAmount, 0) * 0.4),
+    // Fallback active user if not in list
+    if (user?.id && !staffMap.has(user.id)) {
+      staffMap.set(user.id, {
+        id: user.id,
+        name: user.name,
+        role: isOwner ? "Gérant Propriétaire" : isCashier ? "Caissier Principal" : isWaiter ? "Serveur" : "Responsable Caisse",
+        count: 0,
+        total: 0,
       });
     }
 
-    return staffList;
-  }, [sales, user, authStore, isOwner, isCashier]);
+    // Aggregate sales in the time period
+    filteredSalesForTopStats.forEach((s) => {
+      const sellerId = s.userId || user?.id || "default";
+      if (staffMap.has(sellerId)) {
+        const entry = staffMap.get(sellerId)!;
+        entry.count += 1;
+        entry.total += s.totalAmount;
+      } else {
+        staffMap.set(sellerId, {
+          id: sellerId,
+          name: s.userId ? `Utilisateur (${sellerId.slice(0, 5)})` : (user?.name || "Caisse Principale"),
+          role: "Vendeur / Caissier",
+          count: 1,
+          total: s.totalAmount,
+        });
+      }
+    });
+
+    const list = Array.from(staffMap.values());
+    list.sort((a, b) => b.total - a.total || b.count - a.count);
+    return list;
+  }, [filteredSalesForTopStats, storeUsers, user, isOwner, isCashier, isWaiter]);
 
   // 3. Dynamic Smooth SVG Wave Path from real `chartData`
   const { wavePath, areaPath } = useMemo(() => {
@@ -466,6 +524,17 @@ export default function DashboardPage() {
             <Wallet className="w-4 h-4" />
             <span>Gérer Dépenses</span>
           </Link>
+
+          {isOwner && (
+            <button
+              onClick={() => setIsCustomAdjustedModalOpen(true)}
+              className="py-2.5 px-3.5 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs flex items-center gap-1.5 border border-amber-200 transition-all touch-press"
+              title="Générer un bilan personnalisé de conformité d'exploitation (Réservé Propriétaire)"
+            >
+              <FileCheck className="w-4 h-4 text-amber-600" />
+              <span>Bilan Personnalisé</span>
+            </button>
+          )}
 
           {canAccess("canExportReports") && (
             <button
@@ -818,124 +887,177 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* RIGHT CARD: Real Top Products & Real Store Staff Table */}
+        {/* RIGHT CARD: Dynamic Top Products & Real Store Staff Performance Table */}
         <div className="lg:col-span-7 bg-white rounded-3xl p-6 border border-slate-100/90 shadow-modern flex flex-col justify-between space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100/80">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100/80 gap-3">
             <div>
-              <h3 className="font-extrabold text-slate-900 text-lg sm:text-xl">Top Articles & Équipe</h3>
-              <p className="text-xs text-slate-400 font-medium mt-0.5">Performance par article et vendeur du commerce</p>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-slate-900 text-lg sm:text-xl">
+                  {topSectionView === "PRODUCTS" ? "Top Articles Vendus" : "Classement Ventes par Utilisateur"}
+                </h3>
+                {topSectionView === "STAFF" && topSellersList[0]?.total > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-300">
+                    🏆 1er : {topSellersList[0].name}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">
+                {topSectionView === "PRODUCTS"
+                  ? "Classement des articles les plus vendus selon la période"
+                  : "Performance des serveurs, caissiers et gérants du commerce"}
+              </p>
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Toggle Products vs Staff */}
+              <div className="flex p-0.5 bg-slate-100 rounded-xl border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setTopSectionView("PRODUCTS")}
+                  className={`py-1 px-2.5 rounded-lg text-xs font-bold transition-all ${
+                    topSectionView === "PRODUCTS"
+                      ? "bg-white text-slate-900 shadow-xs"
+                      : "text-slate-500 hover:text-slate-900"
+                  }`}
+                >
+                  Articles
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTopSectionView("STAFF")}
+                  className={`py-1 px-2.5 rounded-lg text-xs font-bold transition-all ${
+                    topSectionView === "STAFF"
+                      ? "bg-white text-slate-900 shadow-xs"
+                      : "text-slate-500 hover:text-slate-900"
+                  }`}
+                >
+                  Serveurs & Caissiers
+                </button>
+              </div>
+
+              {/* Time Range Selector */}
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value as TimeRange)}
                 className="bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200/80 outline-none cursor-pointer"
               >
-                <option value="7_DAYS">Cette Semaine (7 jours)</option>
-                <option value="30_DAYS">Ce Mois (30 jours)</option>
-                <option value="HOURLY">Aujourd'hui (Heures)</option>
-                <option value="MONTHLY">Vue Annuelle</option>
+                <option value="7_DAYS">Cette Semaine (7j)</option>
+                <option value="30_DAYS">Ce Mois (30j)</option>
+                <option value="HOURLY">Aujourd'hui</option>
+                <option value="MONTHLY">Année en cours</option>
               </select>
             </div>
           </div>
 
           {/* Table */}
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="text-slate-400 font-semibold border-b border-slate-100/80 text-[11px]">
-                  <th className="pb-3 pl-1 font-semibold">Vendeur / Caissier</th>
-                  <th className="pb-3 font-semibold">Article du Magasin</th>
-                  <th className="pb-3 font-semibold">Stock & Priorité</th>
-                  <th className="pb-3 pr-1 text-right font-semibold">Chiffre d'Affaires</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100/70">
-                {(topProductsStats.length > 0 ? topProductsStats.slice(0, 4) : [
-                  { id: "1", name: "Sac de Riz 25kg", unitPrice: 65000, stockQuantity: 16, minStockAlert: 5, totalSold: 12, totalRevenue: 780000 },
-                  { id: "2", name: "Sucre Blanc 1kg", unitPrice: 4500, stockQuantity: 36, minStockAlert: 10, totalSold: 24, totalRevenue: 108000 },
-                  { id: "3", name: "Huile Végétale 5L", unitPrice: 28000, stockQuantity: 21, minStockAlert: 5, totalSold: 8, totalRevenue: 224000 },
-                  { id: "4", name: "Savon de Ménage 250g", unitPrice: 1500, stockQuantity: 2, minStockAlert: 5, totalSold: 35, totalRevenue: 52500 },
-                ]).map((p, idx) => {
-                  const staff = topSellersList[idx % topSellersList.length] || {
-                    name: user?.name || "Ansel Makomo",
-                    role: isOwner ? "Gérant Propriétaire" : "Caissier Principal",
-                  };
-
-                  const staffInitials = staff.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase();
-
-                  const avatarGradients = [
-                    "from-blue-500 to-indigo-600",
-                    "from-emerald-500 to-teal-600",
-                    "from-amber-500 to-orange-600",
-                    "from-purple-500 to-pink-600",
-                  ];
-                  const bgGradient = avatarGradients[idx % avatarGradients.length];
-
-                  // Real stock status
-                  const isOut = p.stockQuantity <= 0;
-                  const isLow = p.stockQuantity <= p.minStockAlert;
-                  const isOptimal = p.stockQuantity > 20;
-
-                  return (
+            {topSectionView === "PRODUCTS" ? (
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="text-slate-400 font-semibold border-b border-slate-100/80 text-[11px]">
+                    <th className="pb-3 pl-1 font-semibold w-12 text-center">#</th>
+                    <th className="pb-3 font-semibold">Désignation de l'Article</th>
+                    <th className="pb-3 font-semibold">Prix Unitaire</th>
+                    <th className="pb-3 font-semibold text-center">Unités Vendues</th>
+                    <th className="pb-3 pr-1 text-right font-semibold">Chiffre d'Affaires</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100/70">
+                  {(topProductsStats.length > 0 ? topProductsStats.slice(0, 5) : []).map((p, idx) => (
                     <tr key={p.id} className="hover:bg-slate-50/80 transition-colors group">
-                      {/* Assigned Column (Real Seller & Role) */}
-                      <td className="py-3.5 pl-1">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${bgGradient} text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0`}>
-                            {staffInitials || "US"}
-                          </div>
-                          <div>
-                            <div className="font-bold text-slate-900">{staff.name}</div>
-                            <div className="text-[10px] text-slate-400 font-medium">{staff.role}</div>
-                          </div>
-                        </div>
+                      <td className="py-3 pl-1 text-center font-mono font-bold text-slate-400">
+                        {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx + 1}`}
                       </td>
-
-                      {/* Product Column (Real Product Name & Unit Price) */}
-                      <td className="py-3.5">
-                        <div className="font-semibold text-slate-800">{p.name}</div>
-                        <div className="text-[10px] text-slate-400 font-medium">PU : {formatMoney(p.unitPrice)}</div>
+                      <td className="py-3">
+                        <div className="font-bold text-slate-900">{p.name}</div>
+                        <div className="text-[10px] text-slate-400">{p.category || "Général"}</div>
                       </td>
-
-                      {/* Priority / Status Column (Real stock & sales) */}
-                      <td className="py-3.5">
-                        <span
-                          className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full inline-block ${
-                            isOut
-                              ? "bg-rose-100 text-rose-700 border border-rose-200"
-                              : isLow
-                              ? "badge-pastel-rose"
-                              : isOptimal
-                              ? "badge-pastel-green"
-                              : "badge-pastel-amber"
-                          }`}
-                        >
-                          {isOut
-                            ? "Rupture"
-                            : isLow
-                            ? `Stock Faible (${p.stockQuantity})`
-                            : isOptimal
-                            ? `Stock Optimal (${p.stockQuantity})`
-                            : `Stock Moyen (${p.stockQuantity})`}
+                      <td className="py-3 font-mono font-medium text-slate-600">
+                        {formatMoney(p.unitPrice)}
+                      </td>
+                      <td className="py-3 text-center">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-black bg-blue-50 text-blue-700 border border-blue-200">
+                          {p.totalSold} unité{p.totalSold > 1 ? "s" : ""}
                         </span>
                       </td>
-
-                      {/* Revenue Column */}
-                      <td className="py-3.5 pr-1 text-right font-extrabold text-slate-900">
-                        {formatMoney(p.totalRevenue > 0 ? p.totalRevenue : p.unitPrice * (idx + 1) * 3)}
+                      <td className="py-3 pr-1 text-right font-black text-slate-900">
+                        {formatMoney(p.totalRevenue)}
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  ))}
+                  {topProductsStats.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-6 text-center text-slate-400">
+                        Aucun article vendu pendant cette période
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            ) : (
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="text-slate-400 font-semibold border-b border-slate-100/80 text-[11px]">
+                    <th className="pb-3 pl-1 font-semibold w-12 text-center">#</th>
+                    <th className="pb-3 font-semibold">Utilisateur / Serveur / Caissier</th>
+                    <th className="pb-3 font-semibold">Rôle</th>
+                    <th className="pb-3 font-semibold text-center">Nb Ventes</th>
+                    <th className="pb-3 pr-1 text-right font-semibold">Total Réalisé</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100/70">
+                  {topSellersList.map((staff, idx) => {
+                    const initials = staff.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase();
+
+                    const avatarGradients = [
+                      "from-blue-500 to-indigo-600",
+                      "from-emerald-500 to-teal-600",
+                      "from-amber-500 to-orange-600",
+                      "from-purple-500 to-pink-600",
+                    ];
+                    const bgGradient = avatarGradients[idx % avatarGradients.length];
+
+                    return (
+                      <tr key={staff.id} className="hover:bg-slate-50/80 transition-colors group">
+                        <td className="py-3 pl-1 text-center font-mono font-bold text-slate-400">
+                          {idx === 0 && staff.total > 0 ? "🥇" : idx === 1 && staff.total > 0 ? "🥈" : idx === 2 && staff.total > 0 ? "🥉" : `${idx + 1}`}
+                        </td>
+                        <td className="py-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-8 h-8 rounded-full bg-gradient-to-tr ${bgGradient} text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0`}>
+                              {initials || "US"}
+                            </div>
+                            <div className="font-bold text-slate-900">{staff.name}</div>
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            staff.role.includes("Serveur")
+                              ? "bg-amber-50 text-amber-800 border-amber-200"
+                              : staff.role.includes("Caissier")
+                              ? "bg-purple-50 text-purple-800 border-purple-200"
+                              : "bg-blue-50 text-blue-800 border-blue-200"
+                          }`}>
+                            {staff.role}
+                          </span>
+                        </td>
+                        <td className="py-3 text-center font-mono font-bold text-slate-700">
+                          {staff.count} vente{staff.count > 1 ? "s" : ""}
+                        </td>
+                        <td className="py-3 pr-1 text-right font-black text-slate-900">
+                          {formatMoney(staff.total)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>
@@ -1158,6 +1280,12 @@ export default function DashboardPage() {
       <ExportReportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
+      />
+
+      {/* CUSTOM ADJUSTED REPORT MODAL (OWNER ONLY) */}
+      <CustomAdjustedReportModal
+        isOpen={isCustomAdjustedModalOpen}
+        onClose={() => setIsCustomAdjustedModalOpen(false)}
       />
     </div>
   );

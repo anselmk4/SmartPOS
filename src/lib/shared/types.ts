@@ -8,9 +8,50 @@ export interface TariffConfig {
   activeMode: TariffMode;
   karaokeDrinkSurcharge: number; // Montant fixe de majoration sur les boissons (ex: 500 ou 1000 FC)
   promoDiscountAmount: number; // Montant fixe de minoration sur les produits en promotion (ex: 1000 FC)
-  promoQuotaPerProduct?: number; // Optionnel (rétro-compatibilité)
+  promoProductId?: string; // ID du produit cible ou 'ALL'
+  promoProductName?: string;
+  promoMinQuantity?: number; // Quantité minimale pour déclencher la promo (ex: 2)
+  promoQuotaPerProduct?: number;
   updatedAt?: string;
   updatedBy?: string;
+}
+
+export interface PayrollRecord {
+  id: string;
+  tenantId: string;
+  storeId?: string;
+  userId: string;
+  userName: string;
+  userRole: UserRole;
+  month: string; // Format: YYYY-MM
+  baseSalary: number;
+  advances: number;
+  bonuses: number;
+  deductions: number;
+  netPaid: number;
+  status: "PAID" | "PENDING" | "PARTIAL";
+  paymentMethod?: PaymentMethod;
+  paymentDate?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LeaveRecord {
+  id: string;
+  tenantId: string;
+  storeId?: string;
+  userId: string;
+  userName: string;
+  leaveType: "ANNUAL" | "SICK" | "MATERNITY" | "EXCEPTIONAL" | "UNPAID";
+  startDate: string;
+  endDate: string;
+  daysCount: number;
+  reason?: string;
+  status: "APPROVED" | "PENDING" | "REJECTED";
+  approvedBy?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type SubscriptionPlan = "FREE" | "BASIC" | "PRO" | "BUSINESS";
@@ -395,7 +436,7 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     id: "BASIC",
     name: "Commerçant Basic",
     monthlyPriceCDF: 15000,
-    monthlyPriceUSD: 6,
+    monthlyPriceUSD: 6.5,
     maxSalesPerMonth: 1000,
     maxStores: 1,
     maxDebtors: 100,
@@ -413,7 +454,7 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     id: "PRO",
     name: "Commerçant Pro",
     monthlyPriceCDF: 30000,
-    monthlyPriceUSD: 12,
+    monthlyPriceUSD: 13,
     maxSalesPerMonth: null, // Unlimited
     maxStores: 1,
     maxDebtors: null, // Unlimited
@@ -430,8 +471,8 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
   BUSINESS: {
     id: "BUSINESS",
     name: "Business Multi-Magasins",
-    monthlyPriceCDF: 60000,
-    monthlyPriceUSD: 25,
+    monthlyPriceCDF: 100000,
+    monthlyPriceUSD: 43.5,
     maxSalesPerMonth: null, // Unlimited
     maxStores: 10, // Multi-stores
     maxDebtors: null, // Unlimited

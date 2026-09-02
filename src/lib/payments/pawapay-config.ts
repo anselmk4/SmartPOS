@@ -502,7 +502,7 @@ export const PLAN_PRICES: Record<SubscriptionPlan, Record<string, number>> = {
   },
   BASIC: {
     CDF: 15000,
-    USD: 5.5,
+    USD: 6.5,
     XOF: 3500,
     XAF: 3500,
     GNF: 45000,
@@ -513,7 +513,7 @@ export const PLAN_PRICES: Record<SubscriptionPlan, Record<string, number>> = {
   },
   PRO: {
     CDF: 30000,
-    USD: 11,
+    USD: 13,
     XOF: 7000,
     XAF: 7000,
     GNF: 90000,
@@ -524,7 +524,7 @@ export const PLAN_PRICES: Record<SubscriptionPlan, Record<string, number>> = {
   },
   BUSINESS: {
     CDF: 100000,
-    USD: 35,
+    USD: 43.5,
     XOF: 22000,
     XAF: 22000,
     GNF: 300000,

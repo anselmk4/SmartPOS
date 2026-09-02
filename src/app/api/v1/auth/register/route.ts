@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
       where: { id: tenantId },
       update: {
         name: storeName.trim(),
+        businessType: businessType ? businessType.trim() : undefined,
         phone: phone.trim(),
         countryCode,
         currency,
@@ -89,6 +90,7 @@ export async function POST(req: NextRequest) {
         id: tenantId,
         name: storeName.trim(),
         slug: cleanSlug,
+        businessType: businessType ? businessType.trim() : undefined,
         phone: phone.trim(),
         countryCode,
         currency,
@@ -106,6 +108,7 @@ export async function POST(req: NextRequest) {
       where: { id: storeId },
       update: {
         name: storeName.trim(),
+        businessType: businessType ? businessType.trim() : undefined,
         currency,
         phone: phone.trim(),
         address: address ? address.trim() : undefined,
@@ -116,6 +119,7 @@ export async function POST(req: NextRequest) {
         id: storeId,
         tenantId: tenant.id,
         name: storeName.trim(),
+        businessType: businessType ? businessType.trim() : undefined,
         currency,
         phone: phone.trim(),
         address: address ? address.trim() : undefined,

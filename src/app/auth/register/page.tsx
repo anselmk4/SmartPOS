@@ -33,10 +33,63 @@ import {
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { registerMerchant } = useAuth();
+  const { registerMerchant, user, tenant, store, logout } = useAuth();
 
   // Wizard Step: 1, 2, 3, 4
   const [currentStep, setCurrentStep] = useState(1);
+
+  // If a session is already active on this terminal
+  if (tenant || user) {
+    return (
+      <div className="min-h-[calc(100vh-61px)] flex flex-col items-center justify-center p-4 bg-gradient-to-b from-slate-50 to-slate-100">
+        <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xl text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/60 flex items-center justify-center mx-auto shadow-sm">
+            <Store className="w-7 h-7" />
+          </div>
+
+          <h2 className="text-xl font-black text-slate-900">
+            Session de Commerce Active
+          </h2>
+
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Une session est déjà ouverte sur ce terminal pour le commerce :<br />
+            <b className="text-slate-900 text-sm font-extrabold">{store?.name || tenant?.name}</b>
+          </p>
+
+          <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200/80 text-amber-800 text-xs text-left space-y-1">
+            <div className="font-bold flex items-center gap-1.5">
+              <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+              <span>Création de boutique verrouillée</span>
+            </div>
+            <p className="text-[11px] text-amber-700">
+              Pour éviter les conflits de données hors-ligne, vous ne pouvez pas créer une autre boutique alors qu'une session est active. Veuillez d'abord fermer la session actuelle.
+            </p>
+          </div>
+
+          <div className="pt-2 flex flex-col gap-2.5">
+            <Link
+              href="/pos"
+              className="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/25 flex items-center justify-center gap-2 transition-all touch-press"
+            >
+              <span>Accéder à la Caisse de {store?.name || tenant?.name}</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                router.push("/auth/login");
+              }}
+              className="w-full py-2.5 rounded-2xl border border-slate-200 hover:bg-rose-50 text-slate-700 hover:text-rose-700 font-bold text-xs transition-colors"
+            >
+              Fermer la session actuelle (Déconnexion)
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Form Fields
   // Step 1: Commerce & Activité

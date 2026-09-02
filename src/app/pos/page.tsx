@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, processLocalSale, DEFAULT_STORE_ID, generateUUID } from "@/lib/db/dexie-db";
 import { useSync } from "@/lib/sync/sync-context";
@@ -70,7 +71,8 @@ import Link from "next/link";
 import { printThermalReceipt } from "@/lib/native/native-pos";
 import { printIsolatedDocument } from "@/lib/native/print-service";
 
-export default function POSPage() {
+function POSPageContent() {
+  const searchParams = useSearchParams();
   const {
     user,
     tenant,
@@ -470,12 +472,38 @@ export default function POSPage() {
     await db.heldOrders.delete(heldOrder.id);
   };
 
-  const handleDeleteHeldOrder = async (orderId: string) => {
-    await db.heldOrders.delete(orderId);
-  };
+  // Auto-restore held order if query param supplied from Sales Journal
+  useEffect(() => {
+    const restoreHoldId = searchParams.get("restoreHoldId");
+    const payHoldId = searchParams.get("payHoldId");
+    const targetId = restoreHoldId || payHoldId;
 
-  // Discount management
+    if (targetId) {
+      (async () => {
+        const order = await db.heldOrders.get(targetId);
+        if (order) {
+          setCart(order.items);
+          setSelectedCustomerId(order.customerId || "");
+          setTableOrLabel(order.label);
+          if (order.discountValue && order.discountValue > 0) {
+            setDiscountType(order.discountType || "PERCENT");
+            setDiscountValue(order.discountValue);
+          }
+          if (payHoldId) {
+            setIsPaymentModalOpen(true);
+          }
+          await db.heldOrders.delete(targetId);
+        }
+      })();
+    }
+  }, [searchParams]);
+
+  // Discount management (restricted to Owner, Manager, Cashier)
   const handleApplyDiscount = (type: "PERCENT" | "FIXED", value: number) => {
+    if (isWaiter) {
+      alert("Accès refusé : La remise est réservée au gérant ou au caissier.");
+      return;
+    }
     setDiscountType(type);
     setDiscountValue(value);
   };
@@ -1262,7 +1290,7 @@ export default function POSPage() {
 
           {/* Invoicing Action Tools: Facture à Payer (HORECA/Dépôts) vs Remise simple */}
           {isHorecaOrDepot ? (
-            <div className="grid grid-cols-2 gap-2">
+            <div className={`grid ${!isWaiter ? "grid-cols-2" : "grid-cols-1"} gap-2`}>
               {/* Facture à Payer (Sauver & Imprimer) */}
               <button
                 onClick={() => setIsHoldModalOpen(true)}
@@ -1274,46 +1302,50 @@ export default function POSPage() {
                 <span>Facture à Payer</span>
               </button>
 
-              {/* Remise */}
-              <button
-                onClick={() => setIsDiscountModalOpen(true)}
-                disabled={cart.length === 0}
-                className={`py-2 px-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs ${
-                  discountAmount > 0
-                    ? "border-emerald-500 bg-emerald-500 text-white shadow-xs"
-                    : "border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800"
-                }`}
-                title="Appliquer une réduction"
-              >
-                <Tag className="w-3.5 h-3.5 shrink-0" />
-                <span>
-                  {discountAmount > 0
-                    ? `-${discountType === "PERCENT" ? `${discountValue}%` : formatMoney(discountAmount)}`
-                    : "Remise"}
-                </span>
-              </button>
+              {/* Remise (Réservée au Gérant ou Caissier) */}
+              {!isWaiter && (
+                <button
+                  onClick={() => setIsDiscountModalOpen(true)}
+                  disabled={cart.length === 0}
+                  className={`py-2 px-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs ${
+                    discountAmount > 0
+                      ? "border-emerald-500 bg-emerald-500 text-white shadow-xs"
+                      : "border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800"
+                  }`}
+                  title="Appliquer une réduction (Gérant & Caissier)"
+                >
+                  <Tag className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    {discountAmount > 0
+                      ? `-${discountType === "PERCENT" ? `${discountValue}%` : formatMoney(discountAmount)}`
+                      : "Remise"}
+                  </span>
+                </button>
+              )}
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              {/* Remise for General Commerce */}
-              <button
-                onClick={() => setIsDiscountModalOpen(true)}
-                disabled={cart.length === 0}
-                className={`w-full py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs ${
-                  discountAmount > 0
-                    ? "border-emerald-500 bg-emerald-500 text-white shadow-xs"
-                    : "border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700"
-                }`}
-                title="Appliquer une réduction sur le panier"
-              >
-                <Tag className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>
-                  {discountAmount > 0
-                    ? `Remise appliquée : -${discountType === "PERCENT" ? `${discountValue}%` : formatMoney(discountAmount)}`
-                    : "Appliquer une Remise"}
-                </span>
-              </button>
-            </div>
+            !isWaiter && (
+              <div className="flex items-center gap-2">
+                {/* Remise for General Commerce */}
+                <button
+                  onClick={() => setIsDiscountModalOpen(true)}
+                  disabled={cart.length === 0}
+                  className={`w-full py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs ${
+                    discountAmount > 0
+                      ? "border-emerald-500 bg-emerald-500 text-white shadow-xs"
+                      : "border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700"
+                  }`}
+                  title="Appliquer une réduction sur le panier (Gérant & Caissier)"
+                >
+                  <Tag className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>
+                    {discountAmount > 0
+                      ? `Remise appliquée : -${discountType === "PERCENT" ? `${discountValue}%` : formatMoney(discountAmount)}`
+                      : "Appliquer une Remise"}
+                  </span>
+                </button>
+              </div>
+            )
           )}
 
           {/* Primary Checkout / Order Actions based on User Role */}
@@ -1743,5 +1775,13 @@ export default function POSPage() {
         ]}
       />
     </div>
+  );
+}
+
+export default function POSPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-slate-500 font-medium">Chargement de la caisse...</div>}>
+      <POSPageContent />
+    </Suspense>
   );
 }

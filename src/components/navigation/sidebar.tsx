@@ -34,6 +34,7 @@ import {
   KeyRound,
   AlertTriangle,
   ArrowRight,
+  Briefcase,
 } from "lucide-react";
 import CashReconciliationModal from "@/components/pos/cash-reconciliation-modal";
 import ExportReportModal from "@/components/reports/export-report-modal";
@@ -275,8 +276,23 @@ export function Sidebar() {
       {/* 2. Navigation Menu Links */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 no-scrollbar">
         {!isCollapsed && (
-          <div className="px-3 pb-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-            Menu Principal
+          <div className="space-y-2 mb-2">
+            {(store?.businessType || tenant?.businessType) && (
+              <div className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50/70 border border-blue-100/90 rounded-2xl flex items-center gap-2 shadow-xs">
+                <div className="w-5 h-5 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Briefcase className="w-3 h-3" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[9px] font-extrabold uppercase text-blue-500 tracking-wider">Activité</div>
+                  <div className="text-[11px] font-bold text-slate-800 truncate" title={store?.businessType || tenant?.businessType}>
+                    {store?.businessType || tenant?.businessType}
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="px-3 pt-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              Menu Principal
+            </div>
           </div>
         )}
 

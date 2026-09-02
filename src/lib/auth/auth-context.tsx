@@ -229,11 +229,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const bootstrapCloudDataIntoDexie = async (cloudData: any) => {
     try {
       if (cloudData.tenant) {
-        await db.tenants.put(cloudData.tenant);
+        const existingT = await db.tenants.get(cloudData.tenant.id);
+        await db.tenants.put({
+          ...existingT,
+          ...cloudData.tenant,
+          businessType: cloudData.tenant.businessType || existingT?.businessType,
+        });
       }
       if (cloudData.stores && Array.isArray(cloudData.stores)) {
         for (const s of cloudData.stores) {
-          await db.stores.put(s);
+          const existingS = await db.stores.get(s.id);
+          await db.stores.put({
+            ...existingS,
+            ...s,
+            businessType: s.businessType || existingS?.businessType,
+          });
         }
       }
       if (cloudData.users && Array.isArray(cloudData.users)) {

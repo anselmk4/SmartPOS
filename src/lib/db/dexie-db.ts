@@ -16,7 +16,8 @@ import type {
   PaymentMethod,
   StockDeltaPayload,
   PaymentSplit,
-  HeldOrder,
+  PayrollRecord,
+  LeaveRecord,
 } from "@/lib/shared/types";
 
 export class MicroERPDatabase extends Dexie {
@@ -34,10 +35,12 @@ export class MicroERPDatabase extends Dexie {
   cashClosings!: Table<CashClosing, string>;
   syncQueue!: Table<SyncQueueItem, string>;
   heldOrders!: Table<HeldOrder, string>;
+  payrollRecords!: Table<PayrollRecord, string>;
+  leaveRecords!: Table<LeaveRecord, string>;
 
   constructor() {
     super("MicroERPDb");
-    this.version(6).stores({
+    this.version(7).stores({
       tenants: "id, slug, plan, planStatus, countryCode, currency, updatedAt",
       users: "id, tenantId, storeId, phone, email, role, pinCode, updatedAt",
       subscriptions: "id, tenantId, plan, paymentStatus, createdAt",
@@ -52,6 +55,8 @@ export class MicroERPDatabase extends Dexie {
       cashClosings: "id, tenantId, storeId, userId, createdAt",
       syncQueue: "id, tenantId, storeId, entity, action, status, createdAt",
       heldOrders: "id, storeId, label, customerId, createdAt",
+      payrollRecords: "id, tenantId, storeId, userId, month, status, createdAt",
+      leaveRecords: "id, tenantId, storeId, userId, leaveType, status, startDate, endDate, createdAt",
     });
   }
 }

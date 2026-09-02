@@ -4,13 +4,73 @@ export const DEFAULT_TARIFF_CONFIG: TariffConfig = {
   activeMode: "NORMAL",
   karaokeDrinkSurcharge: 500, // 500 FC de majoration fixe par boisson
   promoDiscountAmount: 1000, // 1 000 FC de minoration fixe en promo
+  promoProductId: "ALL",
+  promoMinQuantity: 1,
   updatedAt: new Date().toISOString(),
 };
 
 /**
- * Détecte si un produit appartient à la famille des boissons (Bars, Restaurants, Lounges)
+ * Détecte si un produit appartient à la famille des aliments / repas (Cuisine, Restauration)
+ */
+export function isFoodCategory(category?: string, productName?: string): boolean {
+  const cat = (category || "").toLowerCase();
+  const name = (productName || "").toLowerCase();
+  const foodKeywords = [
+    "repas",
+    "plat",
+    "aliment",
+    "nourriture",
+    "cuisine",
+    "chawarma",
+    "shawarma",
+    "burger",
+    "pizza",
+    "poulet",
+    "viande",
+    "poisson",
+    "riz",
+    "frites",
+    "makemba",
+    "chikwangue",
+    "foufou",
+    "fufu",
+    "pondu",
+    "madesu",
+    "kamundele",
+    "ntaba",
+    "brochette",
+    "grillade",
+    "soupe",
+    "salade",
+    "pain",
+    "sandwich",
+    "dessert",
+    "gateau",
+    "gâteau",
+    "beignet",
+    "omelette",
+    "sauce",
+    "snack",
+    "repas chaud",
+    "porc",
+    "boeuf",
+    "chèvre",
+    "chevre",
+    "matsiembu",
+    "capitaine",
+    "tilapia",
+    "malangwa",
+    "kosa",
+  ];
+  return foodKeywords.some((kw) => cat.includes(kw) || name.includes(kw));
+}
+
+/**
+ * Détecte si un produit appartient strictement à la famille des boissons (Bars, Lounges, Boissons)
  */
 export function isDrinkCategory(category?: string, productName?: string): boolean {
+  if (isFoodCategory(category, productName)) return false;
+
   const cat = (category || "").toLowerCase();
   const name = (productName || "").toLowerCase();
   const drinkKeywords = [
@@ -55,6 +115,11 @@ export function isDrinkCategory(category?: string, productName?: string): boolea
     "coca",
     "sprite",
     "malt",
+    "bavaria",
+    "beaufort",
+    "tembo",
+    "nkoyi",
+    "legend",
   ];
   return drinkKeywords.some((kw) => cat.includes(kw) || name.includes(kw));
 }
@@ -74,12 +139,12 @@ export interface CalculatedPrice {
 export function calculateEffectiveProductPrice(
   product: Product,
   tariffConfig: TariffConfig,
-  currentUnitIndex: number = 1
+  quantity: number = 1
 ): CalculatedPrice {
   const basePrice = Number(product.unitPrice || 0);
   const mode = tariffConfig?.activeMode || "NORMAL";
 
-  // 1. Grille Karaoké & Événements Spéciaux : Majoration sur les boissons
+  // 1. Grille Karaoké & Événements Spéciaux : Majoration STRICTE sur les boissons uniquement
   if (mode === "KARAOKE") {
     const isDrink = isDrinkCategory(product.category, product.name);
     if (isDrink) {
@@ -95,19 +160,28 @@ export function calculateEffectiveProductPrice(
     }
   }
 
-  // 2. Grille Promotion : Minoration fixe sur les articles
+  // 2. Grille Promotion : Minoration fixe sur les articles ciblés selon quantité minimum
   if (mode === "PROMOTION") {
-    const discount = Math.min(basePrice, Math.max(0, Number(tariffConfig.promoDiscountAmount || 0)));
+    const isTargetProduct =
+      !tariffConfig.promoProductId ||
+      tariffConfig.promoProductId === "ALL" ||
+      tariffConfig.promoProductId === product.id;
 
-    if (discount > 0) {
-      return {
-        unitPrice: Math.max(0, basePrice - discount),
-        originalPrice: basePrice,
-        tariffAdjustment: -discount,
-        tariffApplied: "PROMOTION",
-        isPromoDiscounted: true,
-        notes: `Remise Promo (-${discount.toLocaleString("fr-FR")})`,
-      };
+    const minQty = Math.max(1, Number(tariffConfig.promoMinQuantity || 1));
+    const isQtyEligible = quantity >= minQty;
+
+    if (isTargetProduct && isQtyEligible) {
+      const discount = Math.min(basePrice, Math.max(0, Number(tariffConfig.promoDiscountAmount || 0)));
+      if (discount > 0) {
+        return {
+          unitPrice: Math.max(0, basePrice - discount),
+          originalPrice: basePrice,
+          tariffAdjustment: -discount,
+          tariffApplied: "PROMOTION",
+          isPromoDiscounted: true,
+          notes: `Remise Promo (-${discount.toLocaleString("fr-FR")})`,
+        };
+      }
     }
   }
 
@@ -122,7 +196,7 @@ export function calculateEffectiveProductPrice(
 }
 
 /**
- * Calcule le sous-total d'une ligne d'article avec minoration fixe en promo
+ * Calcule le sous-total d'une ligne d'article avec minoration fixe en promo selon quantité seuil
  */
 export function calculateCartItemSubtotal(
   product: Product,
@@ -157,18 +231,28 @@ export function calculateCartItemSubtotal(
   }
 
   if (mode === "PROMOTION") {
-    const discount = Math.min(basePrice, Math.max(0, Number(tariffConfig.promoDiscountAmount || 0)));
-    const discountedUnitPrice = Math.max(0, basePrice - discount);
-    const subtotal = discountedUnitPrice * qty;
-    const totalAdjustment = -(discount * qty);
+    const isTargetProduct =
+      !tariffConfig.promoProductId ||
+      tariffConfig.promoProductId === "ALL" ||
+      tariffConfig.promoProductId === product.id;
 
-    return {
-      subtotal,
-      averageUnitPrice: discountedUnitPrice,
-      originalSubtotal,
-      totalAdjustment,
-      tariffApplied: "PROMOTION",
-    };
+    const minQty = Math.max(1, Number(tariffConfig.promoMinQuantity || 1));
+    const isQtyEligible = qty >= minQty;
+
+    if (isTargetProduct && isQtyEligible) {
+      const discount = Math.min(basePrice, Math.max(0, Number(tariffConfig.promoDiscountAmount || 0)));
+      const discountedUnitPrice = Math.max(0, basePrice - discount);
+      const subtotal = discountedUnitPrice * qty;
+      const totalAdjustment = -(discount * qty);
+
+      return {
+        subtotal,
+        averageUnitPrice: discountedUnitPrice,
+        originalSubtotal,
+        totalAdjustment,
+        tariffApplied: "PROMOTION",
+      };
+    }
   }
 
   return {

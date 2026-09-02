@@ -31,14 +31,25 @@ export default function ExportReportModal({ isOpen, onClose }: ExportReportModal
   const currentStoreId = store?.id || DEFAULT_STORE_ID;
   const currentTenantId = tenant?.id;
 
-  const [reportType, setReportType] = useState<"sales" | "debts" | "inventory">("sales");
-  const [period, setPeriod] = useState<"all" | "today" | "month">("month");
+  const [reportType, setReportType] = useState<"sales" | "bilan" | "debts" | "inventory">("sales");
+  const [period, setPeriod] = useState<"today" | "week" | "month" | "year" | "custom" | "all">("month");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   const [isExporting, setIsExporting] = useState(false);
 
   const sales = useLiveQuery(async () => {
     if (!currentStoreId) return [];
     return await db.sales
       .filter((s) => s.storeId === currentStoreId)
+      .toArray();
+  }, [currentStoreId]) || [];
+
+  const saleItems = useLiveQuery(() => db.saleItems.toArray()) || [];
+
+  const expenses = useLiveQuery(async () => {
+    if (!currentStoreId) return [];
+    return await db.expenses
+      .filter((e) => e.storeId === currentStoreId)
       .toArray();
   }, [currentStoreId]) || [];
 
@@ -69,26 +80,63 @@ export default function ExportReportModal({ isOpen, onClose }: ExportReportModal
     document.body.removeChild(link);
   };
 
+  const getFilteredSales = () => {
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+
+    if (period === "today") {
+      return sales.filter((s) => s.createdAt.startsWith(todayStr));
+    }
+    if (period === "week") {
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate() - 7);
+      return sales.filter((s) => new Date(s.createdAt) >= weekStart);
+    }
+    if (period === "month") {
+      const currentMonth = todayStr.slice(0, 7);
+      return sales.filter((s) => s.createdAt.startsWith(currentMonth));
+    }
+    if (period === "year") {
+      const currentYear = todayStr.slice(0, 4);
+      return sales.filter((s) => s.createdAt.startsWith(currentYear));
+    }
+    if (period === "custom") {
+      return sales.filter((s) => {
+        const sDate = s.createdAt.split("T")[0];
+        if (startDate && sDate < startDate) return false;
+        if (endDate && sDate > endDate) return false;
+        return true;
+      });
+    }
+    return sales;
+  };
+
   const handleExport = () => {
     setIsExporting(true);
     const dateStr = new Date().toISOString().split("T")[0];
+    const filteredSales = getFilteredSales();
 
     try {
       if (reportType === "sales") {
-        let filtered = sales;
-        if (period === "today") {
-          filtered = sales.filter((s) => s.createdAt.startsWith(dateStr));
-        } else if (period === "month") {
-          const currentMonth = dateStr.slice(0, 7);
-          filtered = sales.filter((s) => s.createdAt.startsWith(currentMonth));
-        }
-
         let csv = "Numero Recu;Date;Heure;Mode Paiement;Total;Montant Paye;Dette Client;Statut\n";
-        filtered.forEach((s) => {
+        filteredSales.forEach((s) => {
           const d = new Date(s.createdAt);
           csv += `"${s.receiptNumber || s.id}";"${d.toLocaleDateString("fr-FR")}";"${d.toLocaleTimeString("fr-FR")}";"${s.paymentMethod}";${s.totalAmount};${s.amountPaid};${s.debtAmount};"${s.status}"\n`;
         });
         downloadCSV(`Rapport_Ventes_${tenant?.name || "Commerce"}_${dateStr}.csv`, csv);
+      } else if (reportType === "bilan") {
+        const totalRev = filteredSales.reduce((sum, s) => sum + s.totalAmount, 0);
+        const totalPaid = filteredSales.reduce((sum, s) => sum + s.amountPaid, 0);
+        const totalDebt = filteredSales.reduce((sum, s) => sum + s.debtAmount, 0);
+        const totalExp = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+        let csv = "Indicateur Financier;Montant\n";
+        csv += `"Chiffre d'Affaires Brut";${totalRev}\n`;
+        csv += `"Montant Total Encaissé";${totalPaid}\n`;
+        csv += `"Créances & Dettes Clients";${totalDebt}\n`;
+        csv += `"Total Dépenses d'Exploitation";${totalExp}\n`;
+        csv += `"Bénéfice Net Estimé";${totalRev - totalExp}\n`;
+        downloadCSV(`Bilan_Financier_${tenant?.name || "Commerce"}_${dateStr}.csv`, csv);
       } else if (reportType === "debts") {
         let csv = "Nom Client;Telephone;Solde Dette;Date Creation\n";
         customers.forEach((c) => {
@@ -294,9 +342,10 @@ export default function ExportReportModal({ isOpen, onClose }: ExportReportModal
             <label className="text-xs font-semibold text-slate-700 block mb-1.5">
               Type de Rapport à Exporter
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
                 { id: "sales", label: "Journal Ventes", count: sales.length },
+                { id: "bilan", label: "Bilan & Résultat", count: sales.length },
                 { id: "debts", label: "Carnet Dettes", count: customers.length },
                 { id: "inventory", label: "Inventaire Stock", count: products.length },
               ].map((t) => (
@@ -304,44 +353,71 @@ export default function ExportReportModal({ isOpen, onClose }: ExportReportModal
                   key={t.id}
                   type="button"
                   onClick={() => setReportType(t.id as any)}
-                  className={`p-2.5 rounded-xl border text-center transition-all ${
+                  className={`p-2 rounded-xl border text-center transition-all ${
                     reportType === t.id
                       ? "border-indigo-600 bg-indigo-50/70 text-indigo-900 font-bold ring-2 ring-indigo-600/20"
                       : "border-slate-200 text-slate-600 hover:bg-slate-50 text-xs"
                   }`}
                 >
-                  <div className="text-xs">{t.label}</div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">{t.count} lignes</div>
+                  <div className="text-xs font-bold">{t.label}</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">{t.count} entrées</div>
                 </button>
               ))}
             </div>
           </div>
 
-          {reportType === "sales" && (
-            <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1.5">
-                Période
+          {(reportType === "sales" || reportType === "bilan") && (
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-700 block">
+                Période du Rapport
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 p-1 bg-slate-100 rounded-xl text-xs">
                 {[
-                  { id: "today", label: "Aujourd'hui" },
-                  { id: "month", label: "Ce Mois" },
-                  { id: "all", label: "Tout l'historique" },
+                  { id: "today", label: "Jour" },
+                  { id: "week", label: "7 jours" },
+                  { id: "month", label: "Mois" },
+                  { id: "year", label: "Année" },
+                  { id: "custom", label: "Plage" },
+                  { id: "all", label: "Tout" },
                 ].map((p) => (
                   <button
                     key={p.id}
                     type="button"
                     onClick={() => setPeriod(p.id as any)}
-                    className={`py-2 rounded-xl border text-xs transition-all ${
+                    className={`py-1.5 rounded-lg text-[11px] transition-all text-center ${
                       period === p.id
-                        ? "bg-slate-900 text-white font-bold border-slate-900"
-                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                        ? "bg-white text-slate-900 font-bold shadow-xs"
+                        : "text-slate-500 hover:text-slate-900"
                     }`}
                   >
                     {p.label}
                   </button>
                 ))}
               </div>
+
+              {/* Custom Date Range Picker */}
+              {period === "custom" && (
+                <div className="grid grid-cols-2 gap-2 p-2.5 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 block mb-1">Du (Date Début)</label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full p-1.5 bg-white rounded-lg text-xs font-bold border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 block mb-1">Au (Date Fin)</label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full p-1.5 bg-white rounded-lg text-xs font-bold border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -353,7 +429,7 @@ export default function ExportReportModal({ isOpen, onClose }: ExportReportModal
             className="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
           >
             <Printer className="w-4 h-4" />
-            <span>Imprimer PDF Propre</span>
+            <span>Imprimer PDF</span>
           </button>
           <button
             type="button"
@@ -362,7 +438,7 @@ export default function ExportReportModal({ isOpen, onClose }: ExportReportModal
             className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 touch-press"
           >
             <Download className="w-4 h-4" />
-            <span>Télécharger Excel (CSV)</span>
+            <span>Télécharger Excel</span>
           </button>
         </div>
       </div>

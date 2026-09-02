@@ -10,7 +10,7 @@ export interface PlanPriceInfo {
 
 export const EXCHANGE_RATES: Record<string, number> = {
   USD: 1,
-  CDF: 2850,
+  CDF: 2300,
   XOF: 620,
   XAF: 620,
   GNF: 8600,
@@ -33,7 +33,7 @@ export const PLAN_PRICING_TABLE: Record<
   },
   BASIC: {
     CDF: { amount: 15000, formatted: "15 000 FC" },
-    USD: { amount: 5.5, formatted: "5,50 $" },
+    USD: { amount: 6.5, formatted: "6,50 $" },
     XOF: { amount: 3500, formatted: "3 500 FCFA" },
     XAF: { amount: 3500, formatted: "3 500 FCFA" },
     GNF: { amount: 45000, formatted: "45 000 GNF" },
@@ -42,7 +42,7 @@ export const PLAN_PRICING_TABLE: Record<
   },
   PRO: {
     CDF: { amount: 30000, formatted: "30 000 FC" },
-    USD: { amount: 11, formatted: "11 $" },
+    USD: { amount: 13, formatted: "13 $" },
     XOF: { amount: 7000, formatted: "7 000 FCFA" },
     XAF: { amount: 7000, formatted: "7 000 FCFA" },
     GNF: { amount: 90000, formatted: "90 000 GNF" },
@@ -51,7 +51,7 @@ export const PLAN_PRICING_TABLE: Record<
   },
   BUSINESS: {
     CDF: { amount: 100000, formatted: "100 000 FC" },
-    USD: { amount: 35, formatted: "35 $" },
+    USD: { amount: 43.5, formatted: "43,50 $" },
     XOF: { amount: 22000, formatted: "22 000 FCFA" },
     XAF: { amount: 22000, formatted: "22 000 FCFA" },
     GNF: { amount: 300000, formatted: "300 000 GNF" },

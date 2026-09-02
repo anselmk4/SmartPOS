@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
 import { printIsolatedDocument } from "@/lib/native/print-service";
-import type { Sale, SaleItem, Customer } from "@/lib/shared/types";
+import type { Sale, SaleItem, Customer, HeldOrder } from "@/lib/shared/types";
 import {
   Receipt,
   Search,
@@ -32,6 +32,10 @@ import {
   ChevronDown,
   ShoppingBag,
   Lock,
+  RotateCcw,
+  Play,
+  Trash2,
+  Edit3,
 } from "lucide-react";
 
 export default function SalesHistoryPage() {
@@ -46,6 +50,15 @@ export default function SalesHistoryPage() {
       if (!currentStoreId) return [];
       return await db.sales
         .filter((s) => s.storeId === currentStoreId)
+        .reverse()
+        .sortBy("createdAt");
+    }, [currentStoreId]) || [];
+
+  const heldOrders =
+    useLiveQuery(async () => {
+      if (!currentStoreId) return [];
+      return await db.heldOrders
+        .filter((h) => h.storeId === currentStoreId)
         .reverse()
         .sortBy("createdAt");
     }, [currentStoreId]) || [];
@@ -103,12 +116,13 @@ export default function SalesHistoryPage() {
   // Filter States
   const [timeFilter, setTimeFilter] = useState<"TODAY" | "WEEK" | "MONTH" | "YEAR" | "ALL">("TODAY");
   const [customDate, setCustomDate] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "PAID" | "PARTIAL" | "UNPAID">("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "PAID" | "PARTIAL" | "UNPAID" | "PENDING">("ALL");
   const [methodFilter, setMethodFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Modal State for Sale Details
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [selectedHeldOrder, setSelectedHeldOrder] = useState<HeldOrder | null>(null);
 
   // Today dates strings
   const today = new Date();
@@ -116,8 +130,25 @@ export default function SalesHistoryPage() {
   const currentMonthStr = todayStr.slice(0, 7);
   const currentYearStr = todayStr.slice(0, 4);
 
+  // Filtered Held Orders (Pending Bills)
+  const filteredHeldOrders = useMemo(() => {
+    return heldOrders.filter((order) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchLabel = order.label?.toLowerCase().includes(q);
+        const matchCust = order.customerName?.toLowerCase().includes(q);
+        const matchNotes = order.notes?.toLowerCase().includes(q);
+        const matchServer = order.serverName?.toLowerCase().includes(q);
+        if (!matchLabel && !matchCust && !matchNotes && !matchServer) return false;
+      }
+      return true;
+    });
+  }, [heldOrders, searchQuery]);
+
   // Filtered Sales Calculation
   const filteredSales = useMemo(() => {
+    if (statusFilter === "PENDING") return [];
+
     return sales.filter((sale) => {
       const saleDate = sale.createdAt.split("T")[0];
 
@@ -182,6 +213,10 @@ export default function SalesHistoryPage() {
     currentMonthStr,
     currentYearStr,
   ]);
+
+  const totalHeldAmount = useMemo(() => {
+    return heldOrders.reduce((sum, h) => sum + h.totalAmount, 0);
+  }, [heldOrders]);
 
   // Financial KPIs on filtered data
   const totalVolume = useMemo(() => {
@@ -478,6 +513,77 @@ export default function SalesHistoryPage() {
     return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
   };
 
+  // Print helper for proforma bill / addition
+  const handlePrintHeldOrder = async (order: HeldOrder) => {
+    const storeName = store?.name || tenant?.name || "Kuettu Global POS";
+    const storeLogo = store?.logoUrl || tenant?.logoUrl;
+    const dateStr = new Date(order.createdAt).toLocaleDateString("fr-FR");
+    const timeStr = new Date(order.createdAt).toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    const itemsHtml = order.items
+      .map(
+        (it) => `
+      <tr>
+        <td><b>${it.product.name}</b><br/><span style="font-size: 9px; color: #444;">${it.quantity} x ${formatMoney(it.unitPrice)}</span></td>
+        <td class="text-right font-black" style="vertical-align: middle;">${formatMoney(it.subtotal)}</td>
+      </tr>`
+      )
+      .join("");
+
+    const bodyHtml = `
+      <div class="text-center">
+        ${storeLogo ? `
+        <div style="margin-bottom: 6px;">
+          <img src="${storeLogo}" alt="${storeName}" style="max-height: 50px; max-width: 140px; margin: 0 auto 4px auto; display: block; object-fit: contain;" />
+        </div>` : ""}
+        <h2 style="font-size: 14px; font-weight: 900; margin: 0; text-transform: uppercase;">${storeName}</h2>
+        <div style="display: inline-block; background: #f3e8ff; color: #6b21a8; font-weight: 900; font-size: 11px; padding: 2px 8px; border-radius: 6px; margin: 4px 0;">
+          FACTURE PROFORMA / ADDITION
+        </div>
+        <p style="font-size: 10px; color: #666; margin: 2px 0;">Emplacement : <b>${order.label}</b></p>
+        ${order.serverName ? `<p style="font-size: 10px; color: #666; margin: 2px 0;">Serveur : <b>${order.serverName}</b></p>` : ""}
+        <p style="font-size: 10px; color: #666; margin: 2px 0;">Date : ${dateStr} à ${timeStr}</p>
+      </div>
+
+      <div class="divider"></div>
+
+      <table>
+        <thead>
+          <tr>
+            <th class="text-left">Article</th>
+            <th class="text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+      </table>
+
+      <div class="divider"></div>
+
+      <div class="flex justify-between" style="font-size: 13px; font-weight: 900;">
+        <span>TOTAL À RÉGLER :</span>
+        <span>${formatMoney(order.totalAmount)}</span>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="text-center" style="font-size: 9px; color: #777;">
+        <p style="margin: 2px 0; font-weight: bold;">*** MERCI DE VOTRE VISITE ***</p>
+        <p style="margin: 2px 0;">Veuillez présenter cette facture à la caisse pour le règlement.</p>
+      </div>
+    `;
+
+    await printIsolatedDocument({
+      title: `Addition_${order.label}`,
+      width: "80mm",
+      bodyHtml,
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center p-8 bg-slate-50">
@@ -653,7 +759,8 @@ export default function SalesHistoryPage() {
               onChange={(e) => setStatusFilter(e.target.value as any)}
               className="w-full p-2 bg-slate-50 rounded-xl text-xs font-bold border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="ALL">📋 Tous les statuts de paiement</option>
+              <option value="ALL">📋 Toutes les transactions ({filteredSales.length + (statusFilter === "ALL" ? filteredHeldOrders.length : 0)})</option>
+              <option value="PENDING">🟣 Factures en Attente / Additions ({heldOrders.length})</option>
               <option value="PAID">🟢 Totalement Payée (Soldée)</option>
               <option value="PARTIAL">🟡 Paiement Partiel (Acompte + Dette)</option>
               <option value="UNPAID">🔴 Non Payée (100% Crédit)</option>
@@ -689,12 +796,12 @@ export default function SalesHistoryPage() {
         </div>
       </div>
 
-      {/* 4. Sales History Table */}
+      {/* 4. Sales History Table (Completed Sales & Pending Bills) */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-2xs overflow-hidden">
-        {filteredSales.length === 0 ? (
+        {filteredSales.length === 0 && filteredHeldOrders.length === 0 ? (
           <div className="p-12 text-center text-slate-400 space-y-2">
             <Receipt className="w-12 h-12 stroke-1 text-slate-300 mx-auto" />
-            <h3 className="text-sm font-bold text-slate-700">Aucune vente enregistrée pour cette sélection</h3>
+            <h3 className="text-sm font-bold text-slate-700">Aucune vente ou facture enregistrée pour cette sélection</h3>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
               Modifiez la période ou les filtres de statut de paiement pour afficher les transactions.
             </p>
@@ -705,18 +812,132 @@ export default function SalesHistoryPage() {
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
                   <th className="py-3 px-4">Date & Heure</th>
-                  <th className="py-3 px-3">N° Facture</th>
-                  <th className="py-3 px-3">Table / Ref</th>
-                  <th className="py-3 px-3">Client</th>
+                  <th className="py-3 px-3">N° Facture / Ref</th>
+                  <th className="py-3 px-3">Table / Emplacement</th>
+                  <th className="py-3 px-3">Client / Serveur</th>
                   <th className="py-3 px-3">Mode Règlement</th>
                   <th className="py-3 px-3 text-right">Total Net</th>
                   <th className="py-3 px-3 text-right">Payé</th>
                   <th className="py-3 px-3 text-right">Reste Dette</th>
                   <th className="py-3 px-3 text-center">Statut</th>
-                  <th className="py-3 px-4 text-center">Actions</th>
+                  <th className="py-3 px-4 text-center">Actions & Encaissement</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                {/* 1. HELD ORDERS (EN ATTENTE) */}
+                {(statusFilter === "ALL" || statusFilter === "PENDING") &&
+                  filteredHeldOrders.map((order) => (
+                    <tr
+                      key={order.id}
+                      className="bg-purple-50/40 hover:bg-purple-50/70 border-l-4 border-l-purple-500 transition-colors group"
+                    >
+                      {/* Date */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <div className="font-bold text-purple-950">
+                          {new Date(order.createdAt).toLocaleDateString("fr-FR")}
+                        </div>
+                        <div className="text-[10px] text-purple-500 font-mono font-bold">
+                          {new Date(order.createdAt).toLocaleTimeString("fr-FR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      </td>
+
+                      {/* Reference / Proforma ID */}
+                      <td className="py-3 px-3 font-mono font-bold text-purple-700 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-purple-600 animate-ping shrink-0" />
+                          <span>CMD-{order.id.slice(0, 6).toUpperCase()}</span>
+                        </div>
+                      </td>
+
+                      {/* Table / Label */}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 font-bold text-purple-900 bg-purple-100/80 px-2 py-0.5 rounded-lg border border-purple-200 text-[11px]">
+                          <Utensils className="w-3 h-3 text-purple-600" />
+                          <span>{order.label}</span>
+                        </span>
+                      </td>
+
+                      {/* Customer / Server */}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <div>
+                          <div className="font-bold text-slate-900">{order.customerName || "Client Comptoir"}</div>
+                          <div className="text-[10px] text-purple-700 font-medium">
+                            {order.serverName ? `Serveur : ${order.serverName}` : `${order.items.length} article(s)`}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Mode Règlement */}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span className="text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-lg font-bold text-[11px] inline-flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          <span>Addition / En cours</span>
+                        </span>
+                      </td>
+
+                      {/* Total Net */}
+                      <td className="py-3 px-3 text-right font-black text-purple-900 whitespace-nowrap">
+                        {formatMoney(order.totalAmount)}
+                      </td>
+
+                      {/* Amount Paid (0 for held orders) */}
+                      <td className="py-3 px-3 text-right font-semibold text-slate-400 whitespace-nowrap">
+                        0
+                      </td>
+
+                      {/* Debt Amount */}
+                      <td className="py-3 px-3 text-right text-slate-400 whitespace-nowrap">
+                        -
+                      </td>
+
+                      {/* Status Badge */}
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-purple-800 bg-purple-100 border border-purple-300 px-2.5 py-0.5 rounded-full shadow-2xs">
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-pulse" />
+                          <span>En Attente</span>
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3 px-4 text-center whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* Modifier la facture au POS */}
+                          <Link
+                            href={`/pos?restoreHoldId=${order.id}`}
+                            className="py-1 px-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold text-[11px] flex items-center gap-1 shadow-2xs transition-all"
+                            title="Reprendre la facture sur la caisse pour modifier les articles"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                            <span>Modifier</span>
+                          </Link>
+
+                          {/* Encaisser directement */}
+                          <Link
+                            href={`/pos?payHoldId=${order.id}`}
+                            className="py-1 px-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs transition-all touch-press"
+                            title="Encaisser cette facture à la caisse"
+                          >
+                            <Play className="w-3 h-3" />
+                            <span>Encaisser</span>
+                          </Link>
+
+                          {/* Détail */}
+                          <button
+                            onClick={() => setSelectedHeldOrder(order)}
+                            className="p-1 px-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-[11px] shadow-2xs"
+                            title="Voir les articles de l'addition"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+
+                {/* 2. COMPLETED SALES */}
                 {filteredSales.map((sale) => {
                   const cust = customers.find((c) => c.id === sale.customerId);
                   const isFullyPaid = sale.debtAmount === 0;
@@ -1001,6 +1222,158 @@ export default function SalesHistoryPage() {
 
               <button
                 onClick={() => setSelectedSale(null)}
+                className="w-full py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. HELD ORDER (PENDING BILL) DETAIL MODAL */}
+      {selectedHeldOrder && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in zoom-in-95">
+          <div className="bg-white w-full max-w-md max-h-[90vh] rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-100 flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-purple-100 mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                  <Utensils className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">
+                    Facture / Addition : {selectedHeldOrder.label}
+                  </h3>
+                  <div className="text-[11px] text-purple-600 font-medium">
+                    Statut : En Attente de Règlement
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedHeldOrder(null)}
+                className="w-7 h-7 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
+              {/* Order metadata */}
+              <div className="bg-purple-50/50 p-3 rounded-2xl border border-purple-100 space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Emplacement :</span>
+                  <b className="text-purple-900">{selectedHeldOrder.label}</b>
+                </div>
+                {selectedHeldOrder.customerName && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Client :</span>
+                    <b>{selectedHeldOrder.customerName}</b>
+                  </div>
+                )}
+                {selectedHeldOrder.serverName && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Serveur ayant pris la commande :</span>
+                    <b className="text-blue-700">{selectedHeldOrder.serverName}</b>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Date de prise :</span>
+                  <span>{new Date(selectedHeldOrder.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+                {selectedHeldOrder.notes && (
+                  <div className="text-[11px] text-slate-600 pt-1 border-t border-purple-100">
+                    <b>Note :</b> {selectedHeldOrder.notes}
+                  </div>
+                )}
+              </div>
+
+              {/* Items List */}
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5 font-mono text-[11px]">
+                <div className="font-bold text-slate-400 uppercase text-[10px] pb-1 border-b border-slate-200">
+                  Articles au Panier ({selectedHeldOrder.items.length})
+                </div>
+                {selectedHeldOrder.items.map((it, idx) => (
+                  <div key={idx} className="flex justify-between items-start text-slate-800">
+                    <div className="flex-1 pr-2">
+                      <div className="font-bold truncate">{it.product.name}</div>
+                      <div className="text-[10px] text-slate-500">
+                        {it.quantity} × {formatMoney(it.unitPrice)}
+                      </div>
+                    </div>
+                    <div className="font-black text-slate-900">
+                      {formatMoney(it.subtotal)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Totals */}
+              <div className="bg-purple-50/70 p-3 rounded-2xl border border-purple-200 space-y-1 font-mono">
+                {selectedHeldOrder.discountValue && selectedHeldOrder.discountValue > 0 && (
+                  <div className="flex justify-between text-emerald-700 font-bold text-[11px]">
+                    <span>Remise configurée :</span>
+                    <span>
+                      {selectedHeldOrder.discountType === "PERCENT"
+                        ? `-${selectedHeldOrder.discountValue}%`
+                        : `-${formatMoney(selectedHeldOrder.discountValue)}`}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex justify-between font-black text-purple-950 pt-1 border-t border-purple-200 text-sm">
+                  <span>TOTAL À ENCAISSER :</span>
+                  <span className="text-purple-700">{formatMoney(selectedHeldOrder.totalAmount)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="pt-3 space-y-2 border-t border-slate-100 mt-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href={`/pos?restoreHoldId=${selectedHeldOrder.id}`}
+                  className="py-2.5 px-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs text-center"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  <span>Modifier Facture</span>
+                </Link>
+
+                <Link
+                  href={`/pos?payHoldId=${selectedHeldOrder.id}`}
+                  className="py-2.5 px-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 text-center"
+                >
+                  <Play className="w-4 h-4" />
+                  <span>Encaisser Caisse</span>
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handlePrintHeldOrder(selectedHeldOrder)}
+                  className="py-2 px-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Imprimer Addition</span>
+                </button>
+
+                <button
+                  onClick={async () => {
+                    if (confirm("Supprimer définitivement cette facture en attente ?")) {
+                      await db.heldOrders.delete(selectedHeldOrder.id);
+                      setSelectedHeldOrder(null);
+                    }
+                  }}
+                  className="py-2 px-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center justify-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Annuler / Supprimer</span>
+                </button>
+              </div>
+
+              <button
+                onClick={() => setSelectedHeldOrder(null)}
                 className="w-full py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold"
               >
                 Fermer

@@ -19,6 +19,9 @@ import {
   Layers,
 } from "lucide-react";
 
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/lib/db/dexie-db";
+
 interface TariffSelectorProps {
   tariffConfig: TariffConfig;
   onUpdateTariffConfig: (newConfig: TariffConfig) => void;
@@ -43,12 +46,20 @@ export function TariffSelector({
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState<string | null>(null);
 
+  const products = useLiveQuery(() => db.products.toArray()) || [];
+
   // Form state for config modal
   const [formKaraokeSurcharge, setFormKaraokeSurcharge] = useState<number>(
     tariffConfig.karaokeDrinkSurcharge || 500
   );
   const [formPromoDiscount, setFormPromoDiscount] = useState<number>(
     tariffConfig.promoDiscountAmount || 1000
+  );
+  const [formPromoProductId, setFormPromoProductId] = useState<string>(
+    tariffConfig.promoProductId || "ALL"
+  );
+  const [formPromoMinQty, setFormPromoMinQty] = useState<number>(
+    tariffConfig.promoMinQuantity || 1
   );
 
   const activeMode = tariffConfig.activeMode || "NORMAL";
@@ -75,6 +86,8 @@ export function TariffSelector({
   const handleOpenConfig = () => {
     setFormKaraokeSurcharge(tariffConfig.karaokeDrinkSurcharge || 500);
     setFormPromoDiscount(tariffConfig.promoDiscountAmount || 1000);
+    setFormPromoProductId(tariffConfig.promoProductId || "ALL");
+    setFormPromoMinQty(tariffConfig.promoMinQuantity || 1);
 
     if (canManageTariffs) {
       setIsConfigModalOpen(true);
@@ -127,10 +140,14 @@ export function TariffSelector({
 
   const handleSaveConfig = (e: React.FormEvent) => {
     e.preventDefault();
+    const selectedProd = products.find((p) => p.id === formPromoProductId);
     onUpdateTariffConfig({
       ...tariffConfig,
       karaokeDrinkSurcharge: Math.max(0, Number(formKaraokeSurcharge) || 0),
       promoDiscountAmount: Math.max(0, Number(formPromoDiscount) || 0),
+      promoProductId: formPromoProductId,
+      promoProductName: selectedProd?.name,
+      promoMinQuantity: Math.max(1, Number(formPromoMinQty) || 1),
       updatedAt: new Date().toISOString(),
     });
     setIsConfigModalOpen(false);
@@ -346,46 +363,90 @@ export function TariffSelector({
               </div>
 
               {/* 2. Promotion Settings */}
-              <div className="p-4 rounded-2xl bg-amber-950/30 border border-amber-800/40 space-y-2">
+              <div className="p-4 rounded-2xl bg-amber-950/30 border border-amber-800/40 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-amber-200 flex items-center gap-1.5">
                     <Flame className="w-3.5 h-3.5 text-amber-400" />
                     <span>Tarif Promotion</span>
                   </span>
-                  <span className="text-[10px] text-amber-300 font-mono">Remise fixe</span>
+                  <span className="text-[10px] text-amber-300 font-mono">Remise ciblée</span>
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  Minoration / réduction fixe appliquée automatiquement sur chaque produit commandé lors des promotions.
+                  Sélectionnez le produit cible, la quantité minimale d'achat pour déclencher l'offre, et le montant de la réduction.
                 </p>
 
-                <div className="flex items-center gap-2 pt-1">
-                  <div className="relative flex-1">
-                    <input
-                      type="number"
-                      min={0}
-                      step={100}
-                      value={formPromoDiscount}
-                      onChange={(e) => setFormPromoDiscount(Number(e.target.value))}
-                      className="w-full py-2 px-3 rounded-xl bg-slate-950 border border-amber-700/50 text-white font-mono font-bold text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
-                    <span className="absolute right-3 top-2.5 text-slate-400 text-xs">{currency}</span>
-                  </div>
-                  <div className="flex gap-1">
-                    {[500, 1000, 2000].map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => setFormPromoDiscount(preset)}
-                        className={`px-2 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${
-                          formPromoDiscount === preset
-                            ? "bg-amber-600 text-white border-amber-500"
-                            : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
-                        }`}
-                      >
-                        -{preset}
-                      </button>
+                {/* Article Cible */}
+                <div>
+                  <label className="text-[10px] font-bold text-amber-300 uppercase tracking-wider block mb-1">
+                    Article Concerné par la Promo
+                  </label>
+                  <select
+                    value={formPromoProductId}
+                    onChange={(e) => setFormPromoProductId(e.target.value)}
+                    className="w-full py-2 px-3 rounded-xl bg-slate-950 border border-amber-700/50 text-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+                  >
+                    <option value="ALL">🎁 Tous les produits du magasin</option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        📦 {p.name} ({p.unitPrice.toLocaleString("fr-FR")} {currency})
+                      </option>
                     ))}
+                  </select>
+                </div>
+
+                {/* Quantité Minimale */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-bold text-amber-300 uppercase tracking-wider block mb-1">
+                      Qté Min. requise
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min={1}
+                        value={formPromoMinQty}
+                        onChange={(e) => setFormPromoMinQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        className="w-full py-2 px-3 rounded-xl bg-slate-950 border border-amber-700/50 text-white font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 text-center"
+                      />
+                      <span className="text-[10px] text-slate-400 font-medium">unités</span>
+                    </div>
                   </div>
+
+                  {/* Montant de Réduction */}
+                  <div>
+                    <label className="text-[10px] font-bold text-amber-300 uppercase tracking-wider block mb-1">
+                      Montant Réduction ({currency})
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={0}
+                        step={100}
+                        value={formPromoDiscount}
+                        onChange={(e) => setFormPromoDiscount(Number(e.target.value))}
+                        className="w-full py-2 px-3 rounded-xl bg-slate-950 border border-amber-700/50 text-white font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 text-center"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Presets for Promo */}
+                <div className="flex items-center gap-1 pt-1 justify-end">
+                  <span className="text-[10px] text-slate-400 mr-1">Raccourcis :</span>
+                  {[500, 1000, 2000].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setFormPromoDiscount(preset)}
+                      className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
+                        formPromoDiscount === preset
+                          ? "bg-amber-600 text-white border-amber-500"
+                          : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+                      }`}
+                    >
+                      -{preset}
+                    </button>
+                  ))}
                 </div>
               </div>
 

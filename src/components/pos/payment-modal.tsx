@@ -165,11 +165,11 @@ export function PaymentModal({
               <span>Total : <b className="text-blue-600 font-bold">{formatMoney(totalAmount)}</b></span>
               {currency === "FC" || currency === "CDF" ? (
                 <span className="text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg font-bold text-[10px]">
-                  ≈ ${(totalAmount / 2850).toFixed(2)} USD (Taux: 2.850 FC)
+                  ≈ ${(totalAmount / 2300).toFixed(2)} USD (Taux: 2.300 FC)
                 </span>
               ) : currency === "$" || currency === "USD" ? (
                 <span className="text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg font-bold text-[10px]">
-                  ≈ {(totalAmount * 2850).toLocaleString("fr-FR")} FC (Taux: 2.850 FC)
+                  ≈ {(totalAmount * 2300).toLocaleString("fr-FR")} FC (Taux: 2.300 FC)
                 </span>
               ) : null}
               {discountAmount > 0 && (
