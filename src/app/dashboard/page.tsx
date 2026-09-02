@@ -67,14 +67,14 @@ export default function DashboardPage() {
   const storeUsers = useLiveQuery(async () => {
     if (!currentStoreId) return [];
     return await db.users
-      .filter((u) => u.storeId === currentStoreId || (currentTenantId && u.tenantId === currentTenantId))
+      .filter((u) => u.storeId === currentStoreId || Boolean(currentTenantId && u.tenantId === currentTenantId))
       .toArray();
   }, [currentStoreId, currentTenantId]) || [];
 
   const allTenantSales = useLiveQuery(async () => {
     if (!currentTenantId) return [];
     return await db.sales
-      .filter((s) => s.tenantId === currentTenantId || !s.tenantId)
+      .filter((s) => Boolean(currentTenantId && s.tenantId === currentTenantId) || !s.tenantId)
       .toArray();
   }, [currentTenantId]) || [];
 
