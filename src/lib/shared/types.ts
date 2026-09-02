@@ -434,7 +434,7 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     canAccessOwnerDashboard: false,
     canViewGrossProfitMargins: false,
     canUseWhatsAppTemplates: false,
-    canExportReports: false,
+    canExportReports: true,
     canTransferStock: false,
     canCreateMultipleCashiers: false,
     canUseCloudSync: false,
