@@ -268,12 +268,12 @@ export function TenantDetailsSidebar({
           <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
             {/* TAB 1: GENERAL INFO */}
             {activeTab === "GENERAL" && (
-              <div className="space-y-6 animate-in fade-in duration-200">
-                {/* 4 KPIs Grid - Clean Pastel Badges */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  <div className="p-3.5 rounded-2xl bg-blue-50/60 dark:bg-slate-800/60 border border-blue-100 dark:border-slate-700/60">
-                    <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400 text-[11px] font-bold mb-1">
-                      <Package className="w-3.5 h-3.5" />
+              <div className="space-y-5 animate-in fade-in duration-200">
+                {/* 4 KPIs Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3.5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50">
+                    <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300 text-[11px] font-bold mb-1">
+                      <Package className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                       <span>Articles</span>
                     </div>
                     <span className="text-xl font-black text-slate-900 dark:text-white">
@@ -281,9 +281,9 @@ export function TenantDetailsSidebar({
                     </span>
                   </div>
 
-                  <div className="p-3.5 rounded-2xl bg-emerald-50/60 dark:bg-slate-800/60 border border-emerald-100 dark:border-slate-700/60">
-                    <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold mb-1">
-                      <Receipt className="w-3.5 h-3.5" />
+                  <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50">
+                    <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold mb-1">
+                      <Receipt className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       <span>Ventes</span>
                     </div>
                     <span className="text-xl font-black text-slate-900 dark:text-white">
@@ -291,9 +291,9 @@ export function TenantDetailsSidebar({
                     </span>
                   </div>
 
-                  <div className="p-3.5 rounded-2xl bg-amber-50/60 dark:bg-slate-800/60 border border-amber-100 dark:border-slate-700/60">
-                    <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 text-[11px] font-bold mb-1">
-                      <Users className="w-3.5 h-3.5" />
+                  <div className="p-3.5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50">
+                    <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300 text-[11px] font-bold mb-1">
+                      <Users className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                       <span>Clients</span>
                     </div>
                     <span className="text-xl font-black text-slate-900 dark:text-white">
@@ -301,9 +301,9 @@ export function TenantDetailsSidebar({
                     </span>
                   </div>
 
-                  <div className="p-3.5 rounded-2xl bg-purple-50/60 dark:bg-slate-800/60 border border-purple-100 dark:border-slate-700/60">
-                    <div className="flex items-center gap-1.5 text-purple-700 dark:text-purple-400 text-[11px] font-bold mb-1">
-                      <CreditCard className="w-3.5 h-3.5" />
+                  <div className="p-3.5 rounded-2xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/50">
+                    <div className="flex items-center gap-1.5 text-purple-700 dark:text-purple-300 text-[11px] font-bold mb-1">
+                      <CreditCard className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                       <span>Factures</span>
                     </div>
                     <span className="text-xl font-black text-slate-900 dark:text-white">
@@ -313,37 +313,37 @@ export function TenantDetailsSidebar({
                 </div>
 
                 {/* Identity & Location Card */}
-                <div className="bg-slate-50/80 dark:bg-slate-800/40 rounded-3xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 space-y-3.5 text-xs">
-                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-200 flex items-center gap-2">
+                <div className="bg-slate-50/80 dark:bg-slate-800/50 rounded-3xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-700/60 space-y-3.5 text-xs">
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
                     <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     <span>Identité & Localisation Géographique</span>
                   </h3>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <div className="p-3 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-2xs">
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-0.5 font-medium">Pays d'Implantation</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                    <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+                      <span className="text-[11px] text-slate-400 block mb-0.5 font-medium">Pays d'Implantation</span>
                       <span className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-1.5">
                         <span>{countryInfo.flag}</span>
                         <span>{countryInfo.name} ({tenant.countryCode})</span>
                       </span>
                     </div>
 
-                    <div className="p-3 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-2xs">
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-0.5 font-medium">Devise d'Encaissement</span>
+                    <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+                      <span className="text-[11px] text-slate-400 block mb-0.5 font-medium">Devise d'Encaissement</span>
                       <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-sm">
                         {tenant.currency}
                       </span>
                     </div>
 
-                    <div className="p-3 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-2xs">
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-0.5 font-medium">Activité / Secteur</span>
+                    <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+                      <span className="text-[11px] text-slate-400 block mb-0.5 font-medium">Activité / Secteur</span>
                       <span className="font-bold text-slate-800 dark:text-slate-200">
                         {tenant.businessType || "Commerce Général / Détail"}
                       </span>
                     </div>
 
-                    <div className="p-3 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-2xs">
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-0.5 font-medium">IP & Réseau Régional</span>
+                    <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+                      <span className="text-[11px] text-slate-400 block mb-0.5 font-medium">IP & Réseau Régional</span>
                       <span className="font-mono text-slate-700 dark:text-slate-300 text-[11px]">
                         {countryInfo.ipRegion}
                       </span>
@@ -351,331 +351,333 @@ export function TenantDetailsSidebar({
                   </div>
 
                   {tenant.address && (
-                    <div className="p-3 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 flex items-start gap-2 shadow-2xs">
+                    <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-start gap-2 shadow-xs">
                       <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                       <div>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Adresse du Siège</span>
+                        <span className="text-[11px] text-slate-400 block">Adresse du Siège</span>
                         <span className="font-medium text-slate-800 dark:text-slate-200">{tenant.address}</span>
                       </div>
                     </div>
                   )}
                 </div>
 
-              {/* Registration & Timeline Card */}
-              <div className="bg-slate-800/40 rounded-3xl p-4 sm:p-5 border border-slate-800 space-y-3 text-xs">
-                <h3 className="font-extrabold text-sm text-slate-200 flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-purple-400" />
-                  <span>Historique d'Inscription & Horodatage</span>
-                </h3>
-
-                <div className="space-y-2 text-slate-300">
-                  <div className="flex justify-between items-center py-1.5 border-b border-slate-800/60">
-                    <span className="text-slate-400">Date d'inscription :</span>
-                    <span className="font-bold text-white font-mono">
-                      {formattedCreated} à {formattedCreatedTime}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center py-1.5 border-b border-slate-800/60">
-                    <span className="text-slate-400">Ancienneté du compte :</span>
-                    <span className="font-bold text-blue-400 font-mono">
-                      {timeAgoDays === 0 ? "Aujourd'hui" : `Il y a ${timeAgoDays} jour(s)`}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center py-1.5">
-                    <span className="text-slate-400">Dernière synchronisation :</span>
-                    <span className="font-mono text-slate-300">
-                      {new Date(tenant.updatedAt).toLocaleDateString("fr-FR")} à{" "}
-                      {new Date(tenant.updatedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Owner / Contact Card */}
-              <div className="bg-slate-800/40 rounded-3xl p-4 sm:p-5 border border-slate-800 space-y-3 text-xs">
-                <h3 className="font-extrabold text-sm text-slate-200 flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-emerald-400" />
-                  <span>Contact Gérant / Propriétaire</span>
-                </h3>
-
-                <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="font-extrabold text-sm text-white">{mainOwner}</div>
-                    <div className="font-mono text-slate-400 text-xs mt-0.5">{ownerPhone || "Aucun numéro"}</div>
-                    {ownerEmail && <div className="text-slate-400 text-[11px]">{ownerEmail}</div>}
-                  </div>
-
-                  {cleanPhoneDigits && (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <a
-                        href={`https://wa.me/${cleanPhoneDigits}?text=${encodeURIComponent(
-                          `Bonjour ${mainOwner}, nous vous contactons depuis l'assistance SmartPOS Global concernant votre boutique "${tenant.name}".`
-                        )}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all touch-press"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        <span>WhatsApp</span>
-                      </a>
-                      <a
-                        href={`tel:${ownerPhone}`}
-                        className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-                        title="Appeler"
-                      >
-                        <Phone className="w-3.5 h-3.5" />
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: NETWORK & USERS */}
-          {activeTab === "NETWORK" && (
-            <div className="space-y-6 animate-in fade-in duration-200">
-              {/* Stores / Dépôts List */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
-                    <Store className="w-4 h-4 text-blue-400" />
-                    <span>Points de Vente & Dépôts ({tenant.stores?.length || 0})</span>
+                {/* Registration & Timeline Card - High Contrast Clean Styling */}
+                <div className="bg-slate-50/80 dark:bg-slate-800/50 rounded-3xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-700/60 space-y-3.5 text-xs">
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <span>Historique d'Inscription & Horodatage</span>
                   </h3>
+
+                  <div className="space-y-2.5 bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+                    <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800">
+                      <span className="text-slate-500 dark:text-slate-400">Date d'inscription :</span>
+                      <span className="font-bold text-slate-900 dark:text-white font-mono">
+                        {formattedCreated} à {formattedCreatedTime}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800">
+                      <span className="text-slate-500 dark:text-slate-400">Ancienneté du compte :</span>
+                      <span className="font-bold text-blue-600 dark:text-blue-400 font-mono">
+                        {timeAgoDays === 0 ? "Aujourd'hui" : `Il y a ${timeAgoDays} jour(s)`}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center py-1">
+                      <span className="text-slate-500 dark:text-slate-400">Dernière synchronisation :</span>
+                      <span className="font-mono text-slate-700 dark:text-slate-300 font-semibold">
+                        {new Date(tenant.updatedAt).toLocaleDateString("fr-FR")} à{" "}
+                        {new Date(tenant.updatedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  {tenant.stores && tenant.stores.length > 0 ? (
-                    tenant.stores.map((s) => (
-                      <div
-                        key={s.id}
-                        className="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/60 flex items-start justify-between gap-3 text-xs"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="font-bold text-white text-sm flex items-center gap-2">
-                            <span>{s.name}</span>
-                            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">
-                              {s.currency || tenant.currency}
-                            </span>
-                          </div>
-                          {s.address && (
-                            <div className="text-slate-400 text-[11px] mt-1 flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
-                              <span className="truncate">{s.address}</span>
+                {/* Owner / Contact Card - Clean High Contrast */}
+                <div className="bg-slate-50/80 dark:bg-slate-800/50 rounded-3xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-700/60 space-y-3.5 text-xs">
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Contact Gérant / Propriétaire</span>
+                  </h3>
+
+                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 shadow-xs">
+                    <div>
+                      <div className="font-extrabold text-sm text-slate-900 dark:text-white">{mainOwner}</div>
+                      <div className="font-mono text-slate-600 dark:text-slate-300 text-xs mt-0.5 font-semibold">
+                        {ownerPhone || "Aucun numéro"}
+                      </div>
+                      {ownerEmail && <div className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">{ownerEmail}</div>}
+                    </div>
+
+                    {cleanPhoneDigits && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <a
+                          href={`https://wa.me/${cleanPhoneDigits}?text=${encodeURIComponent(
+                            `Bonjour ${mainOwner}, nous vous contactons depuis l'assistance SmartPOS Global concernant votre boutique "${tenant.name}".`
+                          )}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all touch-press"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>WhatsApp</span>
+                        </a>
+                        <a
+                          href={`tel:${ownerPhone}`}
+                          className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+                          title="Appeler"
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: NETWORK & USERS */}
+            {activeTab === "NETWORK" && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                {/* Stores / Dépôts List */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                      <Store className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span>Points de Vente & Dépôts ({tenant.stores?.length || 0})</span>
+                    </h3>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {tenant.stores && tenant.stores.length > 0 ? (
+                      tenant.stores.map((s) => (
+                        <div
+                          key={s.id}
+                          className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-start justify-between gap-3 text-xs"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                              <span>{s.name}</span>
+                              <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 font-bold">
+                                {s.currency || tenant.currency}
+                              </span>
                             </div>
-                          )}
-                          {s.ownerName && (
-                            <div className="text-slate-400 text-[11px] mt-0.5">
-                              Responsable : <b className="text-slate-300">{s.ownerName}</b>
+                            {s.address && (
+                              <div className="text-slate-500 dark:text-slate-400 text-[11px] mt-1 flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span className="truncate">{s.address}</span>
+                              </div>
+                            )}
+                            {s.ownerName && (
+                              <div className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
+                                Responsable : <b className="text-slate-800 dark:text-slate-200">{s.ownerName}</b>
+                              </div>
+                            )}
+                            <div className="text-slate-400 font-mono text-[10px] mt-1 truncate">
+                              ID: {s.id}
                             </div>
-                          )}
-                          <div className="text-slate-500 font-mono text-[10px] mt-1 truncate">
-                            ID: {s.id}
                           </div>
                         </div>
+                      ))
+                    ) : (
+                      <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/30 text-center text-slate-400 text-xs border border-slate-200/60 dark:border-slate-800">
+                        Aucun dépôt configuré.
                       </div>
-                    ))
-                  ) : (
-                    <div className="p-6 rounded-2xl bg-slate-800/30 text-center text-slate-400 text-xs">
-                      Aucun dépôt configuré.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Users & Cashiers List */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
-                    <Users className="w-4 h-4 text-indigo-400" />
-                    <span>Comptes Utilisateurs & Caissiers ({tenant.users?.length || 0})</span>
-                  </h3>
+                    )}
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  {tenant.users && tenant.users.length > 0 ? (
-                    tenant.users.map((u) => (
-                      <div
-                        key={u.id}
-                        className="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/60 flex items-center justify-between gap-3 text-xs"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-white">{u.name}</span>
-                            <span
-                              className={`px-2 py-0.2 rounded-full text-[9px] font-black uppercase ${
-                                u.role === "OWNER"
-                                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                                  : u.role === "MANAGER"
-                                  ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                                  : "bg-slate-700 text-slate-300"
-                              }`}
-                            >
-                              {u.role}
-                            </span>
-                            {!u.isActive && (
-                              <span className="text-[9px] text-rose-400 font-bold bg-rose-500/10 px-1.5 rounded">
-                                Inactif
+                {/* Users & Cashiers List */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                      <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                      <span>Comptes Utilisateurs & Caissiers ({tenant.users?.length || 0})</span>
+                    </h3>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {tenant.users && tenant.users.length > 0 ? (
+                      tenant.users.map((u) => (
+                        <div
+                          key={u.id}
+                          className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-900 dark:text-white">{u.name}</span>
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                  u.role === "OWNER"
+                                    ? "bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300"
+                                    : u.role === "MANAGER"
+                                    ? "bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300"
+                                    : "bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                                }`}
+                              >
+                                {u.role}
                               </span>
+                              {!u.isActive && (
+                                <span className="text-[9px] text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded font-bold">
+                                  Inactif
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="text-slate-500 dark:text-slate-400 text-[11px] mt-1 flex items-center gap-3 flex-wrap">
+                              {u.phone && <span>📞 {u.phone}</span>}
+                              {u.email && <span>✉️ {u.email}</span>}
+                            </div>
+
+                            {u.lastLoginAt && (
+                              <div className="text-slate-400 text-[10px] mt-1 font-mono">
+                                Dernière connexion : {new Date(u.lastLoginAt).toLocaleDateString("fr-FR")} à{" "}
+                                {new Date(u.lastLoginAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                              </div>
                             )}
                           </div>
-
-                          <div className="text-slate-400 text-[11px] mt-1 flex items-center gap-3 flex-wrap">
-                            {u.phone && <span>📞 {u.phone}</span>}
-                            {u.email && <span>✉️ {u.email}</span>}
-                          </div>
-
-                          {u.lastLoginAt && (
-                            <div className="text-slate-500 text-[10px] mt-1 font-mono">
-                              Dernière connexion : {new Date(u.lastLoginAt).toLocaleDateString("fr-FR")} à{" "}
-                              {new Date(u.lastLoginAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-                            </div>
-                          )}
                         </div>
+                      ))
+                    ) : (
+                      <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/30 text-center text-slate-400 text-xs border border-slate-200/60 dark:border-slate-800">
+                        Aucun utilisateur associé.
                       </div>
-                    ))
-                  ) : (
-                    <div className="p-6 rounded-2xl bg-slate-800/30 text-center text-slate-400 text-xs">
-                      Aucun utilisateur associé.
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: SUBSCRIPTIONS & PAYMENTS */}
+            {activeTab === "SUBSCRIPTIONS" && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                {/* Current Active Plan Card */}
+                <div className="p-5 rounded-3xl bg-gradient-to-br from-slate-900 to-indigo-950 text-white shadow-xl space-y-4 text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-300" />
+                      <span className="font-extrabold text-sm text-white">Formule d'Abonnement Actuelle</span>
+                    </div>
+                    <button
+                      onClick={() => onChangePlan(tenant)}
+                      className="py-1.5 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xs transition-all touch-press"
+                    >
+                      Changer de Forfait
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="p-3 bg-white/10 backdrop-blur-xs rounded-2xl border border-white/10">
+                      <span className="text-[11px] text-slate-300 block mb-0.5">Plan Souscrit</span>
+                      <span className="text-base font-black text-cyan-300 uppercase tracking-wider">
+                        {tenant.plan}
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-white/10 backdrop-blur-xs rounded-2xl border border-white/10">
+                      <span className="text-[11px] text-slate-300 block mb-0.5">Statut de Facturation</span>
+                      <span className="text-sm font-bold text-emerald-300">
+                        {tenant.planStatus || "ACTIF"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {tenant.planExpiresAt && (
+                    <div className="p-3 bg-white/10 backdrop-blur-xs rounded-2xl border border-white/10 flex items-center justify-between text-xs">
+                      <span className="text-slate-300">Date d'échéance :</span>
+                      <span className="font-bold text-white font-mono">
+                        {new Date(tenant.planExpiresAt).toLocaleDateString("fr-FR")}
+                      </span>
                     </div>
                   )}
                 </div>
-              </div>
-            </div>
-          )}
 
-          {/* TAB 3: SUBSCRIPTIONS & PAYMENTS */}
-          {activeTab === "SUBSCRIPTIONS" && (
-            <div className="space-y-6 animate-in fade-in duration-200">
-              {/* Current Active Plan Card */}
-              <div className="p-5 rounded-3xl bg-gradient-to-br from-slate-800/90 to-slate-900 border border-slate-700/80 shadow-md space-y-4 text-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    <span className="font-extrabold text-sm text-white">Formule d'Abonnement Actuelle</span>
-                  </div>
-                  <button
-                    onClick={() => onChangePlan(tenant)}
-                    className="py-1.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xs transition-all touch-press"
-                  >
-                    Changer de Forfait
-                  </button>
-                </div>
+                {/* Subscriptions History List */}
+                <div className="space-y-3">
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Historique des Factures & Renouvellements</span>
+                  </h3>
 
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div className="p-3 bg-slate-900/80 rounded-2xl border border-slate-800">
-                    <span className="text-[11px] text-slate-400 block mb-0.5">Plan Souscrit</span>
-                    <span className="text-base font-black text-blue-400 uppercase tracking-wider">
-                      {tenant.plan}
-                    </span>
-                  </div>
+                  <div className="space-y-2.5">
+                    {tenant.subscriptions && tenant.subscriptions.length > 0 ? (
+                      tenant.subscriptions.map((sub: any) => (
+                        <div
+                          key={sub.id}
+                          className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between gap-3 text-xs"
+                        >
+                          <div>
+                            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                              <span>Formule {sub.plan}</span>
+                              <span className="font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">
+                                {Number(sub.amount || 0) === 0 ? "Offert" : `${sub.amount} ${sub.currency}`}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                              Règlement : <b className="text-slate-800 dark:text-slate-200">{sub.paymentMethod}</b> •{" "}
+                              <span>{new Date(sub.createdAt).toLocaleDateString("fr-FR")}</span>
+                            </div>
+                          </div>
 
-                  <div className="p-3 bg-slate-900/80 rounded-2xl border border-slate-800">
-                    <span className="text-[11px] text-slate-400 block mb-0.5">Statut de Facturation</span>
-                    <span className="text-sm font-bold text-emerald-400">
-                      {tenant.planStatus || "ACTIF"}
-                    </span>
-                  </div>
-                </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setSidebarSelectedInvoice(sub as Subscription)}
+                              className="py-1.5 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] flex items-center gap-1 transition-colors"
+                              title="Voir la facture"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              <span>Facture</span>
+                            </button>
 
-                {tenant.planExpiresAt && (
-                  <div className="p-3 bg-slate-900/80 rounded-2xl border border-slate-800 flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Date d'échéance :</span>
-                    <span className="font-bold text-white font-mono">
-                      {new Date(tenant.planExpiresAt).toLocaleDateString("fr-FR")}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Subscriptions History List */}
-              <div className="space-y-3">
-                <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-emerald-400" />
-                  <span>Historique des Factures & Renouvellements</span>
-                </h3>
-
-                <div className="space-y-2">
-                  {tenant.subscriptions && tenant.subscriptions.length > 0 ? (
-                    tenant.subscriptions.map((sub: any) => (
-                      <div
-                        key={sub.id}
-                        className="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/60 flex items-center justify-between gap-3 text-xs"
-                      >
-                        <div>
-                          <div className="font-bold text-white flex items-center gap-2">
-                            <span>Formule {sub.plan}</span>
-                            <span className="font-mono text-emerald-400 font-extrabold">
-                              {Number(sub.amount || 0) === 0 ? "Offert" : `${sub.amount} ${sub.currency}`}
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              {sub.paymentStatus || "PAYÉ"}
                             </span>
                           </div>
-                          <div className="text-[11px] text-slate-400 mt-0.5">
-                            Règlement : <b className="text-slate-300">{sub.paymentMethod}</b> •{" "}
-                            <span>{new Date(sub.createdAt).toLocaleDateString("fr-FR")}</span>
-                          </div>
                         </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setSidebarSelectedInvoice(sub as Subscription)}
-                            className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 font-bold text-[11px] flex items-center gap-1 transition-colors"
-                            title="Voir la facture"
-                          >
-                            <FileText className="w-3.5 h-3.5" />
-                            <span>Facture</span>
-                          </button>
-
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                            {sub.paymentStatus || "PAYÉ"}
-                          </span>
-                        </div>
+                      ))
+                    ) : (
+                      <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/30 text-center text-slate-400 text-xs border border-slate-200/60 dark:border-slate-800">
+                        Aucun historique de paiement pour le moment.
                       </div>
-                    ))
-                  ) : (
-                    <div className="p-6 rounded-2xl bg-slate-800/30 text-center text-slate-400 text-xs">
-                      Aucun historique de paiement pour le moment.
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Bottom Actions Bar */}
-        <div className="p-4 sm:p-5 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/95 flex items-center justify-between gap-2.5">
-          <button
-            onClick={() => onToggleStatus(tenant)}
-            className={`py-2.5 px-4 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
-              tenant.isActive
-                ? "bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30"
-                : "bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30"
-            }`}
-          >
-            {tenant.isActive ? <Ban className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            <span>{tenant.isActive ? "Suspendre la Boutique" : "Activer la Boutique"}</span>
-          </button>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onEdit(tenant)}
-              className="py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white font-bold text-xs flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 transition-colors"
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-              <span>Modifier</span>
-            </button>
-            <button
-              onClick={() => onChangePlan(tenant)}
-              className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-blue-600/20 transition-all touch-press"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Forfait</span>
-            </button>
+            )}
           </div>
-        </div>
+
+          {/* Bottom Actions Bar */}
+          <div className="p-4 sm:p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/95 flex items-center justify-between gap-2.5">
+            <button
+              onClick={() => onToggleStatus(tenant)}
+              className={`py-2.5 px-4 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
+                tenant.isActive
+                  ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200"
+                  : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200"
+              }`}
+            >
+              {tenant.isActive ? <Ban className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+              <span>{tenant.isActive ? "Suspendre la Boutique" : "Activer la Boutique"}</span>
+            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onEdit(tenant)}
+                className="py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 shadow-xs font-bold text-xs flex items-center gap-1.5 transition-colors"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                <span>Modifier</span>
+              </button>
+              <button
+                onClick={() => onChangePlan(tenant)}
+                className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-blue-600/20 transition-all touch-press"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Forfait</span>
+              </button>
+            </div>
+          </div>
       </div>
 
       {/* Subscription Invoice Modal */}
