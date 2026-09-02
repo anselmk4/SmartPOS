@@ -587,6 +587,148 @@ function POSPageContent() {
 
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
 
+  // Hold orders / Pre-bill handlers
+  const handleRestoreHeldOrder = async (order: HeldOrder) => {
+    setCart(order.items || []);
+    setTableOrLabel(order.label || "");
+    if (order.customerId) {
+      setSelectedCustomerId(order.customerId);
+    }
+    if (order.discountAmount) {
+      setDiscountType(order.discountType || "FIXED");
+      setDiscountValue(order.discountAmount);
+    }
+    await db.heldOrders.delete(order.id);
+    setIsHoldModalOpen(false);
+  };
+
+  const handleDeleteHeldOrder = async (orderId: string) => {
+    await db.heldOrders.delete(orderId);
+  };
+
+  const handlePrintHoldAddition = async (holdOrder: HeldOrder) => {
+    const storeName = authStore?.name || tenant?.name || "Commerce Kuettu";
+    const storeLogo = authStore?.logoUrl || tenant?.logoUrl;
+    const dateStr = new Date(holdOrder.createdAt).toLocaleDateString("fr-FR");
+    const timeStr = new Date(holdOrder.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
+    const itemsRows = holdOrder.items
+      .map(
+        (it) => `
+        <tr>
+          <td><b>${it.product.name}</b><br/><span style="font-size: 9px; color: #555;">${it.quantity} x ${formatMoney(it.unitPrice)}</span></td>
+          <td class="text-right font-black" style="vertical-align: middle;">${formatMoney(it.subtotal)}</td>
+        </tr>`
+      )
+      .join("");
+
+    const bodyHtml = `
+      <div class="text-center">
+        ${storeLogo ? `<div style="margin-bottom: 6px;"><img src="${storeLogo}" alt="${storeName}" style="max-height: 50px; max-width: 140px; margin: 0 auto 4px auto; display: block; object-fit: contain;" /></div>` : ""}
+        <div class="font-black text-base uppercase" style="font-size: 16px; letter-spacing: 0.5px;">${storeName}</div>
+        ${authStore?.address ? `<p class="text-xs" style="margin: 2px 0; color: #333;">${authStore.address}</p>` : ""}
+        ${authStore?.phone ? `<p class="text-xs" style="margin: 2px 0; color: #333;">Tél : ${authStore.phone}</p>` : ""}
+        <div class="divider"></div>
+        <div class="badge uppercase" style="font-weight: 800; font-size: 10px; padding: 2px 6px; border: 1px solid #000; display: inline-block; margin-top: 4px;">
+          *** ADDITION / FACTURE PROFORMA ***
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div style="font-size: 10px; line-height: 1.35;">
+        <div class="flex justify-between font-bold"><span>Table / Emplacement :</span><span>${holdOrder.label}</span></div>
+        <div class="flex justify-between"><span>Date :</span><span>${dateStr} à ${timeStr}</span></div>
+        ${holdOrder.customerName ? `<div class="flex justify-between"><span>Client :</span><b>${holdOrder.customerName}</b></div>` : ""}
+        <div class="flex justify-between"><span>Serveur(se) :</span><span>${holdOrder.serverName || user?.name || "Service"}</span></div>
+        <div class="flex justify-between font-bold" style="color: #b45309; margin-top: 2px;"><span>Statut :</span><span>EN ATTENTE D'ENCAISSEMENT</span></div>
+      </div>
+
+      <div class="divider"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Article</th>
+            <th class="text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsRows}
+        </tbody>
+      </table>
+
+      <div class="divider"></div>
+      <div style="font-size: 11px;">
+        ${holdOrder.subtotalAmount && holdOrder.discountAmount ? `<div class="flex justify-between"><span>Sous-total Brut :</span><span>${formatMoney(holdOrder.subtotalAmount)}</span></div>` : ""}
+        ${holdOrder.discountAmount && holdOrder.discountAmount > 0 ? `<div class="flex justify-between font-bold"><span>Remise :</span><span>-${formatMoney(holdOrder.discountAmount)}</span></div>` : ""}
+        <div class="divider"></div>
+        <div class="flex justify-between font-black text-sm" style="font-size: 14px;"><span>TOTAL NET À PAYER :</span><span>${formatMoney(Math.max(0, holdOrder.subtotalAmount - (holdOrder.discountAmount || 0)))}</span></div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="text-center" style="margin-top: 6px; font-size: 9px; color: #666;">
+        <p style="margin: 2px 0;">Veuillez présenter cette addition à la caisse pour le règlement.</p>
+        <p style="font-weight: bold; margin-top: 3px;">Merci pour votre visite !</p>
+      </div>
+    `;
+
+    await printIsolatedDocument({
+      title: `Addition_${holdOrder.label.replace(/\s+/g, "_")}`,
+      width: "80mm",
+      bodyHtml,
+    });
+  };
+
+  const handleSaveCurrentAsHold = async (label: string, notes?: string) => {
+    if (cart.length === 0) return;
+    const cust = customers.find((c) => c.id === selectedCustomerId);
+    const holdOrder: HeldOrder = {
+      id: generateUUID(),
+      storeId: currentStoreId,
+      label: label.trim() || `Table ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`,
+      customerId: selectedCustomerId || null,
+      customerName: cust?.name,
+      serverName: user?.name,
+      tariffMode: tariffConfig.activeMode,
+      items: cart,
+      subtotalAmount,
+      discountAmount,
+      discountType: discountValue > 0 ? discountType : undefined,
+      notes,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await db.heldOrders.add(holdOrder);
+    clearCart();
+    setIsHoldModalOpen(false);
+  };
+
+  const handleSaveAndPrintPrebill = async (label: string, notes?: string) => {
+    if (cart.length === 0) return;
+    const cust = customers.find((c) => c.id === selectedCustomerId);
+    const holdOrder: HeldOrder = {
+      id: generateUUID(),
+      storeId: currentStoreId,
+      label: label.trim() || `Table ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`,
+      customerId: selectedCustomerId || null,
+      customerName: cust?.name,
+      serverName: user?.name,
+      tariffMode: tariffConfig.activeMode,
+      items: cart,
+      subtotalAmount,
+      discountAmount,
+      discountType: discountValue > 0 ? discountType : undefined,
+      notes,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await db.heldOrders.add(holdOrder);
+    await handlePrintHoldAddition(holdOrder);
+    clearCart();
+    setIsHoldModalOpen(false);
+  };
+
   // Printing & WhatsApp Receipt Helpers
   const handlePrintSaleReceipt = async (sale: Sale, items: SaleItem[]) => {
     const storeName = authStore?.name || tenant?.name || "Kuettu Global POS";
