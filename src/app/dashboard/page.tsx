@@ -525,11 +525,11 @@ export default function DashboardPage() {
             <span>Gérer Dépenses</span>
           </Link>
 
-          {isOwner && (
+          {isOwner && canAccess("canAccessCustomDeclarativeReport") && (
             <button
               onClick={() => setIsCustomAdjustedModalOpen(true)}
               className="py-2.5 px-3.5 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs flex items-center gap-1.5 border border-amber-200 transition-all touch-press"
-              title="Générer un bilan personnalisé de conformité d'exploitation (Réservé Propriétaire)"
+              title="Générer un bilan personnalisé de conformité d'exploitation (Réservé Propriétaire Pro & Business)"
             >
               <FileCheck className="w-4 h-4 text-amber-600" />
               <span>Bilan Personnalisé</span>

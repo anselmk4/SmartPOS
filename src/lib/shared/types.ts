@@ -417,6 +417,8 @@ export interface PlanConfig {
   canCreateMultipleCashiers: boolean;
   canUseCloudSync: boolean;
   canPerformCashClosing: boolean;
+  canAccessCustomDeclarativeReport: boolean;
+  canManagePayrollAndLeaves: boolean;
 }
 
 export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
@@ -437,6 +439,8 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     canCreateMultipleCashiers: false,
     canUseCloudSync: false,
     canPerformCashClosing: false,
+    canAccessCustomDeclarativeReport: false,
+    canManagePayrollAndLeaves: false,
   },
   BASIC: {
     id: "BASIC",
@@ -455,6 +459,8 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     canCreateMultipleCashiers: true,
     canUseCloudSync: true,
     canPerformCashClosing: true,
+    canAccessCustomDeclarativeReport: false,
+    canManagePayrollAndLeaves: false,
   },
   PRO: {
     id: "PRO",
@@ -473,6 +479,8 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     canCreateMultipleCashiers: true,
     canUseCloudSync: true,
     canPerformCashClosing: true,
+    canAccessCustomDeclarativeReport: true,
+    canManagePayrollAndLeaves: false,
   },
   BUSINESS: {
     id: "BUSINESS",
@@ -491,5 +499,7 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     canCreateMultipleCashiers: true,
     canUseCloudSync: true,
     canPerformCashClosing: true,
+    canAccessCustomDeclarativeReport: true,
+    canManagePayrollAndLeaves: true,
   },
 };

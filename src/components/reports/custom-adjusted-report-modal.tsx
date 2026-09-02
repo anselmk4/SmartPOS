@@ -28,7 +28,7 @@ export function CustomAdjustedReportModal({
   isOpen,
   onClose,
 }: CustomAdjustedReportModalProps) {
-  const { tenant, store, user, isOwner } = useAuth();
+  const { tenant, store, user, isOwner, canAccess } = useAuth();
   const { formatMoney, currency } = useSync();
 
   const currentStoreId = store?.id || DEFAULT_STORE_ID;
@@ -108,7 +108,7 @@ export function CustomAdjustedReportModal({
     Math.round((baselineSales.length || 10) * (adjustmentRatio / 100))
   );
 
-  if (!isOpen) return null;
+  if (!isOpen || !isOwner || !canAccess("canAccessCustomDeclarativeReport")) return null;
 
   // Print official styled PDF
   const handlePrintDeclarativePDF = async () => {

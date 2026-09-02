@@ -922,196 +922,201 @@ export default function OwnerSupervisionPage() {
         )}
       </div>
 
-      {/* Staff Payroll & Fiches de Paie (Multi-Store / Business Plan) */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-2">
-                <Award className="w-5 h-5 text-emerald-600" />
-                <span>Gestion de la Paie & Salaires du Personnel</span>
-              </h3>
-              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                Multi-Magasins
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Édition des fiches de paie, gestion des salaires de base, primes et avances par magasin
-            </p>
-          </div>
-
-          <button
-            onClick={() => {
-              if (users.length === 0) {
-                alert("Veuillez d'abord ajouter des membres du personnel.");
-                return;
-              }
-              setPayrollUserId(users[0]?.id || "");
-              setIsAddPayrollModalOpen(true);
-            }}
-            className="py-2.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 touch-press"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nouveau Bulletin de Paie</span>
-          </button>
-        </div>
-
-        {payrollRecords.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 bg-slate-50 rounded-2xl border border-slate-100">
-            <Award className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-            <p className="text-xs font-bold text-slate-700">Aucun bulletin de paie enregistré ce mois</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              Cliquez sur "Nouveau Bulletin de Paie" pour enregistrer les règlements de salaire de vos employés.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
-                  <th className="py-2.5 px-3">Mois</th>
-                  <th className="py-2.5 px-3">Employé</th>
-                  <th className="py-2.5 px-3">Rôle</th>
-                  <th className="py-2.5 px-3 text-right">Salaire Base</th>
-                  <th className="py-2.5 px-3 text-right">Primes</th>
-                  <th className="py-2.5 px-3 text-right">Retenues</th>
-                  <th className="py-2.5 px-3 text-right">Net Payé</th>
-                  <th className="py-2.5 px-3 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {payrollRecords.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-2.5 px-3 font-mono font-bold text-blue-700">{p.month}</td>
-                    <td className="py-2.5 px-3 font-bold text-slate-900">{p.userName}</td>
-                    <td className="py-2.5 px-3">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                        {p.userRole}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-mono">{formatMoney(p.baseSalary)}</td>
-                    <td className="py-2.5 px-3 text-right font-mono text-emerald-700">
-                      {p.bonuses > 0 ? `+${formatMoney(p.bonuses)}` : "-"}
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-mono text-rose-600">
-                      {p.deductions > 0 ? `-${formatMoney(p.deductions)}` : "-"}
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-black text-slate-900 font-mono">
-                      {formatMoney(p.netSalary)}
-                    </td>
-                    <td className="py-2.5 px-3 text-center">
-                      <button
-                        onClick={() => handlePrintPaySlip(p)}
-                        className="py-1 px-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] inline-flex items-center gap-1 shadow-2xs"
-                        title="Imprimer bulletin de paie"
-                      >
-                        <Printer className="w-3 h-3" />
-                        <span>Bulletin</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Staff Leaves & Absences (Multi-Store / Business Plan) */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-indigo-600" />
-                <span>Gestion des Congés & Absences</span>
-              </h3>
-              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
-                Multi-Magasins
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Suivi des congés payés, arrêts maladie, maternité et autorisations d'absence
-            </p>
-          </div>
-
-          <button
-            onClick={() => {
-              if (users.length === 0) {
-                alert("Veuillez d'abord ajouter des membres du personnel.");
-                return;
-              }
-              setLeaveUserId(users[0]?.id || "");
-              setIsAddLeaveModalOpen(true);
-            }}
-            className="py-2.5 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 touch-press"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Accorder un Congé</span>
-          </button>
-        </div>
-
-        {leaveRecords.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 bg-slate-50 rounded-2xl border border-slate-100">
-            <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-            <p className="text-xs font-bold text-slate-700">Aucun congé ou absence enregistré</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              Toute l'équipe est présente et disponible sur vos points de vente.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {leaveRecords.map((l) => (
-              <div key={l.id} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 text-sm">{l.userName}</span>
-                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                    l.leaveType === "ANNUAL"
-                      ? "bg-blue-100 text-blue-800"
-                      : l.leaveType === "SICK"
-                      ? "bg-rose-100 text-rose-800"
-                      : l.leaveType === "MATERNITY"
-                      ? "bg-purple-100 text-purple-800"
-                      : "bg-slate-200 text-slate-700"
-                  }`}>
-                    {l.leaveType === "ANNUAL"
-                      ? "Congé Annuel"
-                      : l.leaveType === "SICK"
-                      ? "Maladie"
-                      : l.leaveType === "MATERNITY"
-                      ? "Maternité"
-                      : "Sans Solde"}
+      {/* Staff Payroll & Fiches de Paie + Congés (Exclusivité Forfait Multi-Magasins / Business) */}
+      {canAccess("canManagePayrollAndLeaves") && (
+        <>
+          {/* Staff Payroll & Fiches de Paie */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-2">
+                    <Award className="w-5 h-5 text-emerald-600" />
+                    <span>Gestion de la Paie & Salaires du Personnel</span>
+                  </h3>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    Multi-Magasins
                   </span>
                 </div>
-
-                <div className="text-[11px] text-slate-600">
-                  Du <b>{l.startDate}</b> au <b>{l.endDate}</b> ({l.daysCount} jour{l.daysCount > 1 ? "s" : ""})
-                </div>
-
-                {l.reason && (
-                  <div className="text-[10px] text-slate-500 italic bg-white p-2 rounded-xl border border-slate-200">
-                    Motif : {l.reason}
-                  </div>
-                )}
-
-                <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-[10px]">
-                  <span className="font-bold text-emerald-700">🟢 Statut : Approuvé</span>
-                  <button
-                    onClick={async () => {
-                      if (confirm("Supprimer cet enregistrement de congé ?")) {
-                        await db.leaveRecords.delete(l.id);
-                      }
-                    }}
-                    className="text-rose-600 hover:underline font-semibold"
-                  >
-                    Supprimer
-                  </button>
-                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Édition des fiches de paie, gestion des salaires de base, primes et avances par magasin
+                </p>
               </div>
-            ))}
+
+              <button
+                onClick={() => {
+                  if (users.length === 0) {
+                    alert("Veuillez d'abord ajouter des membres du personnel.");
+                    return;
+                  }
+                  setPayrollUserId(users[0]?.id || "");
+                  setIsAddPayrollModalOpen(true);
+                }}
+                className="py-2.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 touch-press"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Nouveau Bulletin de Paie</span>
+              </button>
+            </div>
+
+            {payrollRecords.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 bg-slate-50 rounded-2xl border border-slate-100">
+                <Award className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs font-bold text-slate-700">Aucun bulletin de paie enregistré ce mois</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Cliquez sur "Nouveau Bulletin de Paie" pour enregistrer les règlements de salaire de vos employés.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
+                      <th className="py-2.5 px-3">Mois</th>
+                      <th className="py-2.5 px-3">Employé</th>
+                      <th className="py-2.5 px-3">Rôle</th>
+                      <th className="py-2.5 px-3 text-right">Salaire Base</th>
+                      <th className="py-2.5 px-3 text-right">Primes</th>
+                      <th className="py-2.5 px-3 text-right">Retenues</th>
+                      <th className="py-2.5 px-3 text-right">Net Payé</th>
+                      <th className="py-2.5 px-3 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                    {payrollRecords.map((p) => (
+                      <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-2.5 px-3 font-mono font-bold text-blue-700">{p.month}</td>
+                        <td className="py-2.5 px-3 font-bold text-slate-900">{p.userName}</td>
+                        <td className="py-2.5 px-3">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                            {p.userRole}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono">{formatMoney(p.baseSalary)}</td>
+                        <td className="py-2.5 px-3 text-right font-mono text-emerald-700">
+                          {p.bonuses > 0 ? `+${formatMoney(p.bonuses)}` : "-"}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono text-rose-600">
+                          {p.deductions > 0 ? `-${formatMoney(p.deductions)}` : "-"}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-black text-slate-900 font-mono">
+                          {formatMoney(p.netSalary)}
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <button
+                            onClick={() => handlePrintPaySlip(p)}
+                            className="py-1 px-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] inline-flex items-center gap-1 shadow-2xs"
+                            title="Imprimer bulletin de paie"
+                          >
+                            <Printer className="w-3 h-3" />
+                            <span>Bulletin</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+
+          {/* Staff Leaves & Absences */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-indigo-600" />
+                    <span>Gestion des Congés & Absences</span>
+                  </h3>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                    Multi-Magasins
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Suivi des congés payés, arrêts maladie, maternité et autorisations d'absence
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  if (users.length === 0) {
+                    alert("Veuillez d'abord ajouter des membres du personnel.");
+                    return;
+                  }
+                  setLeaveUserId(users[0]?.id || "");
+                  setIsAddLeaveModalOpen(true);
+                }}
+                className="py-2.5 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 touch-press"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Accorder un Congé</span>
+              </button>
+            </div>
+
+            {leaveRecords.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 bg-slate-50 rounded-2xl border border-slate-100">
+                <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs font-bold text-slate-700">Aucun congé ou absence enregistré</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Toute l'équipe est présente et disponible sur vos points de vente.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {leaveRecords.map((l) => (
+                  <div key={l.id} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-900 text-sm">{l.userName}</span>
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                        l.leaveType === "ANNUAL"
+                          ? "bg-blue-100 text-blue-800"
+                          : l.leaveType === "SICK"
+                          ? "bg-rose-100 text-rose-800"
+                          : l.leaveType === "MATERNITY"
+                          ? "bg-purple-100 text-purple-800"
+                          : "bg-slate-200 text-slate-700"
+                      }`}>
+                        {l.leaveType === "ANNUAL"
+                          ? "Congé Annuel"
+                          : l.leaveType === "SICK"
+                          ? "Maladie"
+                          : l.leaveType === "MATERNITY"
+                          ? "Maternité"
+                          : "Sans Solde"}
+                      </span>
+                    </div>
+
+                    <div className="text-[11px] text-slate-600">
+                      Du <b>{l.startDate}</b> au <b>{l.endDate}</b> ({l.daysCount} jour{l.daysCount > 1 ? "s" : ""})
+                    </div>
+
+                    {l.reason && (
+                      <div className="text-[10px] text-slate-500 italic bg-white p-2 rounded-xl border border-slate-200">
+                        Motif : {l.reason}
+                      </div>
+                    )}
+
+                    <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-[10px]">
+                      <span className="font-bold text-emerald-700">🟢 Statut : Approuvé</span>
+                      <button
+                        onClick={async () => {
+                          if (confirm("Supprimer cet enregistrement de congé ?")) {
+                            await db.leaveRecords.delete(l.id);
+                          }
+                        }}
+                        className="text-rose-600 hover:underline font-semibold"
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* MODAL: Add User */}
       {isAddUserModalOpen && (
