@@ -18,20 +18,22 @@ export interface TariffConfig {
 
 export interface PayrollRecord {
   id: string;
-  tenantId: string;
+  tenantId?: string;
   storeId?: string;
   userId: string;
   userName: string;
-  userRole: UserRole;
+  userRole?: UserRole | string;
   month: string; // Format: YYYY-MM
   baseSalary: number;
-  advances: number;
+  advances?: number;
   bonuses: number;
   deductions: number;
-  netPaid: number;
+  netSalary: number;
+  netPaid?: number;
   status: "PAID" | "PENDING" | "PARTIAL";
-  paymentMethod?: PaymentMethod;
+  paymentMethod?: PaymentMethod | string;
   paymentDate?: string;
+  paidAt?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -39,11 +41,11 @@ export interface PayrollRecord {
 
 export interface LeaveRecord {
   id: string;
-  tenantId: string;
+  tenantId?: string;
   storeId?: string;
   userId: string;
   userName: string;
-  leaveType: "ANNUAL" | "SICK" | "MATERNITY" | "EXCEPTIONAL" | "UNPAID";
+  leaveType: "ANNUAL" | "SICK" | "MATERNITY" | "EXCEPTIONAL" | "UNPAID" | "OTHER";
   startDate: string;
   endDate: string;
   daysCount: number;

@@ -392,7 +392,7 @@ export default function OwnerSupervisionPage() {
 
     const record: PayrollRecord = {
       id: generateUUID(),
-      tenantId: currentTenantId,
+      tenantId: currentTenantId || undefined,
       storeId: assignedStore?.id || currentStoreId,
       userId: payrollUserId,
       userName: employee?.name || "Employé",
@@ -433,7 +433,7 @@ export default function OwnerSupervisionPage() {
 
     const record: LeaveRecord = {
       id: generateUUID(),
-      tenantId: currentTenantId,
+      tenantId: currentTenantId || undefined,
       storeId: assignedStore?.id || currentStoreId,
       userId: leaveUserId,
       userName: employee?.name || "Employé",
