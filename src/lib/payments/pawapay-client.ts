@@ -112,17 +112,19 @@ export async function initiatePawaPayDeposit(
 
     if (!res.ok) {
       console.error("[PawaPay API Error Response]:", res.status, data);
-      const errMsg =
+      const rawErrMsg =
         data.failureReason?.failureMessage ||
         data.errorMessage ||
         data.message ||
         `Erreur passerelle PawaPay (${res.status})`;
 
+      const formattedError = formatPawaPayErrorMessage(rawErrMsg);
+
       return {
         depositId,
         status: data.status || "FAILED",
         isSimulated: false,
-        error: errMsg,
+        error: formattedError,
         raw: data,
       };
     }
@@ -207,3 +209,35 @@ export async function checkPawaPayDepositStatus(
     };
   }
 }
+
+/**
+ * Traduit et formate les messages d'erreur techniques de PawaPay en explications claires en français
+ */
+export function formatPawaPayErrorMessage(rawError?: string, operatorName?: string): string {
+  if (!rawError) return "Une erreur est survenue lors de l'initiation du paiement Mobile Money.";
+
+  const err = rawError.toLowerCase();
+
+  if (err.includes("not been configured to make deposits using") || err.includes("not configured")) {
+    return `L'opérateur Mobile Money ${operatorName ? `"${operatorName}"` : "sélectionné"} n'est pas encore activé sur ce compte PawaPay. Veuillez choisir un autre moyen de paiement disponible (Orange Money, MTN MoMo, Moov Money, Vodacom M-Pesa, Airtel) ou demander son activation auprès du support PawaPay.`;
+  }
+
+  if (err.includes("insufficient") || err.includes("balance")) {
+    return "Solde Mobile Money insuffisant sur votre compte pour régler ce forfait.";
+  }
+
+  if (err.includes("invalid") && (err.includes("phone") || err.includes("msisdn") || err.includes("number"))) {
+    return "Le numéro de téléphone saisi est invalide pour cet opérateur Mobile Money. Veuillez vérifier l'indicatif et les chiffres du numéro.";
+  }
+
+  if (err.includes("timeout") || err.includes("timed out") || err.includes("expired")) {
+    return "Le délai de validation USSD sur votre téléphone a expiré. Veuillez relancer la demande de paiement.";
+  }
+
+  if (err.includes("cancelled") || err.includes("rejected") || err.includes("declined")) {
+    return "La transaction a été refusée ou annulée depuis le combiné mobile.";
+  }
+
+  return rawError;
+}
+
