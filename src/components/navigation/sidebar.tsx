@@ -68,10 +68,14 @@ export function Sidebar() {
   const monthlySalesCount =
     useLiveQuery(
       async () => {
-        if (!tenant?.id) return 0;
-        return await db.sales
-          .filter((s) => (s.tenantId === tenant.id || !s.tenantId) && s.createdAt >= startOfMonth)
-          .count();
+        try {
+          if (typeof window === "undefined" || !tenant?.id) return 0;
+          return await db.sales
+            .filter((s) => (s.tenantId === tenant.id || !s.tenantId) && s.createdAt >= startOfMonth)
+            .count();
+        } catch {
+          return 0;
+        }
       },
       [tenant?.id, startOfMonth]
     ) || 0;
@@ -85,21 +89,26 @@ export function Sidebar() {
   // Reactively resolve business activity type across browsers, stores, and tenants
   const liveBusinessType =
     useLiveQuery(async () => {
-      if (store?.businessType) return store.businessType;
-      if (tenant?.businessType) return tenant.businessType;
-      if (store?.id) {
-        const s = await db.stores.get(store.id);
-        if (s?.businessType) return s.businessType;
+      try {
+        if (typeof window === "undefined") return null;
+        if (store?.businessType) return store.businessType;
+        if (tenant?.businessType) return tenant.businessType;
+        if (store?.id) {
+          const s = await db.stores.get(store.id);
+          if (s?.businessType) return s.businessType;
+        }
+        if (tenant?.id) {
+          const t = await db.tenants.get(tenant.id);
+          if (t?.businessType) return t.businessType;
+        }
+        const firstStore = await db.stores.toCollection().first();
+        if (firstStore?.businessType) return firstStore.businessType;
+        const firstTenant = await db.tenants.toCollection().first();
+        if (firstTenant?.businessType) return firstTenant.businessType;
+        return null;
+      } catch {
+        return null;
       }
-      if (tenant?.id) {
-        const t = await db.tenants.get(tenant.id);
-        if (t?.businessType) return t.businessType;
-      }
-      const firstStore = await db.stores.first();
-      if (firstStore?.businessType) return firstStore.businessType;
-      const firstTenant = await db.tenants.first();
-      if (firstTenant?.businessType) return firstTenant.businessType;
-      return null;
     }, [store?.id, store?.businessType, tenant?.id, tenant?.businessType]) || store?.businessType || tenant?.businessType;
 
   // Modals state

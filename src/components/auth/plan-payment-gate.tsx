@@ -36,13 +36,17 @@ export function PlanPaymentGate({ children }: { children: React.ReactNode }) {
   // Check if active subscription exists in Dexie
   const activeSubscription = useLiveQuery(
     async () => {
-      if (!tenant?.id) return null;
-      const now = new Date().toISOString();
-      return await db.subscriptions
-        .where("tenantId")
-        .equals(tenant.id)
-        .filter((s) => s.paymentStatus === "ACTIVE" && (!s.periodEnd || s.periodEnd >= now))
-        .first();
+      try {
+        if (typeof window === "undefined" || !tenant?.id) return null;
+        const now = new Date().toISOString();
+        return await db.subscriptions
+          .where("tenantId")
+          .equals(tenant.id)
+          .filter((s) => s.paymentStatus === "ACTIVE" && (!s.periodEnd || s.periodEnd >= now))
+          .first();
+      } catch {
+        return null;
+      }
     },
     [tenant?.id]
   );

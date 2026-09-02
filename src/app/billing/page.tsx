@@ -68,12 +68,16 @@ function BillingPageContent() {
   const localSubscriptions =
     useLiveQuery(
       async () => {
-        if (!tenant?.id) return [];
-        return await db.subscriptions
-          .where("tenantId")
-          .equals(tenant.id)
-          .reverse()
-          .sortBy("createdAt");
+        try {
+          if (typeof window === "undefined" || !tenant?.id) return [];
+          return await db.subscriptions
+            .where("tenantId")
+            .equals(tenant.id)
+            .reverse()
+            .sortBy("createdAt");
+        } catch {
+          return [];
+        }
       },
       [tenant?.id]
     ) || [];
@@ -120,7 +124,8 @@ function BillingPageContent() {
 
   // Merge subscriptions (Dexie + Cloud deduplicated strictly by transactionId)
   const allSubscriptionsMap = new Map<string, any>();
-  [...cloudSubscriptions, ...localSubscriptions].forEach((s) => {
+  [...(cloudSubscriptions || []), ...(localSubscriptions || [])].forEach((s) => {
+    if (!s) return;
     const key = (s.transactionId && s.transactionId.trim()) || s.id;
     if (key) {
       allSubscriptionsMap.set(key, s);
@@ -708,12 +713,13 @@ function BillingPageContent() {
         {plans.map((p) => {
           const isCurrent = currentPlan === p.id && !isCancelled;
           const isAnnual = billingCycle === "annual";
+          const amount = p.priceInfo?.amount || 0;
           const displayPrice =
             p.id === "FREE"
-              ? p.priceInfo.formatted
+              ? (p.priceInfo?.formatted || "Gratuit")
               : isAnnual
-              ? `${(p.priceInfo.amount * 10).toLocaleString()} ${displayCurrency}`
-              : p.priceInfo.formatted;
+              ? `${(amount * 10).toLocaleString("fr-FR")} ${displayCurrency || "CDF"}`
+              : (p.priceInfo?.formatted || `${amount} ${displayCurrency || "CDF"}`);
 
           return (
             <div
