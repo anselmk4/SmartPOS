@@ -105,11 +105,20 @@ export function Sidebar() {
         if (firstStore?.businessType) return firstStore.businessType;
         const firstTenant = await db.tenants.toCollection().first();
         if (firstTenant?.businessType) return firstTenant.businessType;
+        const storedBt = localStorage.getItem("pos_store_business_type");
+        if (storedBt) return storedBt;
         return null;
       } catch {
         return null;
       }
-    }, [store?.id, store?.businessType, tenant?.id, tenant?.businessType]) || store?.businessType || tenant?.businessType;
+    }, [store?.id, store?.businessType, tenant?.id, tenant?.businessType]);
+
+  const displayBusinessType =
+    liveBusinessType ||
+    store?.businessType ||
+    tenant?.businessType ||
+    (typeof window !== "undefined" ? localStorage.getItem("pos_store_business_type") : null) ||
+    "Commerce Général & Détail";
 
   // Modals state
   const [isCashClosingOpen, setIsCashClosingOpen] = useState(false);
@@ -306,19 +315,18 @@ export function Sidebar() {
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 no-scrollbar">
         {!isCollapsed && (
           <div className="space-y-2 mb-2">
-            {liveBusinessType && (
-              <div className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50/70 border border-blue-100/90 rounded-2xl flex items-center gap-2 shadow-xs">
-                <div className="w-5 h-5 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Briefcase className="w-3 h-3" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[9px] font-extrabold uppercase text-blue-500 tracking-wider">Activité</div>
-                  <div className="text-[11px] font-bold text-slate-800 truncate" title={liveBusinessType}>
-                    {liveBusinessType}
-                  </div>
+            <div className="px-3 py-2 bg-gradient-to-r from-blue-50/80 to-indigo-50/70 border border-blue-100/90 rounded-2xl flex items-center gap-2.5 shadow-2xs">
+              <div className="w-6 h-6 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Briefcase className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[9px] font-extrabold uppercase text-blue-600 tracking-wider">Activité</div>
+                <div className="text-xs font-bold text-slate-800 truncate" title={displayBusinessType}>
+                  {displayBusinessType}
                 </div>
               </div>
-            )}
+            </div>
+
             <div className="px-3 pt-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
               Menu Principal
             </div>

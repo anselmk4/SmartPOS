@@ -122,8 +122,40 @@ function POSPageContent() {
     return allSales.filter((s) => s.createdAt.startsWith(currentMonthStr)).length;
   }, [allSales, currentMonthStr]);
 
-  const isHorecaOrDepot = useMemo(() => {
-    const bt = (authStore?.businessType || tenant?.businessType || "").toLowerCase();
+  // Reactively check business activity type (for Bar, Restaurant, Lounge, Night-Club, HORECA, etc.)
+  const liveBusinessType =
+    useLiveQuery(async () => {
+      try {
+        if (typeof window === "undefined") return null;
+        if (authStore?.businessType) return authStore.businessType;
+        if (tenant?.businessType) return tenant.businessType;
+        if (currentStoreId) {
+          const s = await db.stores.get(currentStoreId);
+          if (s?.businessType) return s.businessType;
+        }
+        if (tenant?.id) {
+          const t = await db.tenants.get(tenant.id);
+          if (t?.businessType) return t.businessType;
+        }
+        const firstStore = await db.stores.toCollection().first();
+        if (firstStore?.businessType) return firstStore.businessType;
+        const storedBt = localStorage.getItem("pos_store_business_type");
+        if (storedBt) return storedBt;
+        return null;
+      } catch {
+        return null;
+      }
+    }, [currentStoreId, authStore?.businessType, tenant?.id, tenant?.businessType]);
+
+  const activeBusinessType =
+    liveBusinessType ||
+    authStore?.businessType ||
+    tenant?.businessType ||
+    (typeof window !== "undefined" ? localStorage.getItem("pos_store_business_type") : null) ||
+    "";
+
+  const isHoreca = useMemo(() => {
+    const bt = activeBusinessType.toLowerCase();
     return (
       bt.includes("restaurant") ||
       bt.includes("bar") ||
@@ -137,11 +169,16 @@ function POSPageContent() {
       bt.includes("fast-food") ||
       bt.includes("traiteur") ||
       bt.includes("boisson") ||
-      bt.includes("depot") ||
-      bt.includes("dépôt") ||
-      bt.includes("brasserie")
+      bt.includes("brasserie") ||
+      bt.includes("karaoke") ||
+      bt.includes("karaoké") ||
+      bt.includes("boîte") ||
+      bt.includes("boite") ||
+      bt.includes("night-club") ||
+      bt.includes("discothèque") ||
+      bt.includes("discotheque")
     );
-  }, [authStore?.businessType, tenant?.businessType]);
+  }, [activeBusinessType]);
 
   // Quota Découverte: 100 sales / month
   const isFreeQuotaReached = plan === "FREE" && monthSalesCount >= 100;
@@ -769,31 +806,33 @@ function POSPageContent() {
       {/* LEFT: Product Catalog Grid                                               */}
       {/* ========================================================================= */}
       <div className={`${mobileTab === "CATALOG" ? "flex" : "hidden"} md:flex flex-1 flex-col min-w-0 h-full max-h-full min-h-0 overflow-hidden relative`}>
-        {/* Top Header: 1. Tariff Options on Top -> 2. Search & Categories Below */}
+        {/* Top Header: 1. Tariff Options on Top (Bars & Restaurants only) -> 2. Search & Categories Below */}
         <div className="shrink-0 p-2.5 sm:p-3 bg-white border-b border-slate-200/90 shadow-2xs z-10 space-y-2">
-          {/* LIGNE 1 (AU-DESSUS) : Grilles Tarifaires */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                <Layers className="w-3.5 h-3.5" />
+          {/* LIGNE 1 (AU-DESSUS) : Grilles Tarifaires (SEULEMENT POUR BARS & RESTAURANTS / HORECA) */}
+          {isHoreca && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Layers className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-xs font-black uppercase tracking-wider text-slate-600">
+                  Grille Tarifaire :
+                </span>
               </div>
-              <span className="text-xs font-black uppercase tracking-wider text-slate-600">
-                Grille Tarifaire :
-              </span>
-            </div>
 
-            {/* Dynamic Tariff Switcher */}
-            <div className="shrink-0">
-              <TariffSelector
-                tariffConfig={tariffConfig}
-                onUpdateTariffConfig={handleUpdateTariffConfig}
-                canManageTariffs={canManageTariffs}
-                currency={currency}
-                storeUsers={terminalUsers}
-                isHoreca={isHorecaOrDepot}
-              />
+              {/* Dynamic Tariff Switcher */}
+              <div className="shrink-0">
+                <TariffSelector
+                  tariffConfig={tariffConfig}
+                  onUpdateTariffConfig={handleUpdateTariffConfig}
+                  canManageTariffs={canManageTariffs}
+                  currency={currency}
+                  storeUsers={terminalUsers}
+                  isHoreca={isHoreca}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* LIGNE 2 (EN-DESSOUS) : Barre de recherche + Catégories */}
           <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">

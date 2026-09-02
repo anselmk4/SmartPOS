@@ -279,6 +279,13 @@ export default function SettingsPage() {
       ownerName: ownerName.trim() || undefined,
     });
 
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("pos_store_business_type", businessType.trim());
+        window.dispatchEvent(new Event("storage"));
+      } catch (_) {}
+    }
+
     await refreshStore();
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
