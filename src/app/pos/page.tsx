@@ -92,29 +92,45 @@ function POSPageContent() {
 
   const currentStoreId = authStore?.id || DEFAULT_STORE_ID;
 
-  // 1. Data queries
+  // 1. Data queries safely guarded
   const products =
     useLiveQuery(async () => {
-      if (!currentStoreId) return [];
-      return await db.products.filter((p) => p.storeId === currentStoreId).toArray();
+      try {
+        if (typeof window === "undefined" || !currentStoreId) return [];
+        return await db.products.filter((p) => p.storeId === currentStoreId).toArray();
+      } catch {
+        return [];
+      }
     }, [currentStoreId]) || [];
 
   const customers =
     useLiveQuery(async () => {
-      if (!currentStoreId) return [];
-      return await db.customers.filter((c) => c.storeId === currentStoreId).toArray();
+      try {
+        if (typeof window === "undefined" || !currentStoreId) return [];
+        return await db.customers.filter((c) => c.storeId === currentStoreId).toArray();
+      } catch {
+        return [];
+      }
     }, [currentStoreId]) || [];
 
   const allSales =
     useLiveQuery(async () => {
-      if (!currentStoreId) return [];
-      return await db.sales.filter((s) => s.storeId === currentStoreId).toArray();
+      try {
+        if (typeof window === "undefined" || !currentStoreId) return [];
+        return await db.sales.filter((s) => s.storeId === currentStoreId).toArray();
+      } catch {
+        return [];
+      }
     }, [currentStoreId]) || [];
 
   const heldOrders =
     useLiveQuery(async () => {
-      if (!currentStoreId) return [];
-      return await db.heldOrders.filter((h) => h.storeId === currentStoreId).toArray();
+      try {
+        if (typeof window === "undefined" || !currentStoreId) return [];
+        return await db.heldOrders.filter((h) => h.storeId === currentStoreId).toArray();
+      } catch {
+        return [];
+      }
     }, [currentStoreId]) || [];
 
   const currentMonthStr = new Date().toISOString().slice(0, 7);

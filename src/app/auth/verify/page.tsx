@@ -138,13 +138,24 @@ function VerifyOtpContent() {
         await db.users.put(data.user);
         if (typeof window !== "undefined") localStorage.setItem("micro_erp_auth_user_id", data.user.id);
       }
+      const savedBt = (typeof window !== "undefined" ? localStorage.getItem("pos_store_business_type") : null) || undefined;
       if (data.tenant) {
-        await db.tenants.put(data.tenant);
+        const existingT = await db.tenants.get(data.tenant.id);
+        await db.tenants.put({
+          ...existingT,
+          ...data.tenant,
+          businessType: existingT?.businessType || savedBt,
+        });
         if (typeof window !== "undefined") localStorage.setItem("micro_erp_auth_tenant_id", data.tenant.id);
       }
       if (data.stores && data.stores.length > 0) {
         for (const s of data.stores) {
-          await db.stores.put(s);
+          const existingS = await db.stores.get(s.id);
+          await db.stores.put({
+            ...existingS,
+            ...s,
+            businessType: existingS?.businessType || savedBt,
+          });
         }
         if (typeof window !== "undefined") localStorage.setItem("micro_erp_auth_store_id", data.stores[0].id);
       }

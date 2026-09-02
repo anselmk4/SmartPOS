@@ -193,8 +193,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (savedUserId && savedTenantId) {
           let u = await db.users.get(savedUserId);
-          const t = await db.tenants.get(savedTenantId);
-          const s = savedStoreId ? await db.stores.get(savedStoreId) : await db.stores.where("tenantId").equals(savedTenantId).first();
+          let t = await db.tenants.get(savedTenantId);
+          let s = savedStoreId ? await db.stores.get(savedStoreId) : await db.stores.where("tenantId").equals(savedTenantId).first();
+
+          const savedBt = (typeof window !== "undefined" ? localStorage.getItem("pos_store_business_type") : null) || undefined;
+          if (savedBt && t && !t.businessType) {
+            t = { ...t, businessType: savedBt };
+            await db.tenants.put(t);
+          }
+          if (savedBt && s && !s.businessType) {
+            s = { ...s, businessType: savedBt };
+            await db.stores.put(s);
+          }
+          if (s?.businessType && typeof window !== "undefined") {
+            localStorage.setItem("pos_store_business_type", s.businessType);
+          } else if (t?.businessType && typeof window !== "undefined") {
+            localStorage.setItem("pos_store_business_type", t.businessType);
+          }
 
           if (u && t && u.isActive) {
             // If this is the main owner user and their role got switched to cashier/waiter, restore OWNER role
@@ -228,12 +243,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const bootstrapCloudDataIntoDexie = async (cloudData: any) => {
     try {
+      const savedBt = (typeof window !== "undefined" ? localStorage.getItem("pos_store_business_type") : null) || undefined;
       if (cloudData.tenant) {
         const existingT = await db.tenants.get(cloudData.tenant.id);
         await db.tenants.put({
           ...existingT,
           ...cloudData.tenant,
-          businessType: cloudData.tenant.businessType || existingT?.businessType,
+          businessType: cloudData.tenant.businessType || existingT?.businessType || savedBt,
         });
       }
       if (cloudData.stores && Array.isArray(cloudData.stores)) {
@@ -242,7 +258,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await db.stores.put({
             ...existingS,
             ...s,
-            businessType: s.businessType || existingS?.businessType,
+            businessType: s.businessType || existingS?.businessType || savedBt,
           });
         }
       }
@@ -667,6 +683,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem(AUTH_USER_KEY, userId);
           localStorage.setItem(AUTH_TENANT_KEY, tenantId);
           localStorage.setItem(AUTH_STORE_KEY, storeId);
+          if (data.businessType) {
+            localStorage.setItem("pos_store_business_type", data.businessType.trim());
+          }
           if (sessionToken) {
             localStorage.setItem("kuettu_session_token", sessionToken);
           }
