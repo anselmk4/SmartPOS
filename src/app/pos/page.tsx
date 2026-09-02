@@ -594,6 +594,8 @@ function POSPageContent() {
       subtotalAmount,
       discountAmount,
       discountType: discountValue > 0 ? discountType : undefined,
+      discountValue: discountValue > 0 ? discountValue : undefined,
+      totalAmount,
       notes,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -619,6 +621,8 @@ function POSPageContent() {
       subtotalAmount,
       discountAmount,
       discountType: discountValue > 0 ? discountType : undefined,
+      discountValue: discountValue > 0 ? discountValue : undefined,
+      totalAmount,
       notes,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -913,7 +917,7 @@ function POSPageContent() {
                   <Utensils className="w-3 h-3 text-amber-600" />
                   <span>{order.label}</span>
                   <span className="bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded-md font-black text-[10px]">
-                    {formatMoney(order.totalAmount)}
+                    {formatMoney(order.totalAmount || order.subtotalAmount || 0)}
                   </span>
                 </button>
               ))}
@@ -1203,7 +1207,7 @@ function POSPageContent() {
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900 truncate">
-                          {isHorecaOrDepot ? (
+                          {isHoreca ? (
                             <Utensils className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                           ) : (
                             <Receipt className="w-3.5 h-3.5 text-blue-700 shrink-0" />
@@ -1216,7 +1220,7 @@ function POSPageContent() {
                           )}
                         </div>
                         <div className="text-[11px] text-amber-900 font-black mt-0.5">
-                          {formatMoney(order.totalAmount)} • <span className="text-slate-500 font-normal text-[10px]">{order.items.length} article{order.items.length > 1 ? "s" : ""}</span>
+                          {formatMoney(order.totalAmount || order.subtotalAmount || 0)} • <span className="text-slate-500 font-normal text-[10px]">{order.items?.length || 0} article{(order.items?.length || 0) > 1 ? "s" : ""}</span>
                         </div>
                       </div>
 
@@ -1334,7 +1338,7 @@ function POSPageContent() {
           </div>
 
           {/* Invoicing Action Tools: Facture à Payer (HORECA/Dépôts) vs Remise simple */}
-          {isHorecaOrDepot ? (
+          {isHoreca ? (
             <div className={`grid ${!isWaiter ? "grid-cols-2" : "grid-cols-1"} gap-2`}>
               {/* Facture à Payer (Sauver & Imprimer) */}
               <button
@@ -1359,38 +1363,36 @@ function POSPageContent() {
                   }`}
                   title="Appliquer une réduction (Gérant & Caissier)"
                 >
-                  <Tag className="w-3.5 h-3.5 shrink-0" />
+                  <Tag className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>
-                    {discountAmount > 0
-                      ? `-${discountType === "PERCENT" ? `${discountValue}%` : formatMoney(discountAmount)}`
-                      : "Remise"}
+                    {discountAmount > 0 ? `Remise (-${formatMoney(discountAmount)})` : "Remise"}
                   </span>
                 </button>
               )}
             </div>
           ) : (
-            !isWaiter && (
-              <div className="flex items-center gap-2">
-                {/* Remise for General Commerce */}
+            <div>
+              {/* Remise pour commerces standard (Alimentation, Supérette, Quincaillerie, etc.) */}
+              {!isWaiter && (
                 <button
                   onClick={() => setIsDiscountModalOpen(true)}
                   disabled={cart.length === 0}
-                  className={`w-full py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs ${
+                  className={`w-full py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs ${
                     discountAmount > 0
                       ? "border-emerald-500 bg-emerald-500 text-white shadow-xs"
-                      : "border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700"
+                      : "border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800"
                   }`}
-                  title="Appliquer une réduction sur le panier (Gérant & Caissier)"
+                  title="Appliquer une réduction sur la vente"
                 >
                   <Tag className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>
                     {discountAmount > 0
-                      ? `Remise appliquée : -${discountType === "PERCENT" ? `${discountValue}%` : formatMoney(discountAmount)}`
+                      ? `Remise Appliquée (-${formatMoney(discountAmount)})`
                       : "Appliquer une Remise"}
                   </span>
                 </button>
-              </div>
-            )
+              )}
+            </div>
           )}
 
           {/* Primary Checkout / Order Actions based on User Role */}
@@ -1465,7 +1467,7 @@ function POSPageContent() {
         canSaveCurrent={cart.length > 0}
         formatMoney={formatMoney}
         selectedCustomer={selectedCustomer}
-        businessType={authStore?.businessType || tenant?.businessType}
+        businessType={activeBusinessType || authStore?.businessType || tenant?.businessType}
       />
 
       {/* 2. DISCOUNT MODAL */}
