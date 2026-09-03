@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, generateUUID, enqueueSync } from "@/lib/db/dexie-db";
+import { db, generateUUID, enqueueSync, DEFAULT_STORE_ID } from "@/lib/db/dexie-db";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
@@ -42,6 +42,7 @@ export default function CustomersPage() {
   const { formatMoney } = useSync();
 
   const currentTenantId = tenant?.id;
+  const currentStoreId = store?.id || DEFAULT_STORE_ID;
 
   // Active Tab: "directory" or "leaderboard"
   const [activeTab, setActiveTab] = useState<"directory" | "leaderboard">("directory");

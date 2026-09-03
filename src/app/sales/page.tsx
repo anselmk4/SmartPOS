@@ -43,6 +43,7 @@ export default function SalesHistoryPage() {
   const { formatMoney, currency } = useSync();
 
   const currentStoreId = store?.id || DEFAULT_STORE_ID;
+  const currentTenantId = tenant?.id;
 
   // 1. Data queries
   const sales =
