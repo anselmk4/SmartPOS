@@ -28,6 +28,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { base64Data, fileName, folder = "products" } = body;
 
+    const ALLOWED_FOLDERS = ["products", "stores", "avatars", "receipts", "logos"];
+    const safeFolder = ALLOWED_FOLDERS.includes(String(folder || "").trim().toLowerCase()) ? String(folder).trim().toLowerCase() : "products";
+
     if (!base64Data) {
       return NextResponse.json(
         { success: false, error: "Données de fichier manquantes (base64Data requis)" },
@@ -86,7 +89,7 @@ export async function POST(req: NextRequest) {
       ? `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, "_")}`
       : `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${ext}`;
 
-    const filePath = `${folder}/${safeFileName}`;
+    const filePath = `${safeFolder}/${safeFileName}`;
 
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage

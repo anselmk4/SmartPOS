@@ -29,8 +29,15 @@ export async function POST(req: NextRequest) {
     const signatureHeader = req.headers.get("x-pawapay-signature") || req.headers.get("authorization");
     const secret = process.env.PAWAPAY_WEBHOOK_SECRET;
 
-    // 1. Optional Signature Verification if PAWAPAY_WEBHOOK_SECRET is configured
-    if (secret && signatureHeader) {
+    // 1. Mandatory Signature Verification if PAWAPAY_WEBHOOK_SECRET is configured
+    if (secret) {
+      if (!signatureHeader) {
+        return NextResponse.json(
+          { received: false, error: "Signature webhook PawaPay manquante" },
+          { status: 401 }
+        );
+      }
+
       const expectedHmac = crypto
         .createHmac("sha256", secret)
         .update(rawBody)
@@ -47,20 +54,16 @@ export async function POST(req: NextRequest) {
         provBuffer.length === secretBuffer.length && crypto.timingSafeEqual(provBuffer, secretBuffer);
 
       if (!isValidHmac && !isValidBearer) {
-        console.warn("[PawaPay Webhook] Signature mismatch, will fallback to direct API re-verification");
+        return NextResponse.json(
+          { received: false, error: "Signature webhook PawaPay invalide" },
+          { status: 401 }
+        );
       }
     }
 
     const body = JSON.parse(rawBody);
     const { depositId, payoutId, refundId, checkoutId, paymentId, status, metadata, customData, eventType, event } = body;
     const transactionId = depositId || payoutId || refundId || checkoutId || paymentId || body.id;
-
-    console.log("[PawaPay Webhook Received]:", {
-      transactionId,
-      status: status || event,
-      eventType,
-      metadata: metadata || customData,
-    });
 
     if (!transactionId) {
       return NextResponse.json({ received: false, error: "Identifiant de transaction manquant" }, { status: 400 });
@@ -94,11 +97,17 @@ export async function POST(req: NextRequest) {
 
     // 2. Direct Server-Side Verification against PawaPay official API
     // If webhook reports completion, verify directly with PawaPay to ensure 100% authentic callback
-    if (depositId) {
+    const targetDepositId = depositId || transactionId;
+    if (targetDepositId) {
       try {
-        const verified = await checkPawaPayDepositStatus(depositId);
+        const verified = await checkPawaPayDepositStatus(targetDepositId);
         if (verified.status && verified.status !== "UNKNOWN") {
           currentStatus = verified.status.toUpperCase();
+        } else if (process.env.NODE_ENV === "production" && !verified.status) {
+          return NextResponse.json(
+            { received: false, error: "Impossible de vérifier la transaction auprès de PawaPay" },
+            { status: 400 }
+          );
         }
       } catch (verErr: any) {
         console.warn("[PawaPay Webhook] Direct re-query note:", verErr.message);

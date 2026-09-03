@@ -70,8 +70,11 @@ export default function SalesHistoryPage() {
 
   const products =
     useLiveQuery(async () => {
-      return await db.products.toArray();
-    }, []) || [];
+      if (!currentStoreId && !currentTenantId) return [];
+      return await db.products
+        .filter((p) => (currentStoreId && p.storeId === currentStoreId) || (currentTenantId && p.tenantId === currentTenantId))
+        .toArray();
+    }, [currentStoreId, currentTenantId]) || [];
 
   const customers =
     useLiveQuery(async () => {

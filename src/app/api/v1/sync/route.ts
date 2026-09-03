@@ -4,6 +4,7 @@ import { SyncPushRequestSchema } from "@/lib/shared/schemas";
 import type { SyncPushResponse, StockDeltaPayload } from "@/lib/shared/types";
 import { checkRateLimit } from "@/lib/security/rate-limiter";
 import { verifySessionToken, createSessionToken } from "@/lib/security/jwt";
+import { hashPinCode } from "@/lib/security/password";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -419,109 +420,106 @@ export async function POST(req: NextRequest) {
             });
             syncedIds.push(id);
           } else if (entity === "tenant" && (action === "CREATE" || action === "UPDATE")) {
-            await prisma.tenant.upsert({
-              where: { id: data.id },
-              update: {
-                name: data.name,
-                plan: data.plan,
-                planStatus: data.planStatus,
-                phone: data.phone,
-                updatedAt: now,
-              },
-              create: {
-                id: data.id,
-                name: data.name,
-                slug: data.slug || data.name.toLowerCase().replace(/[^a-z0-9]/g, "-"),
-                countryCode: data.countryCode || "CD",
-                currency: data.currency || "CDF",
-                plan: data.plan || "PRO",
-                planStatus: data.planStatus || "ACTIVE",
-                phone: data.phone,
-                createdAt: new Date(data.createdAt || now),
-                updatedAt: now,
-              },
-            });
+            // Only OWNER or SUPER_ADMIN can update tenant metadata; plan and planStatus cannot be altered via sync
+            if (session.role === "OWNER" || session.role === "SUPER_ADMIN") {
+              await prisma.tenant.updateMany({
+                where: { id: session.tenantId },
+                data: {
+                  name: data.name,
+                  phone: data.phone,
+                  updatedAt: now,
+                },
+              });
+            }
             syncedIds.push(id);
           } else if (entity === "store" && (action === "CREATE" || action === "UPDATE")) {
-            await prisma.store.upsert({
-              where: { id: data.id },
-              update: {
-                name: data.name,
-                currency: data.currency ?? "CDF",
-                phone: data.phone,
-                address: data.address,
-                ownerName: data.ownerName,
-                updatedAt: now,
-              },
-              create: {
-                id: data.id,
-                tenantId: data.tenantId || tenantId,
-                name: data.name,
-                currency: data.currency || "CDF",
-                phone: data.phone,
-                address: data.address,
-                ownerName: data.ownerName,
-                createdAt: new Date(data.createdAt || now),
-                updatedAt: now,
-              },
-            });
-            syncedIds.push(id);
-          } else if (entity === "user" && (action === "CREATE" || action === "UPDATE")) {
-            const requestedRole = data.role || "CASHIER";
-            try {
-              await prisma.user.upsert({
+            if (session.role === "OWNER" || session.role === "MANAGER" || session.role === "SUPER_ADMIN") {
+              await prisma.store.upsert({
                 where: { id: data.id },
                 update: {
                   name: data.name,
+                  currency: data.currency ?? "CDF",
                   phone: data.phone,
-                  email: data.email,
-                  pinCode: data.pinCode,
-                  role: requestedRole,
-                  isActive: data.isActive !== undefined ? data.isActive : true,
+                  address: data.address,
+                  ownerName: data.ownerName,
                   updatedAt: now,
                 },
                 create: {
                   id: data.id,
-                  tenantId: data.tenantId || tenantId,
+                  tenantId: session.tenantId,
                   name: data.name,
+                  currency: data.currency || "CDF",
                   phone: data.phone,
-                  email: data.email,
-                  pinCode: data.pinCode,
-                  role: requestedRole,
-                  isActive: data.isActive !== undefined ? data.isActive : true,
+                  address: data.address,
+                  ownerName: data.ownerName,
                   createdAt: new Date(data.createdAt || now),
                   updatedAt: now,
                 },
               });
-            } catch (userUpsertErr: any) {
-              // If remote Postgres database has not yet added WAITER to UserRole enum, fallback safely to CASHIER
-              if (requestedRole === "WAITER" || userUpsertErr?.message?.includes("UserRole")) {
+            }
+            syncedIds.push(id);
+          } else if (entity === "user" && (action === "CREATE" || action === "UPDATE")) {
+            // Only OWNER or SUPER_ADMIN can create or modify users and assign roles/PINs
+            if (session.role === "OWNER" || session.role === "SUPER_ADMIN") {
+              const requestedRole = data.role || "CASHIER";
+              const safePin = data.pinCode
+                ? (String(data.pinCode).startsWith("pbkdf2:") ? data.pinCode : hashPinCode(String(data.pinCode)))
+                : undefined;
+
+              try {
                 await prisma.user.upsert({
                   where: { id: data.id },
                   update: {
                     name: data.name,
                     phone: data.phone,
                     email: data.email,
-                    pinCode: data.pinCode,
-                    role: "CASHIER",
+                    pinCode: safePin,
+                    role: requestedRole,
                     isActive: data.isActive !== undefined ? data.isActive : true,
                     updatedAt: now,
                   },
                   create: {
                     id: data.id,
-                    tenantId: data.tenantId || tenantId,
+                    tenantId: session.tenantId,
                     name: data.name,
                     phone: data.phone,
                     email: data.email,
-                    pinCode: data.pinCode,
-                    role: "CASHIER",
+                    pinCode: safePin || hashPinCode("1234"),
+                    role: requestedRole,
                     isActive: data.isActive !== undefined ? data.isActive : true,
                     createdAt: new Date(data.createdAt || now),
                     updatedAt: now,
                   },
                 });
-              } else {
-                throw userUpsertErr;
+              } catch (userUpsertErr: any) {
+                if (requestedRole === "WAITER" || userUpsertErr?.message?.includes("UserRole")) {
+                  await prisma.user.upsert({
+                    where: { id: data.id },
+                    update: {
+                      name: data.name,
+                      phone: data.phone,
+                      email: data.email,
+                      pinCode: safePin,
+                      role: "CASHIER",
+                      isActive: data.isActive !== undefined ? data.isActive : true,
+                      updatedAt: now,
+                    },
+                    create: {
+                      id: data.id,
+                      tenantId: session.tenantId,
+                      name: data.name,
+                      phone: data.phone,
+                      email: data.email,
+                      pinCode: safePin || hashPinCode("1234"),
+                      role: "CASHIER",
+                      isActive: data.isActive !== undefined ? data.isActive : true,
+                      createdAt: new Date(data.createdAt || now),
+                      updatedAt: now,
+                    },
+                  });
+                } else {
+                  throw userUpsertErr;
+                }
               }
             }
             syncedIds.push(id);

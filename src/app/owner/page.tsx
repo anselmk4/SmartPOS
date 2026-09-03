@@ -133,8 +133,17 @@ export default function OwnerSupervisionPage() {
     return await db.leaveRecords.filter((l) => l.tenantId === currentTenantId).reverse().sortBy("createdAt");
   }, [currentTenantId]) || [];
 
-  const allProducts = useLiveQuery(() => db.products.toArray()) || [];
-  const allSales = useLiveQuery(() => db.sales.toArray()) || [];
+  const allProducts =
+    useLiveQuery(async () => {
+      if (!currentTenantId) return [];
+      return await db.products.filter((p) => p.tenantId === currentTenantId).toArray();
+    }, [currentTenantId]) || [];
+
+  const allSales =
+    useLiveQuery(async () => {
+      if (!currentTenantId) return [];
+      return await db.sales.filter((s) => s.tenantId === currentTenantId).toArray();
+    }, [currentTenantId]) || [];
 
   // Scoped strictly to active store
   const sales = useLiveQuery(async () => {

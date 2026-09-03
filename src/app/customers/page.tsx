@@ -99,9 +99,12 @@ export default function CustomersPage() {
   const products =
     useLiveQuery(
       async () => {
-        return await db.products.toArray();
+        if (!currentTenantId) return [];
+        return await db.products
+          .filter((p) => p.tenantId === currentTenantId || (currentStoreId && p.storeId === currentStoreId))
+          .toArray();
       },
-      []
+      [currentTenantId, currentStoreId]
     ) || [];
 
   const productsMap = useMemo(() => {

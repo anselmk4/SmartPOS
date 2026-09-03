@@ -153,8 +153,11 @@ export async function verifyRegistrationOtp(
 
   const rawDigits = identifier.replace(/\D/g, "");
 
-  // Master simulation codes accepted when testing without Twilio
-  const isMasterSimulationCode = ["111111", "123456", "000000", "777777", "999999", "654321"].includes(cleanCode);
+  const isProduction = process.env.NODE_ENV === "production";
+  const config = getSystemVerificationConfig();
+  
+  // Master simulation codes are ONLY allowed in non-production environments AND when simulation mode is explicitly enabled
+  const isMasterSimulationCode = !isProduction && config.isSimulationMode && ["111111", "123456", "000000", "777777", "999999", "654321"].includes(cleanCode);
 
   let targetTenantId: string | null = null;
   let targetUserId: string | null = null;
@@ -165,6 +168,8 @@ export async function verifyRegistrationOtp(
 
   const record = await prisma.otpVerification.findFirst({
     where: {
+      consumed: false,
+      expiresAt: { gt: now },
       OR: [
         { identifier: cleanIdentifier },
         { identifier: { contains: rawDigits.length >= 8 ? rawDigits.slice(-8) : rawDigits } },
@@ -174,7 +179,7 @@ export async function verifyRegistrationOtp(
   });
 
   if (record) {
-    const isExactMatch = record.codeHash === hashedEntered && !record.consumed && record.expiresAt > now;
+    const isExactMatch = record.codeHash === hashedEntered;
     if (isExactMatch || isMasterSimulationCode) {
       targetTenantId = record.tenantId;
       targetUserId = record.userId;
@@ -187,7 +192,7 @@ export async function verifyRegistrationOtp(
     }
   }
 
-  // 2. If master code used and no OTP record found, search directly in User table
+  // 2. If master simulation code is legitimately enabled in dev and no OTP record found
   if (isMasterSimulationCode && (!targetTenantId || !targetUserId)) {
     const matchedUser = await prisma.user.findFirst({
       where: {
@@ -207,24 +212,10 @@ export async function verifyRegistrationOtp(
   }
 
   if (!targetTenantId || !targetUserId) {
-    if (isMasterSimulationCode) {
-      // Last-resort fallback: find latest registered unactivated tenant/user
-      const latestUser = await prisma.user.findFirst({
-        where: { isActive: false },
-        orderBy: { createdAt: "desc" },
-      });
-      if (latestUser) {
-        targetTenantId = latestUser.tenantId;
-        targetUserId = latestUser.id;
-      }
-    }
-
-    if (!targetTenantId || !targetUserId) {
-      return {
-        success: false,
-        error: "Code expiré ou compte introuvable. Veuillez entrer 123456 ou 111111.",
-      };
-    }
+    return {
+      success: false,
+      error: "Code de vérification invalide ou expiré. Veuillez vérifier les 6 chiffres ou demander un nouveau code.",
+    };
   }
 
   // Fetch existing tenant to check plan

@@ -5,6 +5,7 @@ import { hashPinCode } from "@/lib/security/password";
 import { triggerRegistrationOtp } from "@/lib/services/otp-service";
 import { getSystemVerificationConfig } from "@/lib/services/system-settings";
 import { createSessionToken } from "@/lib/security/jwt";
+import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -64,19 +65,47 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const cleanPhone = phone.trim();
+    const cleanEmail = email ? email.trim().toLowerCase() : null;
+
+    // Verify if a merchant already exists with this phone number to prevent account hijacking
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { phone: cleanPhone },
+          ...(cleanEmail ? [{ email: cleanEmail }] : []),
+        ],
+      },
+      include: { tenant: true },
+    });
+
+    if (existingUser && existingUser.isActive) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Un compte marchand existe déjà avec ce numéro ou cet email. Veuillez vous connecter avec votre code PIN ou utiliser 'Code PIN oublié'.",
+        },
+        { status: 409 }
+      );
+    }
+
     const now = new Date();
     const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days trial/active
 
     const config = getSystemVerificationConfig();
     const requiresVerification = config.verificationMethod !== "DISABLED";
 
+    const targetTenantId = (existingUser?.tenantId || tenantId) || crypto.randomUUID();
+    const targetStoreId = storeId || crypto.randomUUID();
+    const targetUserId = (existingUser?.id || userId) || crypto.randomUUID();
+
     // 1. Create or upsert Tenant
     const cleanSlug = `${storeName.toLowerCase().replace(/[^a-z0-9]/g, "-")}-${Date.now().toString(36)}`;
     const tenant = await prisma.tenant.upsert({
-      where: { id: tenantId },
+      where: { id: targetTenantId },
       update: {
         name: storeName.trim(),
-        phone: phone.trim(),
+        phone: cleanPhone,
         countryCode,
         currency,
         plan: (plan as SubscriptionPlan) || "FREE",
@@ -86,10 +115,10 @@ export async function POST(req: NextRequest) {
         updatedAt: now,
       },
       create: {
-        id: tenantId,
+        id: targetTenantId,
         name: storeName.trim(),
         slug: cleanSlug,
-        phone: phone.trim(),
+        phone: cleanPhone,
         countryCode,
         currency,
         plan: (plan as SubscriptionPlan) || "FREE",
@@ -103,21 +132,21 @@ export async function POST(req: NextRequest) {
 
     // 2. Create or upsert Store
     const store = await prisma.store.upsert({
-      where: { id: storeId },
+      where: { id: targetStoreId },
       update: {
         name: storeName.trim(),
         currency,
-        phone: phone.trim(),
+        phone: cleanPhone,
         address: address ? address.trim() : undefined,
         ownerName: ownerName.trim(),
         updatedAt: now,
       },
       create: {
-        id: storeId,
+        id: targetStoreId,
         tenantId: tenant.id,
         name: storeName.trim(),
         currency,
-        phone: phone.trim(),
+        phone: cleanPhone,
         address: address ? address.trim() : undefined,
         ownerName: ownerName.trim(),
         createdAt: now,
@@ -128,22 +157,22 @@ export async function POST(req: NextRequest) {
     // 3. Create or upsert Owner User with hashed PIN
     const hashedPin = pinCode ? hashPinCode(pinCode.trim()) : hashPinCode("1234");
     const user = await prisma.user.upsert({
-      where: { id: userId },
+      where: { id: targetUserId },
       update: {
         name: ownerName.trim(),
-        phone: phone.trim(),
-        email: email ? email.trim().toLowerCase() : undefined,
+        phone: cleanPhone,
+        email: cleanEmail,
         pinCode: hashedPin,
         role: "OWNER",
         isActive: !requiresVerification,
         updatedAt: now,
       },
       create: {
-        id: userId,
+        id: targetUserId,
         tenantId: tenant.id,
         name: ownerName.trim(),
-        phone: phone.trim(),
-        email: email ? email.trim().toLowerCase() : null,
+        phone: cleanPhone,
+        email: cleanEmail,
         pinCode: hashedPin,
         role: "OWNER",
         isActive: !requiresVerification,

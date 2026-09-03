@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import type { TariffConfig, TariffMode, User } from "@/lib/shared/types";
+import type { TariffConfig, TariffMode, User, Product } from "@/lib/shared/types";
 import {
   Mic2,
   Sparkles,
@@ -21,6 +21,7 @@ import {
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/dexie-db";
+import { useAuth } from "@/lib/auth/auth-context";
 
 interface TariffSelectorProps {
   tariffConfig: TariffConfig;
@@ -29,6 +30,7 @@ interface TariffSelectorProps {
   currency: string;
   storeUsers?: User[];
   isHoreca?: boolean;
+  products?: Product[];
 }
 
 export function TariffSelector({
@@ -38,7 +40,12 @@ export function TariffSelector({
   currency,
   storeUsers = [],
   isHoreca = true,
+  products: propProducts,
 }: TariffSelectorProps) {
+  const { store, tenant } = useAuth();
+  const currentStoreId = store?.id;
+  const currentTenantId = tenant?.id;
+
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pendingModeToApply, setPendingModeToApply] = useState<TariffMode | null>(null);
@@ -46,7 +53,14 @@ export function TariffSelector({
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState<string | null>(null);
 
-  const products = useLiveQuery(() => db.products.toArray()) || [];
+  const liveProducts = useLiveQuery(async () => {
+    if (!currentStoreId && !currentTenantId) return [];
+    return await db.products
+      .filter((p) => (currentStoreId && p.storeId === currentStoreId) || (currentTenantId && p.tenantId === currentTenantId))
+      .toArray();
+  }, [currentStoreId, currentTenantId]) || [];
+
+  const products = propProducts && propProducts.length > 0 ? propProducts : liveProducts;
 
   // Form state for config modal
   const [formKaraokeSurcharge, setFormKaraokeSurcharge] = useState<number>(

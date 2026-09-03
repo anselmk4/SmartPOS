@@ -828,6 +828,7 @@ function POSPageContent() {
                   currency={currency}
                   storeUsers={terminalUsers}
                   isHoreca={isHoreca}
+                  products={products}
                 />
               </div>
             </div>
