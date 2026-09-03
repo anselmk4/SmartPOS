@@ -51,19 +51,25 @@ export default function SettingsPage() {
 
   const syncQueueItems = useLiveQuery(() => db.syncQueue.toArray()) || [];
   const productsCount = useLiveQuery(async () => {
-    if (!currentTenantId) return 0;
-    return await db.products.filter((p) => p.tenantId === currentTenantId || !p.tenantId).count();
-  }, [currentTenantId]) || 0;
+    if (!currentTenantId && !currentStoreId) return 0;
+    return await db.products
+      .filter((p) => (currentStoreId && p.storeId === currentStoreId) || (currentTenantId && p.tenantId === currentTenantId))
+      .count();
+  }, [currentTenantId, currentStoreId]) || 0;
 
   const customersCount = useLiveQuery(async () => {
-    if (!currentTenantId) return 0;
-    return await db.customers.filter((c) => c.tenantId === currentTenantId || !c.tenantId).count();
-  }, [currentTenantId]) || 0;
+    if (!currentTenantId && !currentStoreId) return 0;
+    return await db.customers
+      .filter((c) => (currentStoreId && c.storeId === currentStoreId) || (currentTenantId && c.tenantId === currentTenantId))
+      .count();
+  }, [currentTenantId, currentStoreId]) || 0;
 
   const salesCount = useLiveQuery(async () => {
-    if (!currentTenantId) return 0;
-    return await db.sales.filter((s) => s.tenantId === currentTenantId || !s.tenantId).count();
-  }, [currentTenantId]) || 0;
+    if (!currentTenantId && !currentStoreId) return 0;
+    return await db.sales
+      .filter((s) => (currentStoreId && s.storeId === currentStoreId) || (currentTenantId && s.tenantId === currentTenantId))
+      .count();
+  }, [currentTenantId, currentStoreId]) || 0;
 
   // Store form state
   const [storeName, setStoreName] = useState("");
@@ -914,23 +920,26 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Load demo catalog button */}
-            <button
-              onClick={handleLoadDemoCatalog}
-              className="w-full py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs flex items-center justify-center gap-1.5 touch-press"
-            >
-              <PackagePlus className="w-3.5 h-3.5 text-blue-600" />
-              <span>Charger Catalogue Démo</span>
-            </button>
+            {/* Load demo catalog & restore buttons - ONLY shown if store has 0 products */}
+            {productsCount === 0 && (
+              <div className="space-y-2">
+                <button
+                  onClick={handleLoadDemoCatalog}
+                  className="w-full py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs flex items-center justify-center gap-1.5 touch-press"
+                >
+                  <PackagePlus className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Charger Catalogue Démo</span>
+                </button>
 
-            {/* Restore normal prices button */}
-            <button
-              onClick={handleRestorePrices}
-              className="w-full mt-2 py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs flex items-center justify-center gap-1.5 touch-press"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-amber-700" />
-              <span>Rétablir Prix Normaux (Correction)</span>
-            </button>
+                <button
+                  onClick={handleRestorePrices}
+                  className="w-full py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs flex items-center justify-center gap-1.5 touch-press"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Rétablir Prix Normaux (Correction)</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* PWA Offline-First App Info */}
