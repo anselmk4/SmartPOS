@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useAuth } from "@/lib/auth/auth-context";
+import { useAuth, getApiEndpoint } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
 import { db } from "@/lib/db/dexie-db";
 import type { SubscriptionPlan, PaymentMethod } from "@/lib/shared/types";
@@ -156,11 +156,8 @@ export function PawaPayModal({ isOpen, onClose, plan, billingCycle = "monthly", 
     setIsCheckingStatus(true);
 
     try {
-      const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
-      const apiUrl = isNative
-        ? `${baseUrl}/api/v1/payments/pawapay/status?depositId=${depositId}&tenantId=${tenant.id}&plan=${plan}&operator=${selectedOperator}`
-        : `/api/v1/payments/pawapay/status?depositId=${depositId}&tenantId=${tenant.id}&plan=${plan}&operator=${selectedOperator}`;
+      const endpoint = `/api/v1/payments/pawapay/status?depositId=${depositId}&tenantId=${tenant.id}&plan=${plan}&operator=${selectedOperator}`;
+      const apiUrl = getApiEndpoint(endpoint);
 
       const res = await fetch(apiUrl, { cache: "no-store" });
       const data = await res.json();
@@ -193,11 +190,7 @@ export function PawaPayModal({ isOpen, onClose, plan, billingCycle = "monthly", 
     setStep("PROCESSING");
 
     try {
-      const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
-      const apiUrl = isNative
-        ? `${baseUrl}/api/v1/payments/pawapay/initiate`
-        : "/api/v1/payments/pawapay/initiate";
+      const apiUrl = getApiEndpoint("/api/v1/payments/pawapay/initiate");
 
       const res = await fetch(apiUrl, {
         method: "POST",

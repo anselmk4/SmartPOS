@@ -35,6 +35,25 @@ export interface AssignManagerParams {
   newManagerPin?: string;
 }
 
+export function getApiEndpoint(endpoint: string): string {
+  if (typeof window === "undefined") return endpoint;
+  const isNative = Boolean((window as any).Capacitor?.isNativePlatform?.());
+  if (!isNative) return endpoint;
+
+  const customUrl = localStorage.getItem("pos_custom_api_url");
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (customUrl) {
+    return `${customUrl.replace(/\/+$/, "")}${endpoint}`;
+  }
+  if (envUrl && !envUrl.includes("globalpos.app")) {
+    return `${envUrl.replace(/\/+$/, "")}${endpoint}`;
+  }
+  if (window.location.origin && !window.location.origin.startsWith("capacitor:") && !window.location.origin.startsWith("http://localhost")) {
+    return `${window.location.origin}${endpoint}`;
+  }
+  return endpoint;
+}
+
 interface AuthContextType {
   user: User | null;
   tenant: Tenant | null;
@@ -356,11 +375,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // If failed locally or not loaded, query Cloud
       if (typeof navigator !== "undefined" && navigator.onLine) {
         try {
-          const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
-          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
-          const apiUrl = isNative
-            ? `${baseUrl}/api/v1/auth/login`
-            : "/api/v1/auth/login";
+          const apiUrl = getApiEndpoint("/api/v1/auth/login");
 
           const res = await fetch(apiUrl, {
             method: "POST",
@@ -446,11 +461,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 2. If not found locally or PIN doesn't match locally, authenticate against Cloud API (Supabase)
       if (!isLocalMatch && typeof navigator !== "undefined" && navigator.onLine) {
         try {
-          const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
-          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
-          const apiUrl = isNative
-            ? `${baseUrl}/api/v1/auth/login`
-            : "/api/v1/auth/login";
+          const apiUrl = getApiEndpoint("/api/v1/auth/login");
 
           const res = await fetch(apiUrl, {
             method: "POST",
@@ -600,11 +611,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 2. Direct Cloud Registration API call (so the account is immediately active across all devices)
       if (typeof navigator !== "undefined" && navigator.onLine) {
         try {
-          const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
-          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
-          const apiUrl = isNative
-            ? `${baseUrl}/api/v1/auth/register`
-            : "/api/v1/auth/register";
+          const apiUrl = getApiEndpoint("/api/v1/auth/register");
 
           const regRes = await fetch(apiUrl, {
             method: "POST",

@@ -17,6 +17,7 @@ import {
   Receipt,
   FileSpreadsheet,
   CheckCircle2,
+  AlertCircle,
   Sparkles,
   ChevronDown,
   Layers,
@@ -49,7 +50,7 @@ export function Navbar() {
     logout,
   } = useAuth();
   const { toggleCollapse, toggleMobileOpen, isCollapsed } = useSidebar();
-  const [syncToast, setSyncToast] = useState<string | null>(null);
+  const [syncToast, setSyncToast] = useState<{ message: string; success: boolean } | null>(null);
 
   const activeCountry = COUNTRIES.find((c) => c.code === (store?.countryCode || tenant?.countryCode || "CD"));
 
@@ -68,8 +69,8 @@ export function Navbar() {
 
   const handleSyncClick = async () => {
     const res = await syncNow();
-    setSyncToast(res.message);
-    setTimeout(() => setSyncToast(null), 3000);
+    setSyncToast({ message: res.message, success: res.success });
+    setTimeout(() => setSyncToast(null), 4500);
   };
 
   const handleLockClick = () => {
@@ -381,9 +382,13 @@ export function Navbar() {
 
         {/* Sync Toast Alert */}
         {syncToast && (
-          <div className="absolute left-1/2 -translate-x-1/2 top-14 bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-2xl flex items-center gap-2 animate-bounce z-50 border border-slate-700">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>{syncToast}</span>
+          <div className="absolute left-1/2 -translate-x-1/2 top-14 bg-slate-900/95 backdrop-blur-md text-white px-4 py-2 rounded-xl text-xs font-bold shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200 z-50 border border-slate-700 max-w-[90vw] text-center">
+            {syncToast.success ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+            )}
+            <span className="truncate">{syncToast.message}</span>
           </div>
         )}
       </header>

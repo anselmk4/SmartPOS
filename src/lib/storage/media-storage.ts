@@ -29,8 +29,18 @@ export async function uploadMediaFile(
   // 2. If online, upload to Supabase Storage via /api/v1/storage/upload
   try {
     const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
-    const apiUrl = isNative ? `${baseUrl}/api/v1/storage/upload` : "/api/v1/storage/upload";
+    let apiUrl = "/api/v1/storage/upload";
+    if (isNative) {
+      const customUrl = typeof window !== "undefined" ? localStorage.getItem("pos_custom_api_url") : null;
+      const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+      if (customUrl) {
+        apiUrl = `${customUrl.replace(/\/+$/, "")}/api/v1/storage/upload`;
+      } else if (envUrl && !envUrl.includes("globalpos.app")) {
+        apiUrl = `${envUrl.replace(/\/+$/, "")}/api/v1/storage/upload`;
+      } else if (typeof window !== "undefined" && window.location.origin && !window.location.origin.startsWith("capacitor:") && !window.location.origin.startsWith("http://localhost")) {
+        apiUrl = `${window.location.origin}/api/v1/storage/upload`;
+      }
+    }
 
     const response = await fetch(apiUrl, {
       method: "POST",

@@ -203,7 +203,16 @@ export class SyncEngine {
         };
       });
 
-      const tenantId = pendingItems[0]?.tenantId || undefined;
+      let tenantId = pendingItems[0]?.tenantId;
+      if (!tenantId && storeId) {
+        const localStore = await db.stores.get(storeId);
+        if (localStore?.tenantId) {
+          tenantId = localStore.tenantId;
+        }
+      }
+      if (!tenantId && typeof window !== "undefined") {
+        tenantId = localStorage.getItem("micro_erp_auth_tenant_id") || undefined;
+      }
 
       const syncRequest: SyncPushRequest = {
         tenantId,
@@ -214,9 +223,18 @@ export class SyncEngine {
 
       // 3. Call /api/v1/sync (resolves cloud server URL when running in native APK)
       const isNative = typeof window !== "undefined" && Boolean((window as any).Capacitor?.isNativePlatform?.());
-      const apiUrl = isNative
-        ? (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/v1/sync` : "https://globalpos.app/api/v1/sync")
-        : "/api/v1/sync";
+      let apiUrl = "/api/v1/sync";
+      if (isNative) {
+        const customUrl = typeof window !== "undefined" ? localStorage.getItem("pos_custom_api_url") : null;
+        const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+        if (customUrl) {
+          apiUrl = `${customUrl.replace(/\/+$/, "")}/api/v1/sync`;
+        } else if (envUrl && !envUrl.includes("globalpos.app")) {
+          apiUrl = `${envUrl.replace(/\/+$/, "")}/api/v1/sync`;
+        } else if (typeof window !== "undefined" && window.location.origin && !window.location.origin.startsWith("capacitor:") && !window.location.origin.startsWith("http://localhost")) {
+          apiUrl = `${window.location.origin}/api/v1/sync`;
+        }
+      }
 
       const token = typeof window !== "undefined" ? localStorage.getItem("kuettu_session_token") || localStorage.getItem("kuettu_admin_token") : null;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -224,11 +242,23 @@ export class SyncEngine {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(syncRequest),
-      });
+      let response: Response;
+      try {
+        response = await fetch(apiUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(syncRequest),
+        });
+      } catch (fetchErr: any) {
+        const msg = fetchErr?.message || "";
+        console.warn("[SyncEngine] Network reachability issue:", msg);
+        this.isSyncing = false;
+        this.notify();
+        return {
+          success: false,
+          message: "Mode hors-ligne : Serveur distant temporairement injoignable. Vos données locales sont bien enregistrées et sécurisées.",
+        };
+      }
 
       if (!response.ok) {
         let errorDetail = `Erreur serveur (${response.status})`;
@@ -363,10 +393,21 @@ export class SyncEngine {
 
       return { success: true, message: "Synchronisation réussie" };
     } catch (err: any) {
-      console.warn("[SyncEngine] Sync error (offline / network):", err.message);
+      const errMsg = err?.message || "";
+      const isFetchError =
+        errMsg.toLowerCase().includes("failed to fetch") ||
+        errMsg.toLowerCase().includes("networkerror") ||
+        errMsg.toLowerCase().includes("load failed") ||
+        errMsg.toLowerCase().includes("network request failed");
+
+      const friendlyMessage = isFetchError
+        ? "Mode hors-ligne : Impossible de joindre le serveur distant. Vos opérations locales sont sauvegardées."
+        : errMsg || "Erreur de synchronisation";
+
+      console.warn("[SyncEngine] Sync error:", friendlyMessage, err);
       this.isSyncing = false;
       this.notify();
-      return { success: false, message: err.message || "Erreur de synchronisation" };
+      return { success: false, message: friendlyMessage };
     }
   }
 
