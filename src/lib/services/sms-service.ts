@@ -45,7 +45,7 @@ export async function sendVerificationSms(
   otpCode: string,
   storeName: string
 ): Promise<SendSmsResult> {
-  const config = getSystemVerificationConfig();
+  const config = await getSystemVerificationConfig();
   const formattedPhone = formatPhoneNumberE164(toPhone);
 
   const messageBody = `[Kuettu Global POS] Votre code de confirmation pour votre boutique "${storeName}" est : ${otpCode}. Valable 10 minutes. Ne le partagez avec personne.`;

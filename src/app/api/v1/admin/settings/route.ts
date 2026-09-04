@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     ]);
 
     const pingMs = Date.now() - startTime;
-    const verificationConfig = getSystemVerificationConfig();
+    const verificationConfig = await getSystemVerificationConfig();
 
     return NextResponse.json({
       success: true,
@@ -140,7 +140,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Action 2: Save Verification Config
-    const updated = saveSystemVerificationConfig({
+    const updated = await saveSystemVerificationConfig({
       verificationMethod: verificationMethod as VerificationMethod,
       isSimulationMode: isSimulationMode !== undefined ? Boolean(isSimulationMode) : undefined,
       twilio: twilio || {},

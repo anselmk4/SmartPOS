@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days trial/active
 
-    const config = getSystemVerificationConfig();
+    const config = await getSystemVerificationConfig();
     const requiresVerification = config.verificationMethod !== "DISABLED";
 
     const targetTenantId = (existingUser?.tenantId || tenantId) || crypto.randomUUID();

@@ -17,7 +17,7 @@ export async function sendVerificationEmail(
   storeName: string,
   ownerName: string
 ): Promise<SendEmailResult> {
-  const config = getSystemVerificationConfig();
+  const config = await getSystemVerificationConfig();
   const cleanEmail = toEmail.trim().toLowerCase();
 
   const htmlContent = `

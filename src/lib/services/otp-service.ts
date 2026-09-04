@@ -43,7 +43,7 @@ export interface TriggerOtpResult {
  * Generates an OTP, stores it in DB, and dispatches it via SMS or Email based on Admin settings
  */
 export async function triggerRegistrationOtp(params: TriggerOtpParams): Promise<TriggerOtpResult> {
-  const config = getSystemVerificationConfig();
+  const config = await getSystemVerificationConfig();
   const method = config.verificationMethod;
 
   if (method === "DISABLED") {
@@ -154,7 +154,7 @@ export async function verifyRegistrationOtp(
   const rawDigits = identifier.replace(/\D/g, "");
 
   const isProduction = process.env.NODE_ENV === "production";
-  const config = getSystemVerificationConfig();
+  const config = await getSystemVerificationConfig();
   
   // Master simulation codes are ONLY allowed in non-production environments AND when simulation mode is explicitly enabled
   const isMasterSimulationCode = !isProduction && config.isSimulationMode && ["111111", "123456", "000000", "777777", "999999", "654321"].includes(cleanCode);

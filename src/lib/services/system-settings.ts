@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { prisma } from "@/lib/prisma";
 
 export type VerificationMethod = "SMS" | "EMAIL" | "DISABLED";
 
@@ -43,16 +44,51 @@ const PRIMARY_CONFIG_PATH = path.join(process.cwd(), "data", "verification-confi
 const TMP_CONFIG_PATH = path.join(os.tmpdir(), "globalpos-verification-config.json");
 
 /**
- * Reads system verification config (from memory, local persistent JSON, tmp JSON, or default)
+ * Reads system verification config (from database, memory, tmp JSON, local file or default)
  */
-export function getSystemVerificationConfig(): SystemVerificationConfig {
-  // 1. Check in-memory global cache first
+export async function getSystemVerificationConfig(): Promise<SystemVerificationConfig> {
+  // 1. Try reading from Supabase PostgreSQL database first (shared across all lambdas/servers)
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS system_settings (
+        key VARCHAR(255) PRIMARY KEY,
+        value JSONB NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+
+    const rows: any[] = await prisma.$queryRawUnsafe(`
+      SELECT value FROM system_settings WHERE key = 'verification_config' LIMIT 1;
+    `);
+
+    if (rows && rows.length > 0 && rows[0]?.value) {
+      const parsed = typeof rows[0].value === "string" ? JSON.parse(rows[0].value) : rows[0].value;
+      const resolved: SystemVerificationConfig = {
+        ...DEFAULT_CONFIG,
+        ...parsed,
+        twilio: {
+          ...DEFAULT_CONFIG.twilio,
+          ...(parsed.twilio || {}),
+        },
+        email: {
+          ...DEFAULT_CONFIG.email,
+          ...(parsed.email || {}),
+        },
+      };
+      (globalThis as any).__systemVerificationConfig = resolved;
+      return resolved;
+    }
+  } catch (dbErr) {
+    console.warn("[SystemSettings] DB fetch warning, falling back to memory/disk:", dbErr);
+  }
+
+  // 2. Check in-memory global cache
   if ((globalThis as any).__systemVerificationConfig) {
     return (globalThis as any).__systemVerificationConfig;
   }
 
-  // 2. Try reading from primary config path or tmp config path
-  const pathsToTry = [PRIMARY_CONFIG_PATH, TMP_CONFIG_PATH];
+  // 3. Try reading from tmp or primary file path
+  const pathsToTry = [TMP_CONFIG_PATH, PRIMARY_CONFIG_PATH];
 
   for (const filePath of pathsToTry) {
     try {
@@ -83,12 +119,12 @@ export function getSystemVerificationConfig(): SystemVerificationConfig {
 }
 
 /**
- * Saves updated system verification config
+ * Saves updated system verification config to PostgreSQL DB and memory
  */
-export function saveSystemVerificationConfig(
+export async function saveSystemVerificationConfig(
   updates: Partial<SystemVerificationConfig>
-): SystemVerificationConfig {
-  const current = getSystemVerificationConfig();
+): Promise<SystemVerificationConfig> {
+  const current = await getSystemVerificationConfig();
   const merged: SystemVerificationConfig = {
     ...current,
     ...updates,
@@ -133,10 +169,26 @@ export function saveSystemVerificationConfig(
   // 1. Always update in-memory runtime cache
   (globalThis as any).__systemVerificationConfig = merged;
 
-  // 2. Try persisting to primary data path, then tmpdir
-  let savedToFile = false;
-  const pathsToAttempt = [PRIMARY_CONFIG_PATH, TMP_CONFIG_PATH];
+  // 2. Persist to Supabase PostgreSQL database
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS system_settings (
+        key VARCHAR(255) PRIMARY KEY,
+        value JSONB NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO system_settings (key, value, updated_at)
+      VALUES ('verification_config', $1::jsonb, NOW())
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+    `, JSON.stringify(merged));
+  } catch (dbErr) {
+    console.error("[SystemSettings] DB save error:", dbErr);
+  }
 
+  // 3. Try persisting to tmp and primary data path as fallback
+  const pathsToAttempt = [TMP_CONFIG_PATH, PRIMARY_CONFIG_PATH];
   for (const filePath of pathsToAttempt) {
     try {
       const dir = path.dirname(filePath);
@@ -144,15 +196,10 @@ export function saveSystemVerificationConfig(
         fs.mkdirSync(dir, { recursive: true });
       }
       fs.writeFileSync(filePath, JSON.stringify(merged, null, 2), "utf-8");
-      savedToFile = true;
-      break; // Successfully saved to file
+      break;
     } catch (err) {
-      console.warn(`[SystemSettings] Could not write to ${filePath} (read-only filesystem or permission issue):`, err);
+      // Ignore read-only fs error
     }
-  }
-
-  if (!savedToFile) {
-    console.warn("[SystemSettings] Running in read-only environment. Settings saved to in-memory state.");
   }
 
   return merged;
