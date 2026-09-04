@@ -42,24 +42,24 @@ export async function GET(req: NextRequest) {
     // 1. Auto-reconcile any sales, products, and customers whose storeId belongs to a specific tenant
     try {
       await prisma.$executeRawUnsafe(`
-        UPDATE "Sale" s
-        SET "tenantId" = st."tenantId"
-        FROM "Store" st
-        WHERE s."storeId" = st.id AND (s."tenantId" IS NULL OR s."tenantId" != st."tenantId");
+        UPDATE sales s
+        SET tenant_id = st.tenant_id
+        FROM stores st
+        WHERE s.store_id = st.id AND (s.tenant_id IS NULL OR s.tenant_id != st.tenant_id);
       `);
 
       await prisma.$executeRawUnsafe(`
-        UPDATE "Product" p
-        SET "tenantId" = st."tenantId"
-        FROM "Store" st
-        WHERE p."storeId" = st.id AND (p."tenantId" IS NULL OR p."tenantId" != st."tenantId");
+        UPDATE products p
+        SET tenant_id = st.tenant_id
+        FROM stores st
+        WHERE p.store_id = st.id AND (p.tenant_id IS NULL OR p.tenant_id != st.tenant_id);
       `);
 
       await prisma.$executeRawUnsafe(`
-        UPDATE "Sale" s
-        SET "tenantId" = u."tenantId"
-        FROM "User" u
-        WHERE s."userId" = u.id AND (s."tenantId" IS NULL OR s."tenantId" != u."tenantId");
+        UPDATE customers c
+        SET tenant_id = st.tenant_id
+        FROM stores st
+        WHERE c.store_id = st.id AND (c.tenant_id IS NULL OR c.tenant_id != st.tenant_id);
       `);
     } catch (reconcileErr) {
       console.warn("[Admin Tenants Reconcile Warning]:", reconcileErr);

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifySuperAdmin, unauthorizedAdminResponse } from "@/lib/admin/admin-guard";
+import { getPlanPriceInfo, convertCurrency } from "@/lib/constants/plans";
+import type { SubscriptionPlan } from "@/lib/shared/types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -54,7 +56,7 @@ export async function GET(req: NextRequest) {
     });
     const gmvTotal = salesAggregate._sum.totalAmount || 0;
 
-    // 4. Compute Plan Stats & MRR from real tenants
+    // 4. Compute Plan Stats & accurate MRR from real tenants in database
     let mrrTotal = 0;
     const planStats = { FREE: 0, BASIC: 0, PRO: 0, BUSINESS: 0 };
 
@@ -62,10 +64,10 @@ export async function GET(req: NextRequest) {
       if (t.plan in planStats) {
         planStats[t.plan as keyof typeof planStats] += 1;
       }
-      if (t.isActive) {
-        if (t.plan === "PRO") mrrTotal += 30000;
-        else if (t.plan === "BUSINESS") mrrTotal += 100000;
-        else if (t.plan === "BASIC") mrrTotal += 15000;
+      if (t.isActive && t.plan !== "FREE") {
+        const info = getPlanPriceInfo(t.plan as SubscriptionPlan, t.currency || "CDF");
+        const cdfAmount = convertCurrency(info.amount, t.currency || "CDF", "CDF");
+        mrrTotal += cdfAmount;
       }
     });
 
@@ -146,6 +148,7 @@ export async function GET(req: NextRequest) {
         name: matchingTenant?.name || "Commerce Inconnu",
         slug: matchingTenant?.slug || "",
         plan: matchingTenant?.plan || "FREE",
+        currency: matchingTenant?.currency || "CDF",
         isActive: matchingTenant?.isActive ?? true,
         salesCount,
         totalGmv: totalAmount,
@@ -166,6 +169,7 @@ export async function GET(req: NextRequest) {
             name: t.name,
             slug: t.slug,
             plan: t.plan,
+            currency: t.currency || "CDF",
             isActive: t.isActive,
             salesCount: t._count.sales || 0,
             totalGmv: 0,

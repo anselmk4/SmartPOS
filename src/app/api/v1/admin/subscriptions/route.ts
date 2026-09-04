@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifySuperAdmin, unauthorizedAdminResponse } from "@/lib/admin/admin-guard";
+import { getPlanPriceInfo, convertCurrency } from "@/lib/constants/plans";
+import type { SubscriptionPlan } from "@/lib/shared/types";
 import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +48,7 @@ export async function GET(req: NextRequest) {
             plan: true,
             planStatus: true,
             planExpiresAt: true,
+            currency: true,
           },
         },
       },
@@ -57,6 +60,7 @@ export async function GET(req: NextRequest) {
         name: true,
         slug: true,
         plan: true,
+        currency: true,
         isActive: true,
       },
     });
@@ -64,11 +68,10 @@ export async function GET(req: NextRequest) {
     // Compute MRR & Total collected
     const totalCollected = subscriptions.reduce((acc, s) => acc + (s.amount || 0), 0);
     const mrrTotal = tenants.reduce((acc, t) => {
-      if (!t.isActive) return acc;
-      if (t.plan === "PRO") return acc + 15000;
-      if (t.plan === "BUSINESS") return acc + 45000;
-      if (t.plan === "BASIC") return acc + 5000;
-      return acc;
+      if (!t.isActive || t.plan === "FREE") return acc;
+      const info = getPlanPriceInfo(t.plan as SubscriptionPlan, t.currency || "CDF");
+      const cdfAmount = convertCurrency(info.amount, t.currency || "CDF", "CDF");
+      return acc + cdfAmount;
     }, 0);
 
     return NextResponse.json({
