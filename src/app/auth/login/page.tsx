@@ -46,6 +46,7 @@ export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [unverifiedTarget, setUnverifiedTarget] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Auto-switch mode based on terminal association
@@ -76,6 +77,7 @@ export default function LoginPage() {
     const newPin = pinCode + digit;
     setPinCode(newPin);
     setErrorMsg(null);
+    setUnverifiedTarget(null);
 
     if (newPin.length === 4) {
       setIsLoading(true);
@@ -101,12 +103,16 @@ export default function LoginPage() {
 
     setIsLoading(true);
     setErrorMsg(null);
+    setUnverifiedTarget(null);
     const res = await login(identifier, password || "1234");
     setIsLoading(false);
 
     if (res.success) {
       router.push("/pos");
     } else {
+      if (res.requiresVerification) {
+        setUnverifiedTarget(res.identifier || identifier);
+      }
       setErrorMsg(res.message);
     }
   };
@@ -210,8 +216,28 @@ export default function LoginPage() {
           </button>
         </div>
 
+        {/* Unverified Account Banner with 1-click SMS confirmation link */}
+        {unverifiedTarget && (
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 text-amber-900 p-4 rounded-2xl text-xs space-y-2.5 mb-4 shadow-sm animate-in fade-in">
+            <div className="flex items-center gap-2 font-black text-amber-800">
+              <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Boutique en Attente d'Activation SMS</span>
+            </div>
+            <p className="text-[11px] text-amber-800/90 leading-relaxed font-medium">
+              Votre compte doit être validé par le code de sécurité envoyé par SMS pour débloquer votre caisse.
+            </p>
+            <Link
+              href={`/auth/verify?phone=${encodeURIComponent(unverifiedTarget)}&method=SMS`}
+              className="w-full py-2.5 px-3.5 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all touch-press"
+            >
+              <span>Saisir mon Code SMS & Activer</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
+
         {/* Error alert */}
-        {errorMsg && (
+        {errorMsg && !unverifiedTarget && (
           <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-2xl text-xs font-semibold mb-4 flex items-center gap-2 animate-shake">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
             <span>{errorMsg}</span>

@@ -262,7 +262,32 @@ export async function PUT(req: NextRequest) {
     if (countryCode !== undefined) updateData.countryCode = countryCode;
     if (plan !== undefined) updateData.plan = plan;
     if (planStatus !== undefined) updateData.planStatus = planStatus;
-    if (isActive !== undefined) updateData.isActive = Boolean(isActive);
+    // If isActive is explicitly modified
+    if (isActive !== undefined) {
+      const activeBool = Boolean(isActive);
+      updateData.isActive = activeBool;
+      if (activeBool) {
+        if (!existing.planStatus || existing.planStatus === "TRIAL") {
+          updateData.planStatus = existing.plan === "FREE" ? "ACTIVE" : existing.planStatus;
+        }
+        // Activate all users under this tenant
+        await prisma.user.updateMany({
+          where: { tenantId: id },
+          data: { isActive: true },
+        });
+        // Consume any pending OTP verification records
+        await prisma.otpVerification.updateMany({
+          where: { tenantId: id },
+          data: { consumed: true },
+        });
+      } else {
+        // If suspending, also deactivate users
+        await prisma.user.updateMany({
+          where: { tenantId: id },
+          data: { isActive: false },
+        });
+      }
+    }
 
     // If plan is changed or subscription details are provided, compute expiration & create invoice
     const hasPlanChange = plan !== undefined && (durationMonths !== undefined || isFree !== undefined || amount !== undefined);
@@ -337,9 +362,16 @@ export async function PUT(req: NextRequest) {
       data: updateData,
     });
 
+    const isActivationAction = isActive === true;
+    const isSuspensionAction = isActive === false;
+
     return NextResponse.json({
       success: true,
-      message: `Boutique "${updated.name}" mise à jour avec succès`,
+      message: isActivationAction
+        ? `Boutique "${updated.name}" activée manuellement avec succès ! Le gérant et son équipe peuvent désormais ouvrir leur caisse.`
+        : isSuspensionAction
+        ? `Boutique "${updated.name}" suspendue avec succès.`
+        : `Boutique "${updated.name}" mise à jour avec succès`,
       data: updated,
     });
   } catch (error: any) {

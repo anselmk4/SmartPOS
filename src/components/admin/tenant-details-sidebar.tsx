@@ -266,6 +266,36 @@ export function TenantDetailsSidebar({
 
           {/* Scrollable Content Body */}
           <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+            {/* Unverified Inactive Alert Banner with 1-Click Manual Activation */}
+            {!tenant.isActive && (
+              <div className="p-4 rounded-3xl bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-amber-500/5 border-2 border-amber-500/40 text-xs shadow-lg space-y-3 animate-in fade-in">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                      <AlertTriangle className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-amber-900 dark:text-amber-200 text-sm">
+                        Boutique Non Activée (En Attente SMS)
+                      </h4>
+                      <p className="text-[11px] text-amber-800 dark:text-amber-300/90 mt-0.5 leading-relaxed">
+                        Ce commerçant n'a pas encore validé son code OTP SMS. Sa caisse reste verrouillée jusqu'à validation.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => onToggleStatus(tenant)}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all touch-press"
+                >
+                  <ShieldCheck className="w-4 h-4 text-emerald-200" />
+                  <span>Activer Manuellement ce Commerce</span>
+                </button>
+              </div>
+            )}
+
             {/* TAB 1: GENERAL INFO */}
             {activeTab === "GENERAL" && (
               <div className="space-y-5 animate-in fade-in duration-200">

@@ -77,7 +77,12 @@ interface AuthContextType {
   selectStore: (storeId: string) => Promise<void>;
   createAdditionalStore: (params: CreateStoreParams) => Promise<Store>;
   assignStoreManager: (params: AssignManagerParams) => Promise<void>;
-  login: (identifier: string, pinOrPass: string) => Promise<{ success: boolean; message: string }>;
+  login: (identifier: string, pinOrPass: string) => Promise<{
+    success: boolean;
+    message: string;
+    requiresVerification?: boolean;
+    identifier?: string;
+  }>;
   loginWithPin: (pinCode: string) => Promise<{ success: boolean; message: string }>;
   loginStaffWithPin: (userId: string, pinCode: string) => Promise<{ success: boolean; message: string }>;
   unlinkTerminal: () => Promise<void>;
@@ -470,6 +475,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
 
           const cloudData = await res.json();
+          if (cloudData.requiresVerification) {
+            return {
+              success: false,
+              requiresVerification: true,
+              identifier: cloudData.identifier || trimmed,
+              message: cloudData.error || "Ce compte boutique n'est pas encore activé par SMS.",
+            };
+          }
+
           if (res.ok && cloudData.success && cloudData.user) {
             await bootstrapCloudDataIntoDexie(cloudData);
             // Save plain PIN into local Dexie for this device so offline use works immediately
@@ -494,6 +508,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return {
           success: false,
           message: cloudErrorMsg || "Aucun compte trouvé avec ce numéro ou email. Vérifiez vos identifiants.",
+        };
+      }
+
+      // Check if user or tenant is inactive in local Dexie
+      if (foundUser.isActive === false || (foundTenant && foundTenant.isActive === false)) {
+        return {
+          success: false,
+          requiresVerification: true,
+          identifier: foundUser.phone || foundUser.email || trimmed,
+          message: "Votre boutique n'est pas encore activée. Veuillez valider le code SMS reçu ou demander son activation à un administrateur.",
         };
       }
 

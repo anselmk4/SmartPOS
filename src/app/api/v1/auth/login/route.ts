@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
         include: { tenant: true },
       });
 
-      if (candidate && candidate.isActive) {
+      if (candidate) {
         if (!verifyPinCode(cleanPin, candidate.pinCode)) {
           return NextResponse.json(
             {
@@ -66,13 +66,29 @@ export async function POST(req: NextRequest) {
             { status: 401 }
           );
         }
+
+        // Check if account or tenant is not activated
+        if (!candidate.isActive || !candidate.tenant?.isActive) {
+          return NextResponse.json(
+            {
+              success: false,
+              requiresVerification: true,
+              isInactive: true,
+              identifier: candidate.phone || candidate.email || candidate.tenant?.phone,
+              tenantName: candidate.tenant?.name,
+              error: `La boutique "${candidate.tenant?.name || "Boutique"}" n'est pas encore activée. Veuillez valider le code de confirmation SMS reçu lors de l'inscription ou demander l'activation à un administrateur.`,
+            },
+            { status: 403 }
+          );
+        }
+
         user = candidate;
       }
     }
 
     // SCENARIO 2: Manager / Merchant login by Phone or Email + PIN
     if (!user && cleanInput) {
-      // 1. Search in Users table
+      // 1. Search in Users table (including pending/inactive accounts)
       const userSearchFilters: any[] = [
         { email: { equals: cleanInput, mode: "insensitive" } },
         { phone: { equals: cleanInput } },
@@ -87,7 +103,6 @@ export async function POST(req: NextRequest) {
 
       let candidateUsers = await prisma.user.findMany({
         where: {
-          isActive: true,
           OR: userSearchFilters,
         },
         include: { tenant: true },
@@ -109,7 +124,6 @@ export async function POST(req: NextRequest) {
 
         const matchedTenants = await prisma.tenant.findMany({
           where: {
-            isActive: true,
             OR: tenantSearchFilters,
           },
           include: { users: true },
@@ -132,6 +146,21 @@ export async function POST(req: NextRequest) {
       if (candidateUsers.length > 0) {
         const pinMatched = candidateUsers.find((u) => verifyPinCode(cleanPin, u.pinCode));
         if (pinMatched) {
+          // Check if user or tenant is not yet activated / pending SMS confirmation
+          if (!pinMatched.isActive || !pinMatched.tenant?.isActive) {
+            return NextResponse.json(
+              {
+                success: false,
+                requiresVerification: true,
+                isInactive: true,
+                identifier: pinMatched.phone || pinMatched.email || pinMatched.tenant?.phone,
+                tenantName: pinMatched.tenant?.name,
+                error: `La boutique "${pinMatched.tenant?.name || "Boutique"}" n'est pas encore activée. Veuillez valider le code de confirmation SMS reçu lors de l'inscription ou demander l'activation à un administrateur.`,
+              },
+              { status: 403 }
+            );
+          }
+
           user = pinMatched;
         } else {
           return NextResponse.json(
