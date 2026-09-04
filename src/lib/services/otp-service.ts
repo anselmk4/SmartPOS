@@ -107,7 +107,7 @@ export async function triggerRegistrationOtp(params: TriggerOtpParams): Promise<
       identifier: targetIdentifier,
       expiresAt: expiresAt.toISOString(),
       isSimulated: emailRes.isSimulated,
-      simulatedCode: emailRes.simulatedCode || rawCode,
+      simulatedCode: emailRes.isSimulated ? (emailRes.simulatedCode || rawCode) : undefined,
       error: emailRes.error,
     };
   } else {
@@ -124,7 +124,7 @@ export async function triggerRegistrationOtp(params: TriggerOtpParams): Promise<
       identifier: targetIdentifier,
       expiresAt: expiresAt.toISOString(),
       isSimulated: smsRes.isSimulated,
-      simulatedCode: smsRes.simulatedCode || rawCode,
+      simulatedCode: smsRes.isSimulated ? (smsRes.simulatedCode || rawCode) : undefined,
       error: smsRes.error,
     };
   }

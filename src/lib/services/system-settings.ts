@@ -24,7 +24,7 @@ export interface SystemVerificationConfig {
 
 const DEFAULT_CONFIG: SystemVerificationConfig = {
   verificationMethod: "SMS", // Par défaut : SMS
-  isSimulationMode: true,    // Simulé jusqu'à ce que les clés soient fournies
+  isSimulationMode: false,   // Mode Production actif (Envoi SMS réel via Twilio)
   otpExpiryMinutes: 10,
   twilio: {
     accountSid: process.env.TWILIO_ACCOUNT_SID || "",

@@ -26,7 +26,6 @@ function VerifyOtpContent() {
   const phoneParam = searchParams?.get("phone") || "";
   const emailParam = searchParams?.get("email") || "";
   const methodParam = searchParams?.get("method") || "SMS";
-  const initialSimCode = searchParams?.get("simCode") || "";
 
   const identifier = methodParam === "EMAIL" ? emailParam || phoneParam : phoneParam || emailParam;
 
@@ -41,7 +40,6 @@ function VerifyOtpContent() {
   // Resend cooldown timer (60s)
   const [resendCooldown, setResendCooldown] = useState(60);
   const [isResending, setIsResending] = useState(false);
-  const [simulatedCode, setSimulatedCode] = useState<string | null>(initialSimCode || null);
 
   useEffect(() => {
     // Focus first input on mount
@@ -54,13 +52,6 @@ function VerifyOtpContent() {
       return () => clearTimeout(timer);
     }
   }, [resendCooldown]);
-
-  // If sim code provided in params, auto-fill hint
-  useEffect(() => {
-    if (initialSimCode && initialSimCode.length === 6) {
-      setSimulatedCode(initialSimCode);
-    }
-  }, [initialSimCode]);
 
   const handleDigitChange = (index: number, value: string) => {
     const clean = value.replace(/\D/g, "");
@@ -200,23 +191,12 @@ function VerifyOtpContent() {
       } else {
         setSuccessMsg("Un nouveau code a été envoyé !");
         setResendCooldown(60);
-        if (data.isSimulated && data.simulatedCode) {
-          setSimulatedCode(data.simulatedCode);
-        }
         setTimeout(() => setSuccessMsg(null), 3500);
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Erreur lors du renvoi du code");
     } finally {
       setIsResending(false);
-    }
-  };
-
-  const handleFillSimulatedCode = () => {
-    if (simulatedCode && simulatedCode.length === 6) {
-      const splitted = simulatedCode.split("");
-      setDigits(splitted);
-      verifyCode(simulatedCode);
     }
   };
 
@@ -235,40 +215,12 @@ function VerifyOtpContent() {
           Confirmation de Compte
         </h2>
         <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
-          Nous avons envoyé un code de vérification à 6 chiffres par{" "}
+          Nous avons envoyé un code de vérification sécurisé à 6 chiffres par{" "}
           <b className="text-slate-200">{methodParam === "EMAIL" ? "e-mail" : "SMS"}</b> à :
         </p>
         <div className="inline-block px-3 py-1 bg-slate-800 rounded-full text-xs font-mono font-bold text-blue-400 border border-slate-700">
           {identifier || "Votre numéro"}
         </div>
-      </div>
-
-      {/* Simulation Banner (Helpful for dev/sandbox until Twilio keys provided) */}
-      <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl text-xs text-amber-300 space-y-1.5 animate-in fade-in">
-        <div className="flex items-center justify-between font-bold">
-          <span className="flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>Mode Sandbox / Test</span>
-          </span>
-          <span className="font-mono text-sm text-white bg-amber-500/20 px-2 py-0.5 rounded-lg">
-            {simulatedCode || "123456"}
-          </span>
-        </div>
-        <p className="text-[11px] text-amber-200/80 leading-relaxed">
-          En attendant la configuration de vos clés Twilio SMS, utilisez le code de test <b>{simulatedCode || "123456"}</b> (ou <b>111111</b>) pour valider votre compte.
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            const code = simulatedCode || "123456";
-            setDigits(code.split(""));
-            verifyCode(code);
-          }}
-          className="text-[11px] font-bold text-white bg-amber-600/70 hover:bg-amber-600 px-3 py-1.5 rounded-xl transition-all w-full flex items-center justify-center gap-1.5 shadow-sm touch-press"
-        >
-          <span>Remplir et Valider automatiquement ({simulatedCode || "123456"})</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </button>
       </div>
 
       {/* Error / Success Alerts */}
