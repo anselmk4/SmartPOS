@@ -103,17 +103,31 @@ export function saveSystemVerificationConfig(
     updatedAt: new Date().toISOString(),
   };
 
-  // Determine simulation mode
+  // Clean and normalize Twilio fields
+  if (merged.twilio.accountSid) {
+    merged.twilio.accountSid = merged.twilio.accountSid.trim();
+    if (merged.twilio.accountSid.toLowerCase().startsWith("ac")) {
+      merged.twilio.accountSid = "AC" + merged.twilio.accountSid.substring(2);
+    }
+  }
+  if (merged.twilio.authToken) {
+    merged.twilio.authToken = merged.twilio.authToken.trim();
+  }
+  if (merged.twilio.phoneNumber) {
+    merged.twilio.phoneNumber = merged.twilio.phoneNumber.trim();
+  }
+  if (merged.twilio.messagingServiceSid) {
+    merged.twilio.messagingServiceSid = merged.twilio.messagingServiceSid.trim();
+    if (merged.twilio.messagingServiceSid.toLowerCase().includes("xxxx") || merged.twilio.messagingServiceSid.length < 30) {
+      merged.twilio.messagingServiceSid = "";
+    }
+  }
+
+  // Determine simulation mode (default: false for production)
   if (updates.isSimulationMode !== undefined) {
     merged.isSimulationMode = Boolean(updates.isSimulationMode);
-  } else if (
-    merged.twilio.accountSid &&
-    merged.twilio.authToken &&
-    (merged.twilio.phoneNumber || merged.twilio.messagingServiceSid)
-  ) {
-    merged.isSimulationMode = false;
   } else {
-    merged.isSimulationMode = true;
+    merged.isSimulationMode = false;
   }
 
   // 1. Always update in-memory runtime cache

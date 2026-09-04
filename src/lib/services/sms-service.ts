@@ -50,16 +50,31 @@ export async function sendVerificationSms(
 
   const messageBody = `[Kuettu Global POS] Votre code de confirmation pour votre boutique "${storeName}" est : ${otpCode}. Valable 10 minutes. Ne le partagez avec personne.`;
 
-  // 1. Simulation Mode or Missing Credentials
-  const hasTwilioKeys = Boolean(
-    config.twilio.accountSid &&
-    config.twilio.authToken &&
-    (config.twilio.phoneNumber || config.twilio.messagingServiceSid)
-  );
+  const twilio = config.twilio || {};
+  let accountSid = (twilio.accountSid || process.env.TWILIO_ACCOUNT_SID || "").trim();
+  let authToken = (twilio.authToken || process.env.TWILIO_AUTH_TOKEN || "").trim();
+  let phoneNumber = (twilio.phoneNumber || process.env.TWILIO_PHONE_NUMBER || "").trim();
+  let messagingServiceSid = (twilio.messagingServiceSid || process.env.TWILIO_MESSAGING_SERVICE_SID || "").trim();
 
+  // Normalize SID case (must start with uppercase AC)
+  if (accountSid.toLowerCase().startsWith("ac")) {
+    accountSid = "AC" + accountSid.substring(2);
+  }
+
+  // Filter out dummy/placeholder Messaging Service SIDs (like MGxxxxxxxx...)
+  if (messagingServiceSid.toLowerCase().includes("xxxx") || messagingServiceSid.length < 30) {
+    messagingServiceSid = "";
+  }
+
+  const hasTwilioKeys = Boolean(accountSid && authToken && (phoneNumber || messagingServiceSid));
+
+  // 1. Simulation Mode or Missing Credentials
   if (config.isSimulationMode || !hasTwilioKeys) {
+    if (!hasTwilioKeys) {
+      console.warn("[Twilio SMS] Clés Twilio manquantes, passage en simulation ou vérification des variables d'environnement.");
+    }
     console.log("=================================================");
-    console.log("📱 [SIMULATION SMS TWILIO] Message déclenché :");
+    console.log("📱 [SMS TWILIO] Envoi déclenché :");
     console.log(`➡️ Destinataire : ${formattedPhone}`);
     console.log(`🔑 Code OTP : ${otpCode}`);
     console.log(`🏪 Commerce : ${storeName}`);
@@ -76,14 +91,13 @@ export async function sendVerificationSms(
 
   // 2. Real Twilio API Call via standard REST endpoint
   try {
-    const { accountSid, authToken, phoneNumber, messagingServiceSid } = config.twilio;
     const twilioEndpoint = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
 
     const formData = new URLSearchParams();
     formData.append("To", formattedPhone);
     formData.append("Body", messageBody);
 
-    if (messagingServiceSid) {
+    if (messagingServiceSid && messagingServiceSid.startsWith("MG")) {
       formData.append("MessagingServiceSid", messagingServiceSid);
     } else if (phoneNumber) {
       formData.append("From", phoneNumber);
@@ -104,10 +118,20 @@ export async function sendVerificationSms(
 
     if (!response.ok) {
       console.error("[Twilio API Error]:", data);
+      let errorDetail = data.message || `Erreur Twilio (${data.code || response.status})`;
+      if (data.code === 21408) {
+        errorDetail = "Twilio Erreur 21408 : L'envoi de SMS vers la RDC (+243) doit être activé dans votre console Twilio (Messaging > Settings > Geo-Permissions).";
+      } else if (data.code === 21608) {
+        errorDetail = `Twilio Erreur 21608 : Compte Twilio d'essai. Le numéro ${formattedPhone} doit être vérifié dans votre console Twilio (Verified Caller IDs) ou votre compte doit être approvisionné.`;
+      } else if (data.code === 20003) {
+        errorDetail = "Twilio Erreur 20003 : Échec d'authentification Twilio. Vérifiez votre Account SID et Auth Token.";
+      } else if (data.code === 21211) {
+        errorDetail = `Twilio Erreur 21211 : Le numéro de téléphone ${formattedPhone} est invalide pour l'opérateur.`;
+      }
       return {
         success: false,
         isSimulated: false,
-        error: data.message || `Erreur Twilio (${data.code || response.status})`,
+        error: errorDetail,
       };
     }
 
