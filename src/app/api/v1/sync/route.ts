@@ -138,20 +138,25 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        await prisma.store.upsert({
-          where: { id: storeId },
-          update: {
-            tenantId,
-          },
-          create: {
-            id: storeId,
-            tenantId,
-            name: "Boutique Principale",
-            currency: "CDF",
-            createdAt: now,
-            updatedAt: now,
-          },
+        const existingTenantStores = await prisma.store.findMany({
+          where: { tenantId },
         });
+        if (existingTenantStores.length === 0 || storeId !== "00000000-0000-4000-8000-000000000001") {
+          await prisma.store.upsert({
+            where: { id: storeId },
+            update: {
+              tenantId,
+            },
+            create: {
+              id: storeId,
+              tenantId,
+              name: "Boutique Principale",
+              currency: "CDF",
+              createdAt: now,
+              updatedAt: now,
+            },
+          });
+        }
       } catch (upsertErr) {
         console.warn("[Sync] Tenant/Store auto-upsert error:", upsertErr);
       }

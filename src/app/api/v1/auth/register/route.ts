@@ -96,7 +96,13 @@ export async function POST(req: NextRequest) {
     const requiresVerification = config.verificationMethod !== "DISABLED";
 
     const targetTenantId = (existingUser?.tenantId || tenantId) || crypto.randomUUID();
-    const targetStoreId = storeId || crypto.randomUUID();
+    
+    // Ensure we do not create duplicate stores if the tenant already has an existing store
+    const existingStore = await prisma.store.findFirst({
+      where: { tenantId: targetTenantId },
+      orderBy: { createdAt: "asc" },
+    });
+    const targetStoreId = existingStore?.id || storeId || crypto.randomUUID();
     const targetUserId = (existingUser?.id || userId) || crypto.randomUUID();
 
     // 1. Create or upsert Tenant
