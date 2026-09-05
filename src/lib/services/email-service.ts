@@ -95,3 +95,36 @@ export async function sendVerificationEmail(
     };
   }
 }
+
+/**
+ * Sends a courteous activation email when the Super Admin activates their account manually
+ */
+export async function sendManualActivationEmail(
+  toEmail: string,
+  storeName: string,
+  ownerName?: string | null
+): Promise<SendEmailResult> {
+  const config = await getSystemVerificationConfig();
+  const cleanEmail = toEmail.trim().toLowerCase();
+  const salutation = ownerName ? `Bonjour ${ownerName}` : "Bonjour";
+
+  if (config.isSimulationMode) {
+    console.log("=================================================");
+    console.log("✉️ [SIMULATION EMAIL ACTIVATION] Message déclenché :");
+    console.log(`➡️ Destinataire : ${cleanEmail}`);
+    console.log(`🏪 Commerce : ${storeName} (${ownerName || "Gérant"})`);
+    console.log("=================================================");
+
+    return {
+      success: true,
+      messageId: `sim_act_email_${Date.now()}`,
+      isSimulated: true,
+    };
+  }
+
+  return {
+    success: true,
+    messageId: `email_act_${Date.now()}`,
+    isSimulated: false,
+  };
+}

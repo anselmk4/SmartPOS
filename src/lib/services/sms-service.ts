@@ -38,17 +38,14 @@ export function formatPhoneNumberE164(phone: string, defaultCountry = "CD"): str
 }
 
 /**
- * Dispatches an SMS using Twilio API, or simulates sending if simulation mode is enabled
+ * Generic SMS dispatcher using Twilio API or simulation
  */
-export async function sendVerificationSms(
+export async function sendCustomSms(
   toPhone: string,
-  otpCode: string,
-  storeName: string
+  messageBody: string
 ): Promise<SendSmsResult> {
   const config = await getSystemVerificationConfig();
   const formattedPhone = formatPhoneNumberE164(toPhone);
-
-  const messageBody = `[Kuettu Global POS] Votre code de confirmation pour votre boutique "${storeName}" est : ${otpCode}. Valable 10 minutes. Ne le partagez avec personne.`;
 
   const twilio = config.twilio || {};
   let accountSid = (twilio.accountSid || process.env.TWILIO_ACCOUNT_SID || "").trim();
@@ -76,8 +73,6 @@ export async function sendVerificationSms(
     console.log("=================================================");
     console.log("📱 [SMS TWILIO] Envoi déclenché :");
     console.log(`➡️ Destinataire : ${formattedPhone}`);
-    console.log(`🔑 Code OTP : ${otpCode}`);
-    console.log(`🏪 Commerce : ${storeName}`);
     console.log(`💬 Message : "${messageBody}"`);
     console.log("=================================================");
 
@@ -85,7 +80,6 @@ export async function sendVerificationSms(
       success: true,
       messageId: `sim_twilio_${Date.now()}_${Math.random().toString(36).substring(7)}`,
       isSimulated: true,
-      simulatedCode: otpCode,
     };
   }
 
@@ -148,4 +142,34 @@ export async function sendVerificationSms(
       error: err.message || "Erreur de connexion au service SMS",
     };
   }
+}
+
+/**
+ * Dispatches an SMS using Twilio API, or simulates sending if simulation mode is enabled
+ */
+export async function sendVerificationSms(
+  toPhone: string,
+  otpCode: string,
+  storeName: string
+): Promise<SendSmsResult> {
+  const messageBody = `[Kuettu Global POS] Votre code de confirmation pour votre boutique "${storeName}" est : ${otpCode}. Valable 10 minutes. Ne le partagez avec personne.`;
+  const result = await sendCustomSms(toPhone, messageBody);
+  if (result.isSimulated) {
+    result.simulatedCode = otpCode;
+  }
+  return result;
+}
+
+/**
+ * Sends a courteous confirmation SMS to the store owner when the Super Admin activates their account manually
+ */
+export async function sendManualActivationSms(
+  toPhone: string,
+  storeName: string,
+  ownerName?: string | null
+): Promise<SendSmsResult> {
+  const salutation = ownerName ? `Bonjour ${ownerName}` : "Bonjour";
+  const messageBody = `[Kuettu Global POS] ${salutation}, nous avons le plaisir de vous informer que votre compte pour la boutique "${storeName}" a été validé et activé avec succès par notre service d'assistance. Vous pouvez dès à présent vous connecter à votre caisse avec votre code PIN pour démarrer vos ventes. Nous vous remercions pour votre confiance !`;
+
+  return sendCustomSms(toPhone, messageBody);
 }

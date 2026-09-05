@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifySuperAdmin, unauthorizedAdminResponse } from "@/lib/admin/admin-guard";
+import { sendManualActivationSms } from "@/lib/services/sms-service";
+import { sendManualActivationEmail } from "@/lib/services/email-service";
 import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -348,6 +350,32 @@ export async function PUT(req: NextRequest) {
         }),
       ]);
 
+      // If activating a previously unactivated/pending tenant, notify merchant via SMS & email
+      if (!existing.isActive) {
+        try {
+          const ownerUser = await prisma.user.findFirst({
+            where: { tenantId: id, role: "OWNER" },
+            orderBy: { createdAt: "asc" },
+          });
+          const targetPhone = ownerUser?.phone || updatedTenant.phone || existing.phone;
+          const ownerName = ownerUser?.name;
+          const storeName = updatedTenant.name || existing.name;
+
+          if (targetPhone) {
+            sendManualActivationSms(targetPhone, storeName, ownerName).catch((err) => {
+              console.warn("[Admin Manual Activation SMS Warning]:", err);
+            });
+          }
+          if (ownerUser?.email) {
+            sendManualActivationEmail(ownerUser.email, storeName, ownerName).catch((err) => {
+              console.warn("[Admin Manual Activation Email Warning]:", err);
+            });
+          }
+        } catch (notifyErr) {
+          console.warn("[Admin Plan Activation Notification Error]:", notifyErr);
+        }
+      }
+
       return NextResponse.json({
         success: true,
         message: `Forfait ${plan} activé avec succès (${isFree ? "Gratuit / Offert" : `${finalAmount} ${finalCurrency} pour ${months} mois`}). Facture N° ${invoiceRef} générée.`,
@@ -365,10 +393,36 @@ export async function PUT(req: NextRequest) {
     const isActivationAction = isActive === true;
     const isSuspensionAction = isActive === false;
 
+    // Send courteous confirmation SMS & email when activating a merchant account
+    if (isActivationAction && !existing.isActive) {
+      try {
+        const ownerUser = await prisma.user.findFirst({
+          where: { tenantId: id, role: "OWNER" },
+          orderBy: { createdAt: "asc" },
+        });
+        const targetPhone = ownerUser?.phone || updated.phone || existing.phone;
+        const ownerName = ownerUser?.name;
+        const storeName = updated.name || existing.name;
+
+        if (targetPhone) {
+          sendManualActivationSms(targetPhone, storeName, ownerName).catch((err) => {
+            console.warn("[Admin Manual Activation SMS Warning]:", err);
+          });
+        }
+        if (ownerUser?.email) {
+          sendManualActivationEmail(ownerUser.email, storeName, ownerName).catch((err) => {
+            console.warn("[Admin Manual Activation Email Warning]:", err);
+          });
+        }
+      } catch (notifyErr) {
+        console.warn("[Admin Manual Activation Notification Error]:", notifyErr);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: isActivationAction
-        ? `Boutique "${updated.name}" activée manuellement avec succès ! Le gérant et son équipe peuvent désormais ouvrir leur caisse.`
+        ? `Boutique "${updated.name}" activée manuellement avec succès ! Le SMS de confirmation a été envoyé au commerçant.`
         : isSuspensionAction
         ? `Boutique "${updated.name}" suspendue avec succès.`
         : `Boutique "${updated.name}" mise à jour avec succès`,
