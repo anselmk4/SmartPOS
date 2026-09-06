@@ -130,6 +130,7 @@ export async function POST(req: NextRequest) {
       countryCode = "CD",
       plan = "PRO",
       address,
+      businessType,
       pinCode = "1234",
     } = body;
 
@@ -167,6 +168,7 @@ export async function POST(req: NextRequest) {
           name: cleanName,
           slug: finalSlug,
           phone: phone?.trim() || null,
+          businessType: businessType?.trim() || null,
           countryCode: countryCode || "CD",
           currency: currency || "CDF",
           plan: plan || "PRO",
@@ -182,6 +184,7 @@ export async function POST(req: NextRequest) {
           name: `${cleanName} - Siège`,
           currency: currency || "CDF",
           phone: phone?.trim() || null,
+          businessType: businessType?.trim() || null,
           address: address?.trim() || null,
           ownerName: ownerName?.trim() || cleanName,
         },
@@ -227,6 +230,7 @@ export async function PUT(req: NextRequest) {
       id,
       name,
       phone,
+      businessType,
       currency,
       countryCode,
       plan,
@@ -260,6 +264,13 @@ export async function PUT(req: NextRequest) {
     const updateData: any = {};
     if (name !== undefined) updateData.name = name.trim();
     if (phone !== undefined) updateData.phone = phone ? phone.trim() : null;
+    if (businessType !== undefined) {
+      updateData.businessType = businessType ? businessType.trim() : null;
+      await prisma.store.updateMany({
+        where: { tenantId: id },
+        data: { businessType: updateData.businessType },
+      });
+    }
     if (currency !== undefined) updateData.currency = currency;
     if (countryCode !== undefined) updateData.countryCode = countryCode;
     if (plan !== undefined) updateData.plan = plan;

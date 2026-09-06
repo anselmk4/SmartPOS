@@ -51,7 +51,7 @@ interface TenantWithDetails {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  stores?: Array<{ id: string; name: string; address?: string | null; ownerName?: string | null; currency?: string }>;
+  stores?: Array<{ id: string; name: string; address?: string | null; ownerName?: string | null; currency?: string; businessType?: string | null }>;
   users?: Array<{ id: string; name: string; phone?: string | null; email?: string | null; role: string; isActive: boolean; lastLoginAt?: string | null }>;
   subscriptions?: Array<{ id: string; plan: string; amount: number; currency: string; paymentMethod: string; paymentStatus: string; periodStart: string; periodEnd: string; createdAt: string }>;
   _count?: {
@@ -88,6 +88,7 @@ export default function AdminTenantsPage() {
   const [formCurrency, setFormCurrency] = useState("CDF");
   const [formPlan, setFormPlan] = useState<SubscriptionPlan>("PRO");
   const [formAddress, setFormAddress] = useState("");
+  const [formBusinessType, setFormBusinessType] = useState("");
   const [formPinCode, setFormPinCode] = useState("1234");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -157,6 +158,7 @@ export default function AdminTenantsPage() {
     setFormCurrency("CDF");
     setFormPlan("PRO");
     setFormAddress("");
+    setFormBusinessType("");
     setFormPinCode("1234");
     setIsAddTenantModalOpen(true);
   };
@@ -167,6 +169,7 @@ export default function AdminTenantsPage() {
     setFormPhone(t.phone || "");
     setFormCurrency(t.currency);
     setFormPlan(t.plan);
+    setFormBusinessType(t.businessType || t.stores?.[0]?.businessType || "");
     setIsEditTenantModalOpen(true);
   };
 
@@ -183,6 +186,7 @@ export default function AdminTenantsPage() {
         phone: formPhone.trim(),
         currency: formCurrency,
         plan: formPlan,
+        businessType: formBusinessType.trim(),
         address: formAddress.trim(),
         pinCode: formPinCode.trim() || "1234",
       }),
@@ -210,6 +214,7 @@ export default function AdminTenantsPage() {
         name: formName.trim(),
         phone: formPhone.trim(),
         currency: formCurrency,
+        businessType: formBusinessType.trim(),
       }),
     });
     setIsSubmitting(false);
@@ -579,6 +584,13 @@ export default function AdminTenantsPage() {
                       </span>
                     </div>
 
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-400">Secteur :</span>
+                      <span className="font-semibold text-blue-300 truncate max-w-[180px]">
+                        {t.businessType || t.stores?.[0]?.businessType || "Commerce Général"}
+                      </span>
+                    </div>
+
                     <div className="flex items-center justify-between pt-1 border-t border-slate-700/40 text-[11px]">
                       <span className="text-slate-400">Réseau :</span>
                       <span className="text-blue-400 font-bold">
@@ -751,6 +763,17 @@ export default function AdminTenantsPage() {
               </div>
 
               <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Activité / Secteur</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Pharmacie, Quincaillerie, Supermarché, Restaurant..."
+                  value={formBusinessType}
+                  onChange={(e) => setFormBusinessType(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
                 <label className="text-xs font-bold text-slate-300 block mb-1">Adresse Physique</label>
                 <input
                   type="text"
@@ -828,6 +851,17 @@ export default function AdminTenantsPage() {
                   value={formPhone}
                   onChange={(e) => setFormPhone(e.target.value)}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Activité / Secteur</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Pharmacie, Quincaillerie, Plastiques..."
+                  value={formBusinessType}
+                  onChange={(e) => setFormBusinessType(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
                 />
               </div>
 

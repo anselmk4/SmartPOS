@@ -105,16 +105,19 @@ export async function POST(req: NextRequest) {
     const targetStoreId = existingStore?.id || storeId || crypto.randomUUID();
     const targetUserId = (existingUser?.id || userId) || crypto.randomUUID();
 
-    // 1. Create or upsert Tenant
+    // 1. Create or upsert Tenant (Always starts with FREE plan until paid subscription is processed)
     const cleanSlug = `${storeName.toLowerCase().replace(/[^a-z0-9]/g, "-")}-${Date.now().toString(36)}`;
+    const cleanBusinessType = businessType ? String(businessType).trim() : undefined;
+
     const tenant = await prisma.tenant.upsert({
       where: { id: targetTenantId },
       update: {
         name: storeName.trim(),
         phone: cleanPhone,
+        businessType: cleanBusinessType,
         countryCode,
         currency,
-        plan: (plan as SubscriptionPlan) || "FREE",
+        plan: "FREE",
         planStatus: requiresVerification ? "TRIAL" : "ACTIVE",
         planExpiresAt: periodEnd,
         isActive: !requiresVerification,
@@ -125,9 +128,10 @@ export async function POST(req: NextRequest) {
         name: storeName.trim(),
         slug: cleanSlug,
         phone: cleanPhone,
+        businessType: cleanBusinessType,
         countryCode,
         currency,
-        plan: (plan as SubscriptionPlan) || "FREE",
+        plan: "FREE",
         planStatus: requiresVerification ? "TRIAL" : "ACTIVE",
         planExpiresAt: periodEnd,
         isActive: !requiresVerification,
@@ -141,6 +145,7 @@ export async function POST(req: NextRequest) {
       where: { id: targetStoreId },
       update: {
         name: storeName.trim(),
+        businessType: cleanBusinessType,
         currency,
         phone: cleanPhone,
         address: address ? address.trim() : undefined,
@@ -151,6 +156,7 @@ export async function POST(req: NextRequest) {
         id: targetStoreId,
         tenantId: tenant.id,
         name: storeName.trim(),
+        businessType: cleanBusinessType,
         currency,
         phone: cleanPhone,
         address: address ? address.trim() : undefined,

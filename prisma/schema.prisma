@@ -67,6 +67,7 @@ model Tenant {
   name          String
   slug          String             @unique
   phone         String?
+  businessType  String?            @map("business_type")
   countryCode   String             @default("CD") @map("country_code") // CD (RDC), CI, SN, CM, etc.
   currency      String             @default("CDF") // CDF (Franc Congolais), USD ($), XOF, XAF, etc.
   plan          SubscriptionPlan   @default(FREE)
@@ -134,6 +135,7 @@ model Store {
   id           String        @id @default(uuid())
   tenantId     String        @map("tenant_id")
   name         String
+  businessType String?       @map("business_type")
   currency     String        @default("XOF")
   phone        String?
   address      String?

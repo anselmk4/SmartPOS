@@ -452,23 +452,26 @@ export async function POST(req: NextRequest) {
             syncedIds.push(id);
           } else if (entity === "tenant" && (action === "CREATE" || action === "UPDATE")) {
             // Only OWNER or SUPER_ADMIN can update tenant metadata; plan and planStatus cannot be altered via sync
-            if (session.role === "OWNER" || session.role === "SUPER_ADMIN") {
+            if (session && (session.role === "OWNER" || session.role === "SUPER_ADMIN")) {
               await prisma.tenant.updateMany({
-                where: { id: session.tenantId },
+                where: { id: session.tenantId || tenantId },
                 data: {
                   name: data.name,
                   phone: data.phone,
+                  businessType: data.businessType ?? undefined,
                   updatedAt: now,
                 },
               });
             }
             syncedIds.push(id);
           } else if (entity === "store" && (action === "CREATE" || action === "UPDATE")) {
-            if (session.role === "OWNER" || session.role === "MANAGER" || session.role === "SUPER_ADMIN") {
+            if (session && (session.role === "OWNER" || session.role === "MANAGER" || session.role === "SUPER_ADMIN")) {
+              const activeTenantId = session.tenantId || tenantId;
               await prisma.store.upsert({
                 where: { id: data.id },
                 update: {
                   name: data.name,
+                  businessType: data.businessType ?? undefined,
                   currency: data.currency ?? "CDF",
                   phone: data.phone,
                   address: data.address,
@@ -477,8 +480,9 @@ export async function POST(req: NextRequest) {
                 },
                 create: {
                   id: data.id,
-                  tenantId: session.tenantId,
+                  tenantId: activeTenantId,
                   name: data.name,
+                  businessType: data.businessType ?? undefined,
                   currency: data.currency || "CDF",
                   phone: data.phone,
                   address: data.address,
@@ -491,7 +495,8 @@ export async function POST(req: NextRequest) {
             syncedIds.push(id);
           } else if (entity === "user" && (action === "CREATE" || action === "UPDATE")) {
             // Only OWNER or SUPER_ADMIN can create or modify users and assign roles/PINs
-            if (session.role === "OWNER" || session.role === "SUPER_ADMIN") {
+            if (session && (session.role === "OWNER" || session.role === "SUPER_ADMIN")) {
+              const activeTenantId = session.tenantId || tenantId;
               const requestedRole = data.role || "CASHIER";
               const safePin = data.pinCode
                 ? (String(data.pinCode).startsWith("pbkdf2:") ? data.pinCode : hashPinCode(String(data.pinCode)))
@@ -511,7 +516,7 @@ export async function POST(req: NextRequest) {
                   },
                   create: {
                     id: data.id,
-                    tenantId: session.tenantId,
+                    tenantId: activeTenantId,
                     name: data.name,
                     phone: data.phone,
                     email: data.email,
@@ -537,7 +542,7 @@ export async function POST(req: NextRequest) {
                     },
                     create: {
                       id: data.id,
-                      tenantId: session.tenantId,
+                      tenantId: activeTenantId,
                       name: data.name,
                       phone: data.phone,
                       email: data.email,

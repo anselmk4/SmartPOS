@@ -51,7 +51,7 @@ export interface TenantWithDetails {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  stores?: Array<{ id: string; name: string; address?: string | null; ownerName?: string | null; currency?: string }>;
+  stores?: Array<{ id: string; name: string; address?: string | null; ownerName?: string | null; currency?: string; businessType?: string | null }>;
   users?: Array<{ id: string; name: string; phone?: string | null; email?: string | null; role: string; isActive: boolean; lastLoginAt?: string | null }>;
   subscriptions?: Array<{ id: string; plan: string; amount: number; currency: string; paymentMethod: string; paymentStatus: string; periodStart: string; periodEnd: string; createdAt: string }>;
   _count?: {
@@ -203,8 +203,14 @@ export function TenantDetailsSidebar({
                   </span>
                 </div>
 
+                {/* Activity & Business Sector */}
+                <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 mt-1 flex items-center gap-1.5 truncate">
+                  <span className="text-blue-600 dark:text-blue-400">🏢</span>
+                  <span className="truncate">{tenant.businessType || tenant.stores?.[0]?.businessType || "Commerce Général"}</span>
+                </div>
+
                 {/* ID with 1-click copy */}
-                <div className="flex items-center gap-1.5 mt-1 text-slate-500 dark:text-slate-400 text-xs font-mono">
+                <div className="flex items-center gap-1.5 mt-0.5 text-slate-500 dark:text-slate-400 text-xs font-mono">
                   <span className="truncate max-w-[200px] sm:max-w-[280px]">ID: {tenant.id}</span>
                   <button
                     onClick={() => copyToClipboard(tenant.id, "id")}
@@ -368,7 +374,7 @@ export function TenantDetailsSidebar({
                     <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
                       <span className="text-[11px] text-slate-400 block mb-0.5 font-medium">Activité / Secteur</span>
                       <span className="font-bold text-slate-800 dark:text-slate-200">
-                        {tenant.businessType || "Commerce Général / Détail"}
+                        {tenant.businessType || (tenant.stores && tenant.stores[0]?.businessType) || "Commerce Général"}
                       </span>
                     </div>
 
@@ -486,8 +492,13 @@ export function TenantDetailsSidebar({
                           className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-start justify-between gap-3 text-xs"
                         >
                           <div className="min-w-0 flex-1">
-                            <div className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                            <div className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2 flex-wrap">
                               <span>{s.name}</span>
+                              {s.businessType && (
+                                <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                                  {s.businessType}
+                                </span>
+                              )}
                               <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 font-bold">
                                 {s.currency || tenant.currency}
                               </span>
@@ -581,41 +592,54 @@ export function TenantDetailsSidebar({
             {/* TAB 3: SUBSCRIPTIONS & PAYMENTS */}
             {activeTab === "SUBSCRIPTIONS" && (
               <div className="space-y-6 animate-in fade-in duration-200">
-                {/* Current Active Plan Card */}
-                <div className="p-5 rounded-3xl bg-gradient-to-br from-slate-900 to-indigo-950 text-white shadow-xl space-y-4 text-xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-amber-300" />
-                      <span className="font-extrabold text-sm text-white">Formule d'Abonnement Actuelle</span>
+                {/* Current Active Plan Card - Ultra Crisp, Premium Styling */}
+                <div className="p-5 rounded-3xl bg-slate-900 text-white shadow-xl space-y-4 text-xs border border-slate-800 relative overflow-hidden">
+                  <div className="relative z-10 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center border border-amber-400/30 shrink-0">
+                        <Sparkles className="w-4 h-4 text-amber-300" />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-sm text-white tracking-wide">Formule d'Abonnement Actuelle</h4>
+                        <p className="text-[10px] text-slate-400 font-medium">Niveau d'accès & facturation</p>
+                      </div>
                     </div>
                     <button
                       onClick={() => onChangePlan(tenant)}
-                      className="py-1.5 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xs transition-all touch-press"
+                      className="py-1.5 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition-all touch-press shrink-0"
                     >
                       Changer de Forfait
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 pt-1">
-                    <div className="p-3 bg-white/10 backdrop-blur-xs rounded-2xl border border-white/10">
-                      <span className="text-[11px] text-slate-300 block mb-0.5">Plan Souscrit</span>
-                      <span className="text-base font-black text-cyan-300 uppercase tracking-wider">
+                  <div className="relative z-10 grid grid-cols-2 gap-3 pt-1">
+                    <div className="p-3.5 bg-slate-800/90 rounded-2xl border border-slate-700/80 shadow-xs">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                        Plan Souscrit
+                      </span>
+                      <span className="text-base font-black text-cyan-300 uppercase tracking-wide">
                         {tenant.plan}
                       </span>
                     </div>
 
-                    <div className="p-3 bg-white/10 backdrop-blur-xs rounded-2xl border border-white/10">
-                      <span className="text-[11px] text-slate-300 block mb-0.5">Statut de Facturation</span>
-                      <span className="text-sm font-bold text-emerald-300">
+                    <div className="p-3.5 bg-slate-800/90 rounded-2xl border border-slate-700/80 shadow-xs">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                        Statut de Facturation
+                      </span>
+                      <span className="text-sm font-black text-emerald-300 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                         {tenant.planStatus || "ACTIF"}
                       </span>
                     </div>
                   </div>
 
                   {tenant.planExpiresAt && (
-                    <div className="p-3 bg-white/10 backdrop-blur-xs rounded-2xl border border-white/10 flex items-center justify-between text-xs">
-                      <span className="text-slate-300">Date d'échéance :</span>
-                      <span className="font-bold text-white font-mono">
+                    <div className="relative z-10 p-3 bg-slate-800/90 rounded-2xl border border-slate-700/80 flex items-center justify-between text-xs">
+                      <span className="text-slate-300 font-medium flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        Date d'échéance :
+                      </span>
+                      <span className="font-bold text-white font-mono bg-slate-900/90 px-2.5 py-1 rounded-lg border border-slate-700">
                         {new Date(tenant.planExpiresAt).toLocaleDateString("fr-FR")}
                       </span>
                     </div>
