@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   Barcode,
   Edit2,
+  Trash2,
   TrendingUp,
   Boxes,
   PackagePlus,
@@ -254,6 +255,39 @@ export default function InventoryPage() {
     }
 
     setIsAddProductModalOpen(false);
+  };
+
+  const handleDeleteProduct = async (product: Product) => {
+    if (!isOwner) {
+      alert("Seul le propriétaire de la boutique est autorisé à supprimer un article du stock.");
+      return;
+    }
+
+    if (
+      !confirm(
+        `⚠️ SUPPRESSION D'ARTICLE\n\nVoulez-vous vraiment supprimer définitivement "${product.name}" du stock ?\n\nCette action est irréversible.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await db.products.delete(product.id);
+      await enqueueSync({
+        tenantId: tenant?.id || "",
+        storeId: currentStoreId,
+        entity: "product",
+        action: "DELETE",
+        payload: JSON.stringify({ id: product.id }),
+      });
+      if (selectedProductForEdit?.id === product.id) {
+        setIsAddProductModalOpen(false);
+        setSelectedProductForEdit(null);
+      }
+    } catch (err: any) {
+      console.error("[Delete Product Error]:", err);
+      alert("Erreur lors de la suppression de l'article : " + (err.message || "Erreur inconnue"));
+    }
   };
 
   const handleSubmitStockAdjustment = async (e: React.FormEvent) => {
@@ -575,10 +609,20 @@ export default function InventoryPage() {
                     <button
                       onClick={() => handleOpenEdit(p)}
                       className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
-                      title="Modifier"
+                      title="Modifier l'article"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
+
+                    {isOwner && (
+                      <button
+                        onClick={() => handleDeleteProduct(p)}
+                        className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition-colors border border-rose-100"
+                        title="Supprimer l'article (Réservé au propriétaire)"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -897,20 +941,34 @@ export default function InventoryPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setIsAddProductModalOpen(false)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20"
-              >
-                {selectedProductForEdit ? "Enregistrer" : "Créer l'article"}
-              </button>
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+              {selectedProductForEdit && isOwner ? (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteProduct(selectedProductForEdit)}
+                  className="py-2.5 px-3.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold flex items-center gap-1.5 border border-rose-200 transition-colors"
+                  title="Supprimer définitivement cet article"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Supprimer</span>
+                </button>
+              ) : null}
+
+              <div className="flex items-center gap-2 flex-1 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsAddProductModalOpen(false)}
+                  className="py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="py-2.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20"
+                >
+                  {selectedProductForEdit ? "Enregistrer" : "Créer l'article"}
+                </button>
+              </div>
             </div>
           </form>
         </div>

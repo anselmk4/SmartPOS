@@ -227,6 +227,17 @@ export async function POST(req: NextRequest) {
               },
             });
             syncedIds.push(id);
+          } else if (entity === "product" && action === "DELETE") {
+            if (data?.id) {
+              try {
+                await prisma.product.delete({
+                  where: { id: data.id },
+                });
+              } catch {
+                // Ignore if already deleted
+              }
+            }
+            syncedIds.push(id);
           } else if (entity === "customer" && (action === "CREATE" || action === "UPDATE")) {
             const cleanDebt = data.currentDebtBalance !== undefined ? sanitizeSyncDebt(data.currentDebtBalance) : undefined;
 
@@ -251,6 +262,17 @@ export async function POST(req: NextRequest) {
                 updatedAt: now,
               },
             });
+            syncedIds.push(id);
+          } else if (entity === "customer" && action === "DELETE") {
+            if (data?.id) {
+              try {
+                await prisma.customer.delete({
+                  where: { id: data.id },
+                });
+              } catch {
+                // Ignore if already deleted
+              }
+            }
             syncedIds.push(id);
           } else if (entity === "sale" && action === "CREATE") {
             // Resolve effective tenantId from Store in Postgres
