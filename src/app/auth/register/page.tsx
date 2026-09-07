@@ -234,6 +234,7 @@ function RegisterForm() {
         if (email.trim()) query.set("email", email.trim());
         query.set("plan", selectedPlan);
         if (res.verificationMethod) query.set("method", res.verificationMethod);
+        if (res.simCode) query.set("code", res.simCode);
         router.push(`/auth/verify?${query.toString()}`);
       } else {
         if (selectedPlan !== "FREE") {

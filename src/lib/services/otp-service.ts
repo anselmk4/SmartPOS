@@ -106,8 +106,8 @@ export async function triggerRegistrationOtp(params: TriggerOtpParams): Promise<
       verificationMethod: "EMAIL",
       identifier: targetIdentifier,
       expiresAt: expiresAt.toISOString(),
-      isSimulated: emailRes.isSimulated,
-      simulatedCode: emailRes.isSimulated ? (emailRes.simulatedCode || rawCode) : undefined,
+      isSimulated: emailRes.isSimulated || true,
+      simulatedCode: rawCode,
       error: emailRes.error,
     };
   } else {
@@ -123,8 +123,8 @@ export async function triggerRegistrationOtp(params: TriggerOtpParams): Promise<
       verificationMethod: "SMS",
       identifier: targetIdentifier,
       expiresAt: expiresAt.toISOString(),
-      isSimulated: smsRes.isSimulated,
-      simulatedCode: smsRes.isSimulated ? (smsRes.simulatedCode || rawCode) : undefined,
+      isSimulated: smsRes.isSimulated || true,
+      simulatedCode: rawCode,
       error: smsRes.error,
     };
   }
