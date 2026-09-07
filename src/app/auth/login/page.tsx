@@ -463,7 +463,7 @@ export default function LoginPage() {
           </form>
         )}
 
-        {/* Footer: Register link */}
+        {/* Footer: Register link & Legal links */}
         {!isTerminalLinked && (
           <div className="pt-4 border-t border-slate-100 text-center">
             <p className="text-xs text-slate-500 mb-1.5">
@@ -478,6 +478,17 @@ export default function LoginPage() {
             </Link>
           </div>
         )}
+
+        {/* Legal links */}
+        <div className="mt-4 pt-3 border-t border-slate-100/60 flex items-center justify-center gap-3 text-[11px] text-slate-400">
+          <Link href="/terms" className="hover:text-blue-600 transition-colors">
+            Conditions d&apos;Utilisation
+          </Link>
+          <span>•</span>
+          <Link href="/privacy" className="hover:text-blue-600 transition-colors">
+            Confidentialité RDC
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -653,6 +653,27 @@ export function Sidebar() {
           </button>
         )}
 
+        {/* Legal links on Sidebar */}
+        {!isCollapsed && (
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-center gap-2 text-[10px] text-slate-400">
+            <Link
+              href="/terms"
+              onClick={() => setIsMobileOpen(false)}
+              className="hover:text-blue-600 transition-colors"
+            >
+              Conditions (CGU)
+            </Link>
+            <span>•</span>
+            <Link
+              href="/privacy"
+              onClick={() => setIsMobileOpen(false)}
+              className="hover:text-blue-600 transition-colors"
+            >
+              Confidentialité
+            </Link>
+          </div>
+        )}
+
         {/* Desktop Collapse Toggle */}
         {!isCollapsed && (
           <button

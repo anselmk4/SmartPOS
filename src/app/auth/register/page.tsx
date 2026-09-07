@@ -711,6 +711,17 @@ function RegisterForm() {
               Se connecter au terminal
             </Link>
           </p>
+
+          {/* Legal links */}
+          <div className="mt-3 pt-2.5 flex items-center justify-center gap-3 text-[11px] text-slate-400">
+            <Link href="/terms" className="hover:text-blue-600 transition-colors">
+              Conditions d&apos;Utilisation
+            </Link>
+            <span>•</span>
+            <Link href="/privacy" className="hover:text-blue-600 transition-colors">
+              Confidentialité RDC
+            </Link>
+          </div>
         </div>
       </div>
     </div>

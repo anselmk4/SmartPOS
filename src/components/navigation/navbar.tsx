@@ -280,11 +280,11 @@ export function Navbar() {
 
             {isDashboardView ? (
               <>
-                {/* Synchro Button */}
+                {/* Synchro Button (Visible on md+ - on mobile it is in the left sidebar drawer under the menu) */}
                 <button
                   onClick={handleSyncClick}
                   disabled={isSyncing}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs touch-press ${
+                  className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs touch-press ${
                     pendingCount > 0
                       ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20 animate-pulse"
                       : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80"
@@ -292,7 +292,7 @@ export function Navbar() {
                   title="Synchronisation Cloud"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-blue-500" : "text-slate-500"}`} />
-                  <span className="hidden sm:inline">{isSyncing ? "Synchro..." : "Synchro"}</span>
+                  <span>{isSyncing ? "Synchro..." : "Synchro"}</span>
                   {pendingCount > 0 && (
                     <span className="bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded-full text-[10px] font-black">
                       {pendingCount}
@@ -317,24 +317,33 @@ export function Navbar() {
                   </button>
                 )}
 
-                {/* Verrouiller (Lock Terminal) */}
+                {/* Verrouiller (Lock Terminal - Desktop) */}
                 <button
                   onClick={handleLockClick}
-                  className="py-1.5 px-2.5 sm:px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80 transition-all text-xs font-bold flex items-center gap-1.5 touch-press"
+                  className="hidden md:flex py-1.5 px-2.5 sm:px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80 transition-all text-xs font-bold items-center gap-1.5 touch-press"
                   title="Verrouiller l'écran (Code PIN)"
                 >
                   <Lock className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="hidden sm:inline">Verrouiller</span>
+                  <span>Verrouiller</span>
                 </button>
 
-                {/* Déconnecter (Logout) */}
+                {/* Déconnecter (Logout - Desktop) */}
                 <button
                   onClick={handleLogoutClick}
-                  className="py-1.5 px-2.5 sm:px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-all text-xs font-bold flex items-center gap-1.5 touch-press"
+                  className="hidden md:flex py-1.5 px-2.5 sm:px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-all text-xs font-bold items-center gap-1.5 touch-press"
                   title="Fermer la session"
                 >
                   <LogOut className="w-3.5 h-3.5 text-rose-600" />
-                  <span className="hidden sm:inline">Déconnexion</span>
+                  <span>Déconnexion</span>
+                </button>
+
+                {/* Quick Lock PIN button on mobile */}
+                <button
+                  onClick={handleLockClick}
+                  className="md:hidden p-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold flex items-center justify-center transition-colors"
+                  title="Verrouiller la caisse"
+                >
+                  <Lock className="w-4 h-4" />
                 </button>
               </>
             ) : isLandingPage && isAuthenticated ? (

@@ -232,13 +232,29 @@ export default function LandingFooter() {
             </ul>
           </div>
 
-          {/* Column 5: Sécurité & Entreprise */}
+          {/* Column 5: Sécurité & Légal */}
           <div className="space-y-3">
             <h4 className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
               <span>Sécurité & Légal</span>
             </h4>
             <ul className="space-y-2 text-xs text-slate-400">
+              <li>
+                <Link
+                  href="/terms"
+                  className="hover:text-purple-400 font-semibold text-slate-300 transition-colors flex items-center gap-1"
+                >
+                  <span>Conditions d&apos;Utilisation (CGU)</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/privacy"
+                  className="hover:text-purple-400 font-semibold text-slate-300 transition-colors flex items-center gap-1"
+                >
+                  <span>Politique de Confidentialité</span>
+                </Link>
+              </li>
               <li>
                 <span className="text-slate-300 font-semibold block">Chiffrement AES-256</span>
                 <span className="text-[10px] text-slate-500">Données Cloud chiffrées</span>
@@ -265,8 +281,16 @@ export default function LandingFooter() {
 
         {/* Bottom Bar with Powered by Kuettu Corporation */}
         <div className="pt-8 mt-8 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 flex-wrap justify-center md:justify-start">
             <span>© {new Date().getFullYear()} Kuettu Global POS. Tous droits réservés.</span>
+            <span className="text-slate-600">•</span>
+            <Link href="/terms" className="hover:text-emerald-400 text-slate-400 transition-colors">
+              Conditions Générales
+            </Link>
+            <span className="text-slate-600">•</span>
+            <Link href="/privacy" className="hover:text-emerald-400 text-slate-400 transition-colors">
+              Confidentialité RDC
+            </Link>
           </div>
 
           {/* Essential Powered by Kuettu Corporation badge */}
