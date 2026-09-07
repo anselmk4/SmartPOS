@@ -76,7 +76,7 @@ export default function AdminSettingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Verification Settings State
-  const [verificationMethod, setVerificationMethod] = useState<"SMS" | "EMAIL" | "DISABLED">("SMS");
+  const [verificationMethod, setVerificationMethod] = useState<"SMS" | "EMAIL" | "DISABLED">("EMAIL");
   const [isSimulationMode, setIsSimulationMode] = useState(true);
   const [twilioSid, setTwilioSid] = useState("");
   const [twilioToken, setTwilioToken] = useState("");

@@ -175,6 +175,10 @@ function RegisterForm() {
         setErrorMsg("Veuillez saisir un numéro de téléphone valide");
         return;
       }
+      if (!email.trim() || !email.includes("@")) {
+        setErrorMsg("Veuillez renseigner une adresse email valide pour recevoir votre code de validation");
+        return;
+      }
       setCurrentStep(4);
     }
   };
@@ -509,13 +513,14 @@ function RegisterForm() {
 
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                    Adresse Email (Optionnelle)
+                    Adresse Email (Pour recevoir votre code de confirmation) *
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="email"
-                      placeholder="contact@genesis.cd"
+                      required
+                      placeholder="ex: gerant@commerce.cd"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"

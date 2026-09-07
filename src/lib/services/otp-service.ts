@@ -166,14 +166,16 @@ export async function verifyRegistrationOtp(
   const hashedEntered = hashOtpCode(cleanCode);
   const now = new Date();
 
+  const orClauses: any[] = [{ identifier: cleanIdentifier }];
+  if (!identifier.includes("@") && rawDigits.length >= 8) {
+    orClauses.push({ identifier: { contains: rawDigits.slice(-8) } });
+  }
+
   const record = await prisma.otpVerification.findFirst({
     where: {
       consumed: false,
       expiresAt: { gt: now },
-      OR: [
-        { identifier: cleanIdentifier },
-        { identifier: { contains: rawDigits.length >= 8 ? rawDigits.slice(-8) : rawDigits } },
-      ],
+      OR: orClauses,
     },
     orderBy: { createdAt: "desc" },
   });

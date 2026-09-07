@@ -25,7 +25,7 @@ function VerifyOtpContent() {
 
   const phoneParam = searchParams?.get("phone") || "";
   const emailParam = searchParams?.get("email") || "";
-  const methodParam = searchParams?.get("method") || "SMS";
+  const methodParam = searchParams?.get("method") || "EMAIL";
 
   const identifier = methodParam === "EMAIL" ? emailParam || phoneParam : phoneParam || emailParam;
 
@@ -155,7 +155,7 @@ function VerifyOtpContent() {
       const isPaidPlan = tenantPlan === "BASIC" || tenantPlan === "PRO" || tenantPlan === "BUSINESS";
 
       if (isPaidPlan) {
-        setSuccessMsg(`Code SMS validé ! Redirection vers le règlement du forfait ${tenantPlan}...`);
+        setSuccessMsg(`Code de confirmation validé ! Redirection vers le forfait ${tenantPlan}...`);
         setTimeout(() => {
           window.location.href = `/billing?plan=${tenantPlan}&checkout=true&required=true`;
         }, 900);

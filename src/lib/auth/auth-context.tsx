@@ -627,9 +627,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
 
       let requiresVerification = true;
-      let verificationMethod = "SMS";
+      let verificationMethod = "EMAIL";
       let simCode: string | undefined;
-      let targetIdentifier = data.phone;
+      let targetIdentifier = data.email || data.phone;
       let sessionToken: string | undefined;
 
       // 2. Direct Cloud Registration API call (so the account is immediately active across all devices)
