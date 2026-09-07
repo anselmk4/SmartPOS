@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifySuperAdmin, unauthorizedAdminResponse } from "@/lib/admin/admin-guard";
+import { verifySuperAdmin, unauthorizedAdminResponse, validateAdminPassword } from "@/lib/admin/admin-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,7 +19,16 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { tenantId, tenantName, keepProducts, keepCustomers, keepUsers } = body;
+    const { tenantId, tenantName, keepProducts, keepCustomers, keepUsers, adminPassword } = body;
+    const headerPassword = req.headers.get("x-admin-password");
+    const passwordToCheck = adminPassword || headerPassword;
+
+    if (!passwordToCheck || !validateAdminPassword(passwordToCheck)) {
+      return NextResponse.json(
+        { success: false, error: "Mot de passe administrateur incorrect ou manquant" },
+        { status: 403 }
+      );
+    }
 
     // 1. Rechercher la boutique soit par ID, soit par Nom
     let tenant: any = null;

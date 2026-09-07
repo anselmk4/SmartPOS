@@ -367,11 +367,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await loadTerminalState(t.id);
         }
         setStore(s || null);
+        setIsSimulating(false);
 
         if (typeof window !== "undefined") {
           localStorage.setItem(AUTH_USER_KEY, targetUser.id);
           if (t) localStorage.setItem(AUTH_TENANT_KEY, t.id);
           if (s) localStorage.setItem(AUTH_STORE_KEY, s.id);
+          sessionStorage.removeItem("kuettu_is_simulating");
+          sessionStorage.removeItem("kuettu_original_owner_id");
         }
 
         return { success: true, message: `Bienvenue, ${targetUser.name}` };
@@ -405,12 +408,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               await loadTerminalState(t.id);
             }
             setStore(s);
+            setIsSimulating(false);
 
             if (typeof window !== "undefined" && targetUser) {
               localStorage.setItem(AUTH_USER_KEY, targetUser.id);
               if (t) localStorage.setItem(AUTH_TENANT_KEY, t.id);
               if (s) localStorage.setItem(AUTH_STORE_KEY, s.id);
               if (cloudData.token) localStorage.setItem("kuettu_session_token", cloudData.token);
+              sessionStorage.removeItem("kuettu_is_simulating");
+              sessionStorage.removeItem("kuettu_original_owner_id");
             }
 
             return { success: true, message: `Bienvenue, ${targetUser?.name || ""}` };
@@ -549,11 +555,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await loadTerminalState(foundTenant.id);
       }
       setStore(foundStore || null);
+      setIsSimulating(false);
 
       if (typeof window !== "undefined") {
         localStorage.setItem(AUTH_USER_KEY, foundUser.id);
         if (foundTenant) localStorage.setItem(AUTH_TENANT_KEY, foundTenant.id);
         if (foundStore) localStorage.setItem(AUTH_STORE_KEY, foundStore.id);
+        sessionStorage.removeItem("kuettu_is_simulating");
+        sessionStorage.removeItem("kuettu_original_owner_id");
       }
 
       return { success: true, message: `Connexion réussie : ${foundUser.name}` };

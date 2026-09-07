@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { adminFetch } from "@/lib/admin/admin-api";
 import { TenantDetailsSidebar } from "@/components/admin/tenant-details-sidebar";
 import { PaginationControl } from "@/components/shared/pagination-control";
+import { AdminPasswordConfirmModal, type AdminActionType } from "@/components/admin/admin-password-confirm-modal";
 import type { SubscriptionPlan, PaymentMethod } from "@/lib/shared/types";
 import { getPlanPriceInfo } from "@/lib/constants/plans";
 import {
@@ -90,6 +91,18 @@ export default function AdminTenantsPage() {
   const [selectedTenant, setSelectedTenant] = useState<TenantWithDetails | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sidebarTenant, setSidebarTenant] = useState<TenantWithDetails | null>(null);
+
+  // Security Confirmation Modal State (Delete, Clean, Suspend)
+  const [securityModal, setSecurityModal] = useState<{
+    isOpen: boolean;
+    actionType: AdminActionType;
+    tenant: TenantWithDetails | null;
+  }>({
+    isOpen: false,
+    actionType: "DELETE",
+    tenant: null,
+  });
+  const [isSecurityProcessing, setIsSecurityProcessing] = useState(false);
 
   // Form State for new boutique
   const [formName, setFormName] = useState("");
@@ -329,69 +342,101 @@ export default function AdminTenantsPage() {
   };
 
   const handleToggleStatus = async (t: TenantWithDetails) => {
-    const nextStatus = !t.isActive;
-    const actionName = nextStatus ? "activer" : "suspendre";
-    if (!confirm(`Êtes-vous sûr de vouloir ${actionName} la boutique "${t.name}" dans Supabase ?`)) return;
+    if (t.isActive) {
+      // Suspending -> Requires Super Admin password confirmation modal
+      setSecurityModal({
+        isOpen: true,
+        actionType: "SUSPEND",
+        tenant: t,
+      });
+      return;
+    }
 
+    // Activating -> direct activation
     const res = await adminFetch("/api/v1/admin/tenants", {
       method: "PUT",
       body: JSON.stringify({
         id: t.id,
-        isActive: nextStatus,
+        isActive: true,
       }),
     });
 
     if (res.success) {
-      showToast(`Boutique "${t.name}" ${nextStatus ? "activée" : "suspendue"} avec succès.`);
-      setSidebarTenant((prev) => (prev && prev.id === t.id ? { ...prev, isActive: nextStatus } : prev));
+      showToast(`Boutique "${t.name}" activée avec succès.`);
+      setSidebarTenant((prev) => (prev && prev.id === t.id ? { ...prev, isActive: true } : prev));
       loadTenants();
     } else {
-      alert(res.error || "Erreur lors du changement de statut");
+      alert(res.error || "Erreur lors de l'activation");
     }
   };
 
-  const handleCleanTenantData = async (t: TenantWithDetails) => {
-    if (
-      !confirm(
-        `🧹 NETTOYAGE COMPLET : Voulez-vous supprimer TOUTES les données de la boutique "${t.name}" ?\n\n- Toutes les ventes et encaissements seront supprimés\n- Tous les produits et catalogues seront supprimés\n- Tous les clients et dettes seront supprimés\n- Tous les journaux de synchro seront purgés\n\nLe compte boutique et le compte propriétaire resteront intacts.`
-      )
-    ) {
-      return;
-    }
-
-    const res = await adminFetch(`/api/v1/admin/tenants/clean`, {
-      method: "POST",
-      body: JSON.stringify({
-        tenantId: t.id,
-      }),
+  const handleCleanTenantData = (t: TenantWithDetails) => {
+    setSecurityModal({
+      isOpen: true,
+      actionType: "CLEAN",
+      tenant: t,
     });
-
-    if (res.success) {
-      showToast(res.message || `Données de "${t.name}" nettoyées avec succès.`);
-      loadTenants();
-    } else {
-      alert(res.error || "Erreur lors du nettoyage des données");
-    }
   };
 
-  const handleDeleteTenant = async (t: TenantWithDetails) => {
-    if (
-      !confirm(
-        `ATTENTION : Voulez-vous supprimer DÉFINITIVEMENT la boutique "${t.name}" ainsi que tous ses dépôts, utilisateurs, articles et ventes dans Supabase ?`
-      )
-    ) {
-      return;
-    }
-
-    const res = await adminFetch(`/api/v1/admin/tenants?id=${t.id}`, {
-      method: "DELETE",
+  const handleDeleteTenant = (t: TenantWithDetails) => {
+    setSecurityModal({
+      isOpen: true,
+      actionType: "DELETE",
+      tenant: t,
     });
+  };
 
-    if (res.success) {
-      showToast(res.message || `Boutique "${t.name}" supprimée de Supabase.`);
-      loadTenants();
-    } else {
-      alert(res.error || "Erreur lors de la suppression");
+  const handleExecuteSecurityAction = async (adminPassword: string) => {
+    const t = securityModal.tenant;
+    if (!t) return;
+
+    setIsSecurityProcessing(true);
+    try {
+      if (securityModal.actionType === "DELETE") {
+        const res = await adminFetch(
+          `/api/v1/admin/tenants?id=${t.id}&adminPassword=${encodeURIComponent(adminPassword)}`,
+          { method: "DELETE" }
+        );
+        if (res.success) {
+          showToast(res.message || `Boutique "${t.name}" supprimée de Supabase.`);
+          setIsSidebarOpen(false);
+          loadTenants();
+        } else {
+          alert(res.error || "Erreur lors de la suppression");
+        }
+      } else if (securityModal.actionType === "CLEAN") {
+        const res = await adminFetch(`/api/v1/admin/tenants/clean`, {
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: t.id,
+            adminPassword,
+          }),
+        });
+        if (res.success) {
+          showToast(res.message || `Données de "${t.name}" nettoyées avec succès.`);
+          loadTenants();
+        } else {
+          alert(res.error || "Erreur lors du nettoyage des données");
+        }
+      } else if (securityModal.actionType === "SUSPEND") {
+        const res = await adminFetch("/api/v1/admin/tenants", {
+          method: "PUT",
+          body: JSON.stringify({
+            id: t.id,
+            isActive: false,
+            adminPassword,
+          }),
+        });
+        if (res.success) {
+          showToast(`Boutique "${t.name}" suspendue avec succès.`);
+          setSidebarTenant((prev) => (prev && prev.id === t.id ? { ...prev, isActive: false } : prev));
+          loadTenants();
+        } else {
+          alert(res.error || "Erreur lors de la suspension");
+        }
+      }
+    } finally {
+      setIsSecurityProcessing(false);
     }
   };
 
@@ -1212,6 +1257,16 @@ export default function AdminTenantsPage() {
         onToggleStatus={(t) => {
           handleToggleStatus(t);
         }}
+      />
+
+      {/* 5. SUPER ADMIN PASSWORD CONFIRMATION MODAL */}
+      <AdminPasswordConfirmModal
+        isOpen={securityModal.isOpen}
+        actionType={securityModal.actionType}
+        tenantName={securityModal.tenant?.name || "Boutique"}
+        onClose={() => setSecurityModal((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={handleExecuteSecurityAction}
+        isProcessing={isSecurityProcessing}
       />
     </div>
   );

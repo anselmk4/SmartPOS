@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifySuperAdmin, unauthorizedAdminResponse } from "@/lib/admin/admin-guard";
+import { verifySuperAdmin, unauthorizedAdminResponse, validateAdminPassword } from "@/lib/admin/admin-guard";
 import { sendManualActivationSms } from "@/lib/services/sms-service";
 import { sendManualActivationEmail } from "@/lib/services/email-service";
 import crypto from "crypto";
@@ -293,6 +293,15 @@ export async function PUT(req: NextRequest) {
     // If isActive is explicitly modified
     if (isActive !== undefined) {
       const activeBool = Boolean(isActive);
+      if (!activeBool && existing.isActive) {
+        const passwordToCheck = body.adminPassword || req.headers.get("x-admin-password");
+        if (!passwordToCheck || !validateAdminPassword(passwordToCheck)) {
+          return NextResponse.json(
+            { success: false, error: "Mot de passe administrateur incorrect ou manquant pour suspendre cette boutique" },
+            { status: 403 }
+          );
+        }
+      }
       updateData.isActive = activeBool;
       if (activeBool) {
         if (!existing.planStatus || existing.planStatus === "TRIAL") {
@@ -473,6 +482,14 @@ export async function DELETE(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
+    const passwordToCheck = searchParams.get("adminPassword") || req.headers.get("x-admin-password");
+
+    if (!passwordToCheck || !validateAdminPassword(passwordToCheck)) {
+      return NextResponse.json(
+        { success: false, error: "Mot de passe administrateur incorrect ou manquant pour supprimer cette boutique" },
+        { status: 403 }
+      );
+    }
 
     if (!id) {
       return NextResponse.json(

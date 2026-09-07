@@ -1,5 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySessionToken, SessionPayload } from "@/lib/security/jwt";
+import crypto from "crypto";
+
+export function getAdminPassword(): string {
+  return process.env.ADMIN_PASSWORD || "Password1!";
+}
+
+export function validateAdminPassword(password: string): boolean {
+  if (!password) return false;
+  const adminPass = getAdminPassword();
+  const inputBuffer = Buffer.from(String(password));
+  const expectedBuffer = Buffer.from(String(adminPass));
+  if (inputBuffer.length !== expectedBuffer.length) return false;
+  return crypto.timingSafeEqual(inputBuffer, expectedBuffer);
+}
 
 export function verifySuperAdmin(req: NextRequest): { authenticated: boolean; payload?: SessionPayload; error?: string } {
   // 1. Try cookie first

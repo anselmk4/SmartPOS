@@ -14,14 +14,13 @@ export function SimulationBanner() {
   const [isRestoring, setIsRestoring] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
 
-  // Check if terminal has an owner account or if simulation is active
-  const hasOwnerProfile =
+  // Check if simulation was explicitly activated by the owner
+  const isActuallySimulating =
     isSimulating ||
-    terminalUsers.some((u) => u.role === "OWNER") ||
     (typeof window !== "undefined" && sessionStorage.getItem("kuettu_is_simulating") === "true");
 
-  // Show banner only when logged in, NOT currently OWNER, and an owner account exists or was simulated
-  if (!user || isOwner || !hasOwnerProfile || isDismissed) {
+  // Show banner ONLY when logged in, NOT currently OWNER, and simulation was explicitly triggered
+  if (!user || isOwner || !isActuallySimulating || isDismissed) {
     return null;
   }
 
