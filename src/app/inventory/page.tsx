@@ -32,9 +32,11 @@ import {
   Upload,
   Camera,
   QrCode,
+  Layers,
 } from "lucide-react";
 import { StoreQRModal } from "@/components/catalog/store-qr-modal";
 import { PaginationControl } from "@/components/shared/pagination-control";
+import { BulkProductModal } from "@/components/inventory/bulk-product-modal";
 
 export default function InventoryPage() {
   const { tenant, store: authStore, stores, user, isAuthenticated, isLoading, isOwner, isManager, plan, canAccess } = useAuth();
@@ -54,6 +56,7 @@ export default function InventoryPage() {
 
   // Modals
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -543,6 +546,16 @@ export default function InventoryPage() {
             </button>
           )}
 
+          {/* Bulk Product Creation button */}
+          <button
+            onClick={() => setIsBulkModalOpen(true)}
+            className="py-2 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center gap-1.5 border border-indigo-200 whitespace-nowrap touch-press shadow-sm"
+            title="Créer rapidement plusieurs articles sur une grille tabulaire"
+          >
+            <Layers className="w-4 h-4 text-indigo-600" />
+            <span>⚡ Saisie Multiple</span>
+          </button>
+
           <button
             onClick={handleOpenAdd}
             className="py-2 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-blue-600/20 whitespace-nowrap touch-press"
@@ -559,16 +572,25 @@ export default function InventoryPage() {
           <div className="bg-white rounded-3xl p-10 border border-slate-200 text-center text-slate-400">
             <Package className="w-12 h-12 stroke-1 text-slate-300 mx-auto mb-2" />
             <p className="text-base font-bold text-slate-700">Votre stock est actuellement vide</p>
-            <p className="text-xs text-slate-400 mt-1">
-              Ajoutez vos propres articles avec photos pour démarrer l'inventaire Kuettu Global POS.
+            <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+              Ajoutez vos propres articles un par un avec photos ou saisissez rapidement l'ensemble de votre catalogue en masse.
             </p>
-            <button
-              onClick={handleOpenAdd}
-              className="mt-4 py-2 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-md shadow-blue-600/20"
-            >
-              <PackagePlus className="w-4 h-4" />
-              <span>Ajouter mon Premier Article</span>
-            </button>
+            <div className="flex items-center justify-center gap-2.5 mt-4 flex-wrap">
+              <button
+                onClick={() => setIsBulkModalOpen(true)}
+                className="py-2.5 px-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs inline-flex items-center gap-1.5 border border-indigo-200 shadow-sm touch-press"
+              >
+                <Layers className="w-4 h-4 text-indigo-600" />
+                <span>⚡ Saisie Rapide en Masse</span>
+              </button>
+              <button
+                onClick={handleOpenAdd}
+                className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-md shadow-blue-600/20 touch-press"
+              >
+                <PackagePlus className="w-4 h-4" />
+                <span>Ajouter un Article (Photo)</span>
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -835,16 +857,37 @@ export default function InventoryPage() {
             className="bg-white w-full max-w-lg rounded-3xl p-5 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="font-bold text-slate-900 text-base">
-                {selectedProductForEdit ? "Modifier le Produit" : "Ajouter un Nouveau Produit"}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsAddProductModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">
+                  {selectedProductForEdit ? "Modifier le Produit" : "Ajouter un Nouveau Produit"}
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  {selectedProductForEdit ? "Mettre à jour les informations et la photo" : "Formulaire unitaire détaillé avec photo"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {!selectedProductForEdit && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddProductModalOpen(false);
+                      setIsBulkModalOpen(true);
+                    }}
+                    className="px-2.5 py-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1 transition-colors touch-press border border-indigo-200"
+                    title="Basculer vers la saisie rapide en masse"
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>Saisie en Masse ⚡</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsAddProductModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3.5 mb-4">
@@ -1180,6 +1223,23 @@ export default function InventoryPage() {
           currency: currency || authStore?.currency,
           address: authStore?.address,
         }}
+      />
+
+      {/* BULK PRODUCT CREATION MODAL */}
+      <BulkProductModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        onSuccess={(count) => {
+          showInventoryToast(`✅ ${count} articles créés avec succès dans votre stock !`);
+        }}
+        onSwitchToSingle={() => {
+          setIsBulkModalOpen(false);
+          handleOpenAdd();
+        }}
+        tenantId={tenant?.id}
+        storeId={currentStoreId}
+        currency={currency}
+        existingCategories={categories}
       />
     </div>
   );
