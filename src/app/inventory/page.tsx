@@ -10,6 +10,7 @@ import { UpgradePromptModal } from "@/components/plans/upgrade-prompt-modal";
 import ExportReportModal from "@/components/reports/export-report-modal";
 import type { Product, StockDeltaPayload } from "@/lib/shared/types";
 import { uploadMediaFile } from "@/lib/storage/media-storage";
+import { compressImageFile } from "@/lib/utils/image-compressor";
 import {
   Package,
   Search,
@@ -144,21 +145,21 @@ export default function InventoryPage() {
     );
   }
 
-  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Limit file size to 2MB to keep IndexedDB snappy
-      if (file.size > 2 * 1024 * 1024) {
-        alert("La photo est trop volumineuse (max 2 Mo). Veuillez choisir une photo plus légère.");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === "string") {
-          setFormImageUrl(reader.result);
+      try {
+        const compressed = await compressImageFile(file, {
+          maxWidth: 800,
+          maxHeight: 800,
+          quality: 0.82,
+        });
+        if (compressed) {
+          setFormImageUrl(compressed);
         }
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        console.error("Erreur compression image produit:", err);
+      }
     }
   };
 

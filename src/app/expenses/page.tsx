@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
 import { EXPENSE_CATEGORIES, type Expense, type PaymentMethod, type ExpenseCategory } from "@/lib/shared/types";
 import { uploadMediaFile } from "@/lib/storage/media-storage";
+import { compressImageFile } from "@/lib/utils/image-compressor";
 import {
   Wallet,
   Plus,
@@ -193,20 +194,22 @@ export default function ExpensesPage() {
     }
   };
 
-  const handleReceiptPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleReceiptPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      alert("L'image est trop lourde (max 2 Mo).");
-      return;
+    try {
+      const compressed = await compressImageFile(file, {
+        maxWidth: 900,
+        maxHeight: 1200,
+        quality: 0.80,
+      });
+      if (compressed) {
+        setReceiptUrl(compressed);
+      }
+    } catch (err) {
+      console.error("Erreur compression justificatif dépense:", err);
     }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setReceiptUrl(event.target?.result as string);
-    };
-    reader.readAsDataURL(file);
   };
 
   return (

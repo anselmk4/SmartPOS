@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { base64Data, fileName, folder = "products" } = body;
 
-    const ALLOWED_FOLDERS = ["products", "stores", "avatars", "receipts", "logos"];
+    const ALLOWED_FOLDERS = ["products", "stores", "avatars", "receipts", "logos", "branding", "expenses"];
     const safeFolder = ALLOWED_FOLDERS.includes(String(folder || "").trim().toLowerCase()) ? String(folder).trim().toLowerCase() : "products";
 
     if (!base64Data) {
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       if (!bucketExists) {
         await supabase.storage.createBucket(BUCKET_NAME, {
           public: true,
-          fileSizeLimit: 5 * 1024 * 1024, // 5MB
+          fileSizeLimit: 10 * 1024 * 1024, // 10MB
           allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
         });
       }
@@ -62,11 +62,11 @@ export async function POST(req: NextRequest) {
       pureBase64 = matches[2];
     }
 
-    // Enforce 3MB max file size limit
+    // Enforce 10MB max file size limit
     const buffer = Buffer.from(pureBase64, "base64");
-    if (buffer.length > 3 * 1024 * 1024) {
+    if (buffer.length > 10 * 1024 * 1024) {
       return NextResponse.json(
-        { success: false, error: "Fichier trop volumineux (Taille maximale autorisée : 3 Mo)" },
+        { success: false, error: "Fichier trop volumineux (Taille maximale autorisée : 10 Mo)" },
         { status: 400 }
       );
     }

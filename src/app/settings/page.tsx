@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
 import type { Product, Customer } from "@/lib/shared/types";
 import { uploadMediaFile } from "@/lib/storage/media-storage";
+import { compressImageFile } from "@/lib/utils/image-compressor";
 import {
   Settings as SettingsIcon,
   Store,
@@ -242,20 +243,22 @@ export default function SettingsPage() {
     }
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 1.5 * 1024 * 1024) {
-      alert("L'image est trop volumineuse (max 1.5 Mo).");
-      return;
+    try {
+      const compressed = await compressImageFile(file, {
+        maxWidth: 500,
+        maxHeight: 500,
+        quality: 0.85,
+      });
+      if (compressed) {
+        setLogoUrl(compressed);
+      }
+    } catch (err) {
+      console.error("Erreur compression logo boutique:", err);
     }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setLogoUrl(event.target?.result as string);
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleSaveStore = async (e: React.FormEvent) => {
