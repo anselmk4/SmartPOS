@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/auth/auth-context";
 import {
   Sparkles,
   PackagePlus,
@@ -16,47 +17,65 @@ import {
   Store,
   ShieldCheck,
   Zap,
-  ShoppingBag,
-  Layers,
+  Lock,
 } from "lucide-react";
 
 interface FirstLoginGuideModalProps {
   isOpen?: boolean;
   onClose?: () => void;
-  tenantName?: string;
-  isOwner?: boolean;
 }
 
 export function FirstLoginGuideModal({
   isOpen: forcedIsOpen,
   onClose: forcedOnClose,
-  tenantName = "votre commerce",
-  isOwner = true,
 }: FirstLoginGuideModalProps) {
-  const router = useRouter();
+  const pathname = usePathname();
+  const { isAuthenticated, isOwner, tenant, store, plan } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    // If explicitly controlled from outside
     if (typeof forcedIsOpen === "boolean") {
       setIsOpen(forcedIsOpen);
       return;
     }
 
-    // Check if onboarding guide has already been completed or dismissed
+    // STRICT RULES:
+    // 1. Must be authenticated with active store & must be OWNER / Gérant
+    // 2. NEVER show on landing page (/), auth pages (/auth/*) or admin (/admin/*)
+    // 3. Only show when terminal session is actively open on dashboard/caisse
+    if (!isAuthenticated || !isOwner || !tenant?.id) {
+      setIsOpen(false);
+      return;
+    }
+
+    if (
+      pathname === "/" ||
+      pathname === "" ||
+      pathname?.startsWith("/auth") ||
+      pathname?.startsWith("/admin")
+    ) {
+      setIsOpen(false);
+      return;
+    }
+
+    // Check if onboarding guide has already been completed for this specific tenant
     if (typeof window !== "undefined") {
-      const isCompleted = localStorage.getItem("kuettu_onboarding_guide_completed");
-      if (!isCompleted && isOwner) {
-        // Show after a tiny delay for smooth appearance
-        const timer = setTimeout(() => setIsOpen(true), 800);
+      const storageKey = `kuettu_onboarding_guide_completed_${tenant.id}`;
+      const isCompleted = localStorage.getItem(storageKey);
+      if (!isCompleted) {
+        // Show with a smooth 1s delay on first login
+        const timer = setTimeout(() => setIsOpen(true), 1000);
         return () => clearTimeout(timer);
       }
     }
-  }, [forcedIsOpen, isOwner]);
+  }, [forcedIsOpen, isAuthenticated, isOwner, tenant?.id, pathname]);
 
   const handleClose = () => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("kuettu_onboarding_guide_completed", "true");
+    if (typeof window !== "undefined" && tenant?.id) {
+      const storageKey = `kuettu_onboarding_guide_completed_${tenant.id}`;
+      localStorage.setItem(storageKey, "true");
     }
     setIsOpen(false);
     if (forcedOnClose) forcedOnClose();
@@ -76,13 +95,17 @@ export function FirstLoginGuideModal({
     }
   };
 
-  if (!isOpen) return null;
+  // If closed or unauthenticated, render nothing
+  if (!isOpen || !isAuthenticated) return null;
+
+  const storeName = store?.name || tenant?.name || "votre commerce";
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden text-white flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200">
+        
         {/* Top Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-800/80 bg-gradient-to-r from-blue-950/60 to-indigo-950/60 flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-slate-800/80 bg-gradient-to-r from-blue-950/70 via-slate-900 to-indigo-950/70 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-500/30">
               <Sparkles className="w-4 h-4" />
@@ -91,151 +114,193 @@ export function FirstLoginGuideModal({
               <h3 className="font-black text-sm text-white flex items-center gap-2">
                 <span>Bienvenue sur Kuettu Global POS</span>
                 <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-blue-500/20 text-blue-300 border border-blue-500/40">
-                  Guide Rapide
+                  Guide Gérant
                 </span>
               </h3>
-              <p className="text-[11px] text-slate-400">Étape {currentStep} sur 4 pour bien démarrer</p>
+              <p className="text-[11px] text-slate-400">
+                Étape {currentStep} sur 4 &bull; Configuration de <b>{storeName}</b>
+              </p>
             </div>
           </div>
 
           <button
             onClick={handleClose}
             className="p-1.5 rounded-full bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-            title="Passer le guide"
+            title="Fermer le guide"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Step Progress Bar */}
-        <div className="grid grid-cols-4 gap-1 p-2 bg-slate-950/40 border-b border-slate-800/60">
-          {[1, 2, 3, 4].map((step) => (
+        <div className="grid grid-cols-4 gap-1.5 p-2.5 bg-slate-950/60 border-b border-slate-800/80">
+          {[
+            { num: 1, label: "Stock & Articles" },
+            { num: 2, label: "Forfaits" },
+            { num: 3, label: "Liaison Appareils" },
+            { num: 4, label: "Staff & Caissiers" },
+          ].map((s) => (
             <div
-              key={step}
-              onClick={() => setCurrentStep(step)}
-              className={`h-1.5 rounded-full cursor-pointer transition-all ${
-                step <= currentStep ? "bg-gradient-to-r from-blue-500 to-indigo-500 shadow-xs" : "bg-slate-800"
-              }`}
-            />
+              key={s.num}
+              onClick={() => setCurrentStep(s.num)}
+              className="cursor-pointer group text-center"
+            >
+              <div
+                className={`h-1.5 rounded-full transition-all ${
+                  s.num <= currentStep
+                    ? "bg-gradient-to-r from-blue-500 to-indigo-500 shadow-xs"
+                    : "bg-slate-800 group-hover:bg-slate-700"
+                }`}
+              />
+              <span
+                className={`block text-[9px] font-bold mt-1 truncate ${
+                  s.num === currentStep
+                    ? "text-blue-400"
+                    : s.num < currentStep
+                    ? "text-slate-400"
+                    : "text-slate-600"
+                }`}
+              >
+                {s.label}
+              </span>
+            </div>
           ))}
         </div>
 
         {/* Modal Body Content */}
-        <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4 text-xs">
+        <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 text-xs">
+          
           {/* STEP 1: AJOUTER DU STOCK */}
           {currentStep === 1 && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-right-3 duration-200">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-900/30 to-indigo-900/30 border border-blue-500/30 flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/30 shrink-0">
-                  <PackagePlus className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="font-black text-sm text-white">1. Référencez vos Articles & Stock</h4>
-                  <p className="text-[11px] text-slate-300 mt-0.5">
-                    Pour encaisser vos premières ventes, enregistrez vos produits avec leurs prix et quantités.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2 bg-slate-800/50 p-4 rounded-2xl border border-slate-800">
-                <div className="flex items-start gap-2.5">
-                  <span className="text-emerald-400 font-bold mt-0.5">✓</span>
-                  <div>
-                    <b className="text-slate-200">Photos & Code-barres :</b> Vous pouvez prendre en photo vos articles et scanner les codes-barres avec l'appareil photo.
-                  </div>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <span className="text-emerald-400 font-bold mt-0.5">✓</span>
-                  <div>
-                    <b className="text-slate-200">Calcul automatique des marges :</b> Renseignez votre prix d'achat pour connaître vos bénéfices nets sur chaque vente.
-                  </div>
+            <div className="space-y-3.5 animate-in fade-in slide-in-from-right-3 duration-200">
+              {/* Realistic Context Image */}
+              <div className="relative rounded-2xl overflow-hidden border border-slate-800 shadow-lg group">
+                <img
+                  src="/images/guide/guide_step1_stock.jpg"
+                  alt="Commerçant ajoutant ses articles et stocks au magasin"
+                  className="w-full h-44 sm:h-48 object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent flex flex-col justify-end p-3.5">
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-blue-600 text-white w-fit mb-1 shadow-sm">
+                    Étape 1 : Pour débuter
+                  </span>
+                  <h4 className="text-sm font-black text-white leading-tight">
+                    Enregistrez vos premiers articles et stocks
+                  </h4>
                 </div>
               </div>
 
-              <div className="pt-2">
+              <div className="space-y-2 bg-slate-800/60 p-3.5 rounded-2xl border border-slate-800">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-emerald-400 font-black mt-0.5">✓</span>
+                  <div className="text-slate-200">
+                    <b>Prise de photos & Code-barres :</b> Prenez vos articles en photo et scannez leurs codes-barres avec l&apos;appareil photo de votre smartphone ou tablette.
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-emerald-400 font-black mt-0.5">✓</span>
+                  <div className="text-slate-200">
+                    <b>Bénéfices & Prix de revient :</b> Renseignez votre prix d&apos;achat pour suivre vos marges réelles et votre rentabilité en direct.
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-1">
                 <Link
                   href="/inventory"
                   onClick={handleClose}
-                  className="inline-flex items-center gap-1.5 font-bold text-xs text-blue-400 hover:text-blue-300 underline underline-offset-4"
+                  className="w-full py-2.5 px-4 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white border border-blue-500/40 font-bold text-xs flex items-center justify-center gap-2 transition-all"
                 >
-                  <span>Ouvrir l'espace Stock & Inventaire maintenant</span>
+                  <PackagePlus className="w-4 h-4 text-blue-400" />
+                  <span>Ouvrir l&apos;Inventaire & Ajouter un Produit</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
             </div>
           )}
 
-          {/* STEP 2: FORFAITS & PLANS */}
+          {/* STEP 2: FORFAITS & PLANS SUPERIEURS */}
           {currentStep === 2 && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-right-3 duration-200">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-900/30 to-purple-900/30 border border-amber-500/30 flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/20 shrink-0">
-                  <Crown className="w-6 h-6" />
+            <div className="space-y-3.5 animate-in fade-in slide-in-from-right-3 duration-200">
+              {/* Realistic Context Image */}
+              <div className="relative rounded-2xl overflow-hidden border border-slate-800 shadow-lg group">
+                <img
+                  src="/images/guide/guide_step2_plans.jpg"
+                  alt="Gérante d'entreprise suivant la croissance de sa boutique sur tablette"
+                  className="w-full h-44 sm:h-48 object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent flex flex-col justify-end p-3.5">
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-500 text-slate-950 w-fit mb-1 shadow-sm">
+                    Étape 2 : Croissance du Commerce
+                  </span>
+                  <h4 className="text-sm font-black text-white leading-tight">
+                    Débloquez les Forfaits Supérieurs (PRO & BUSINESS)
+                  </h4>
                 </div>
-                <div>
-                  <h4 className="font-black text-sm text-white">2. Débloquez les Forfaits PRO & BUSINESS</h4>
-                  <p className="text-[11px] text-slate-300 mt-0.5">
-                    Multi-caisses, tickets WhatsApp, gestion multi-dépôts et ventes illimitées.
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-3 rounded-2xl bg-slate-800/70 border border-slate-700/80 space-y-1">
+                  <span className="font-black text-blue-400 text-xs block">Formule PRO</span>
+                  <p className="text-[10px] text-slate-300 leading-relaxed">
+                    Ventes illimitées, tickets reçus par WhatsApp en 1 clic, carnet de dettes clients & relances.
+                  </p>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-800/70 border border-slate-700/80 space-y-1">
+                  <span className="font-black text-purple-400 text-xs block">Formule BUSINESS</span>
+                  <p className="text-[10px] text-slate-300 leading-relaxed">
+                    Multi-dépôts (jusqu&apos;à 10 magasins), transferts de stock entre boutiques et clôtures de caisse.
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700 space-y-1">
-                  <span className="font-black text-blue-400 text-xs block">PRO (Recommandé)</span>
-                  <p className="text-[10px] text-slate-300 leading-relaxed">
-                    Ventes illimitées, tickets WhatsApp automatiques, gestion des dettes clients & crédits.
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700 space-y-1">
-                  <span className="font-black text-purple-400 text-xs block">BUSINESS</span>
-                  <p className="text-[10px] text-slate-300 leading-relaxed">
-                    Multi-magasins, transferts de stock avec bons de transfert, clôtures de caisse avancées.
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-2">
+              <div className="pt-1">
                 <Link
                   href="/billing"
                   onClick={handleClose}
-                  className="inline-flex items-center gap-1.5 font-bold text-xs text-amber-400 hover:text-amber-300 underline underline-offset-4"
+                  className="w-full py-2.5 px-4 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-white border border-amber-500/40 font-bold text-xs flex items-center justify-center gap-2 transition-all"
                 >
-                  <span>Consulter et activer un abonnement</span>
+                  <Crown className="w-4 h-4 text-amber-400" />
+                  <span>Consulter et Mettre à Niveau mon Forfait</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
             </div>
           )}
 
-          {/* STEP 3: LIAISON MULTI-APPAREILS PAR LE PROPRIETAIRE */}
+          {/* STEP 3: LIAISON DES APPAREILS PAR LE PROPRIETAIRE */}
           {currentStep === 3 && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-right-3 duration-200">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-900/30 to-blue-900/30 border border-indigo-500/30 flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/30 shrink-0">
-                  <Smartphone className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="font-black text-sm text-white">3. Liaison de vos Téléphones, Tablettes & PC</h4>
-                  <p className="text-[11px] text-slate-300 mt-0.5">
-                    Le compte Propriétaire lie la boutique à chaque nouvel appareil.
-                  </p>
+            <div className="space-y-3.5 animate-in fade-in slide-in-from-right-3 duration-200">
+              {/* Realistic Context Image */}
+              <div className="relative rounded-2xl overflow-hidden border border-slate-800 shadow-lg group">
+                <img
+                  src="/images/guide/guide_step3_device.jpg"
+                  alt="Propriétaire liant un nouvel appareil au comptoir de son magasin"
+                  className="w-full h-44 sm:h-48 object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent flex flex-col justify-end p-3.5">
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-indigo-500 text-white w-fit mb-1 shadow-sm">
+                    Étape 3 : Règle Multi-Appareils
+                  </span>
+                  <h4 className="text-sm font-black text-white leading-tight">
+                    Le compte Propriétaire lie chaque nouvel appareil
+                  </h4>
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-800/60 rounded-2xl border border-slate-700/80 space-y-2.5">
-                <p className="text-slate-200 font-medium leading-relaxed">
-                  📱 <b>Comment utiliser Kuettu sur un nouvel appareil ?</b>
+              <div className="p-3.5 bg-slate-800/60 rounded-2xl border border-slate-700/80 space-y-2">
+                <p className="text-slate-200 font-bold">
+                  📱 Comment connecter un téléphone, tablette ou PC au magasin ?
                 </p>
                 <ol className="list-decimal pl-4 space-y-1.5 text-slate-300 text-[11px]">
                   <li>
-                    Ouvrez <b>globalpos.app</b> sur le téléphone ou la tablette du magasin.
+                    Ouvrez <b>globalpos.app</b> sur le nouvel appareil physique.
                   </li>
                   <li>
-                    Connectez-vous une première fois avec le <b>compte Propriétaire</b> pour synchroniser les données de la boutique sur cet appareil.
+                    Connectez-vous une première fois avec le <b>compte Propriétaire</b> pour télécharger et synchroniser les données du commerce.
                   </li>
                   <li>
-                    Une fois lié, vos caissiers ou serveurs peuvent se connecter directement avec leur <b>code PIN</b> sans avoir besoin de votre mot de passe !
+                    L&apos;appareil est alors lié ! Vos caissiers ou serveurs peuvent désormais s&apos;y connecter uniquement avec leur <b>code PIN</b>.
                   </li>
                 </ol>
               </div>
@@ -244,41 +309,47 @@ export function FirstLoginGuideModal({
 
           {/* STEP 4: AJOUTER DES MEMBRES DU STAFF */}
           {currentStep === 4 && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-right-3 duration-200">
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-900/30 to-teal-900/30 border border-emerald-500/30 flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 shrink-0">
-                  <Users className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="font-black text-sm text-white">4. Créez les Accès de vos Caissiers & Staff</h4>
-                  <p className="text-[11px] text-slate-300 mt-0.5">
-                    Sécurisez votre caisse avec des codes PIN dédiés pour chaque vendeur.
-                  </p>
+            <div className="space-y-3.5 animate-in fade-in slide-in-from-right-3 duration-200">
+              {/* Realistic Context Image */}
+              <div className="relative rounded-2xl overflow-hidden border border-slate-800 shadow-lg group">
+                <img
+                  src="/images/guide/guide_step4_staff.jpg"
+                  alt="Caissière souriante encaissant un client sur l'écran tactile du POS"
+                  className="w-full h-44 sm:h-48 object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent flex flex-col justify-end p-3.5">
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-500 text-slate-950 w-fit mb-1 shadow-sm">
+                    Étape 4 : Équipe & Vendeurs
+                  </span>
+                  <h4 className="text-sm font-black text-white leading-tight">
+                    Ajoutez vos Caissiers & Attribuez des PINs Secrets
+                  </h4>
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-800/60 rounded-2xl border border-slate-700/80 space-y-2">
+              <div className="p-3.5 bg-slate-800/60 rounded-2xl border border-slate-700/80 space-y-2">
                 <div className="flex items-start gap-2.5">
                   <span className="text-emerald-400 font-bold">🔒</span>
-                  <div>
-                    <b className="text-slate-200">Sécurité Totale :</b> Vos caissiers ne voient que la caisse et ne peuvent pas modifier les prix d'achat ni voir vos marges.
+                  <div className="text-slate-200">
+                    <b>Protection Totale :</b> Les caissiers n&apos;ont accès qu&apos;à l&apos;encaissement. Vos prix d&apos;achat et marges bénéficiaires leur sont strictement masqués.
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="text-emerald-400 font-bold">📊</span>
-                  <div>
-                    <b className="text-slate-200">Rapports par Vendeur :</b> Suivez en temps réel les performances et les encaissements de chaque membre d'équipe.
+                  <div className="text-slate-200">
+                    <b>Historique par Caissier :</b> Chaque vente indique le nom du caissier pour une traçabilité parfaite lors des clôtures journalières.
                   </div>
                 </div>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-1">
                 <Link
                   href="/settings"
                   onClick={handleClose}
-                  className="inline-flex items-center gap-1.5 font-bold text-xs text-emerald-400 hover:text-emerald-300 underline underline-offset-4"
+                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 hover:text-white border border-emerald-500/40 font-bold text-xs flex items-center justify-center gap-2 transition-all"
                 >
-                  <span>Configurer mon équipe dans Paramètres</span>
+                  <Users className="w-4 h-4 text-emerald-400" />
+                  <span>Gérer mon Staff & Caissiers dans Paramètres</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
@@ -287,7 +358,7 @@ export function FirstLoginGuideModal({
         </div>
 
         {/* Modal Bottom Actions */}
-        <div className="p-4 sm:p-5 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between gap-3">
+        <div className="p-4 sm:p-5 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={handlePrev}
@@ -311,3 +382,5 @@ export function FirstLoginGuideModal({
     </div>
   );
 }
+
+export default FirstLoginGuideModal;
