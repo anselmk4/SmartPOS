@@ -10,6 +10,7 @@ import { Navbar } from "@/components/navigation/navbar";
 import { SimulationBanner } from "@/components/navigation/simulation-banner";
 import { PWARegister } from "@/components/pwa/pwa-register";
 import { PlanPaymentGate } from "@/components/auth/plan-payment-gate";
+import { FirstLoginGuideModal } from "@/components/onboarding/first-login-guide-modal";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -242,6 +243,9 @@ export default function RootLayout({
 
                 {/* PWA Service Worker & Install Manager */}
                 <PWARegister />
+
+                {/* First Connection Onboarding Guide */}
+                <FirstLoginGuideModal />
               </SidebarProvider>
             </SyncProvider>
           </AuthProvider>

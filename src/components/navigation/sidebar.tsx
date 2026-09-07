@@ -35,6 +35,9 @@ import {
   AlertTriangle,
   ArrowRight,
   Briefcase,
+  Lock,
+  LogOut,
+  RefreshCw,
 } from "lucide-react";
 import CashReconciliationModal from "@/components/pos/cash-reconciliation-modal";
 import ExportReportModal from "@/components/reports/export-report-modal";
@@ -57,11 +60,33 @@ export function Sidebar() {
     canAccess,
     selectStore,
     logout,
+    lockTerminal,
     restoreOwnerRole,
     terminalUsers,
   } = useAuth();
   const { isCollapsed, toggleCollapse, isMobileOpen, setIsMobileOpen } = useSidebar();
-  const { rawCurrency } = useSync();
+  const { rawCurrency, syncNow, isSyncing, pendingCount } = useSync();
+  const [sidebarSyncToast, setSidebarSyncToast] = useState<string | null>(null);
+
+  const handleSidebarSync = async () => {
+    const res = await syncNow();
+    setSidebarSyncToast(res.message);
+    setTimeout(() => setSidebarSyncToast(null), 3500);
+  };
+
+  const handleSidebarLock = () => {
+    setIsMobileOpen(false);
+    lockTerminal();
+    router.push("/auth/login");
+  };
+
+  const handleSidebarLogout = () => {
+    if (confirm("Voulez-vous vraiment vous déconnecter de votre session ?")) {
+      setIsMobileOpen(false);
+      logout();
+      router.push("/auth/login");
+    }
+  };
 
   // Count sales made this month for quota check
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
@@ -500,6 +525,85 @@ export function Sidebar() {
           </Link>
         </div>
       ) : null}
+
+      {/* Quick Session Actions Bar (Synchro, Verrouiller, Déconnecter) */}
+      <div className="p-3 border-t border-slate-100 bg-slate-50/70 space-y-2">
+        {!isCollapsed ? (
+          <>
+            <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-1 flex items-center justify-between">
+              <span>Session & Caisse</span>
+              {pendingCount > 0 && (
+                <span className="text-[9px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.2 rounded-full">
+                  {pendingCount} en attente
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              <button
+                type="button"
+                onClick={handleSidebarSync}
+                disabled={isSyncing}
+                className="flex flex-col items-center justify-center p-2 rounded-xl bg-white border border-slate-200/80 hover:bg-blue-50 hover:border-blue-200 text-slate-700 hover:text-blue-600 transition-all shadow-2xs group relative touch-press"
+                title="Synchroniser avec le serveur"
+              >
+                <RefreshCw className={`w-4 h-4 text-blue-500 mb-1 ${isSyncing ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`} />
+                <span className="text-[10px] font-bold leading-tight">Synchro</span>
+                {pendingCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-white" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSidebarLock}
+                className="flex flex-col items-center justify-center p-2 rounded-xl bg-white border border-slate-200/80 hover:bg-amber-50 hover:border-amber-200 text-slate-700 hover:text-amber-600 transition-all shadow-2xs group touch-press"
+                title="Verrouiller la caisse (Écran code PIN)"
+              >
+                <Lock className="w-4 h-4 text-amber-500 mb-1" />
+                <span className="text-[10px] font-bold leading-tight">Verrou</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSidebarLogout}
+                className="flex flex-col items-center justify-center p-2 rounded-xl bg-white border border-slate-200/80 hover:bg-rose-50 hover:border-rose-200 text-slate-700 hover:text-rose-600 transition-all shadow-2xs group touch-press"
+                title="Déconnexion"
+              >
+                <LogOut className="w-4 h-4 text-rose-500 mb-1" />
+                <span className="text-[10px] font-bold leading-tight">Quitter</span>
+              </button>
+            </div>
+            {sidebarSyncToast && (
+              <div className="text-[10px] font-semibold text-center text-blue-700 bg-blue-50 py-1 px-2 rounded-lg border border-blue-100 animate-in fade-in">
+                {sidebarSyncToast}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSidebarSync}
+              disabled={isSyncing}
+              className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-blue-50 text-blue-600 flex items-center justify-center transition-colors relative touch-press"
+              title="Synchroniser"
+            >
+              <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
+              {pendingCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={handleSidebarLock}
+              className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-amber-50 text-amber-600 flex items-center justify-center transition-colors touch-press"
+              title="Verrouiller la caisse"
+            >
+              <Lock className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* 3. Footer with Soft User Pill Card & Power Button (as in screenshot) */}
       <div className="p-3 border-t border-slate-100/80 bg-white">

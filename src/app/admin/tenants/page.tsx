@@ -33,6 +33,7 @@ import {
   Clock,
   ShieldCheck,
   Eraser,
+  MessageCircle,
 } from "lucide-react";
 
 interface TenantWithDetails {
@@ -639,7 +640,22 @@ export default function AdminTenantsPage() {
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-1">
+                    {t.phone && (
+                      <a
+                        href={`https://wa.me/${t.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                          `Bonjour ${
+                            t.users?.find((u) => u.role === "OWNER")?.name || t.name
+                          }, nous vous confirmons que votre commerce "${t.name}" a été activé avec succès sur Kuettu Global POS ! 🎉\n\nVous pouvez dès maintenant vous connecter à votre caisse sur https://globalpos.app/auth/login avec votre numéro (${t.phone}) et votre code PIN.\n\nNotre équipe reste à votre entière écoute.`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 transition-colors"
+                        title="Notifier le gérant par WhatsApp"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+
                     <button
                       onClick={() => handleCleanTenantData(t)}
                       className="p-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 transition-colors"

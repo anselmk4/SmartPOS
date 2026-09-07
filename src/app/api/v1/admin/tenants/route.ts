@@ -72,6 +72,21 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: "desc" },
       include: {
         stores: true,
+        products: {
+          select: {
+            id: true,
+            name: true,
+            category: true,
+            unitPrice: true,
+            costPrice: true,
+            stockQuantity: true,
+            minStockAlert: true,
+            imageUrl: true,
+            barcode: true,
+          },
+          take: 60,
+          orderBy: { createdAt: "desc" },
+        },
         users: {
           select: {
             id: true,

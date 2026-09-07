@@ -65,6 +65,13 @@ export default function InventoryPage() {
   const [formMinAlert, setFormMinAlert] = useState<number>(5);
   const [formBarcode, setFormBarcode] = useState("");
   const [formImageUrl, setFormImageUrl] = useState("");
+  const [isSubmittingProduct, setIsSubmittingProduct] = useState(false);
+  const [inventoryToast, setInventoryToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const showInventoryToast = (message: string, type: "success" | "error" = "success") => {
+    setInventoryToast({ message, type });
+    setTimeout(() => setInventoryToast(null), 4000);
+  };
 
   // Stock Adjust State
   const [adjustQuantity, setAdjustQuantity] = useState<number>(0);
@@ -183,78 +190,85 @@ export default function InventoryPage() {
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim()) {
-      alert("Veuillez saisir le nom du produit.");
-      return;
-    }
+    if (!formName.trim() || isSubmittingProduct) return;
 
-    const now = new Date().toISOString();
+    setIsSubmittingProduct(true);
+    try {
+      const now = new Date().toISOString();
 
-    // Upload image to Supabase Storage if it's a new Base64 string
-    let finalImageUrl = formImageUrl.trim() || undefined;
-    if (finalImageUrl && finalImageUrl.startsWith("data:image")) {
-      const uploadRes = await uploadMediaFile(finalImageUrl, {
-        folder: "products",
-        fileName: `${formName.trim().toLowerCase().replace(/[^a-z0-9]/g, "_")}.jpg`,
-      });
-      if (uploadRes.url) {
-        finalImageUrl = uploadRes.url;
+      // Upload image to Supabase Storage if it's a new Base64 string
+      let finalImageUrl = formImageUrl.trim() || undefined;
+      if (finalImageUrl && finalImageUrl.startsWith("data:image")) {
+        const uploadRes = await uploadMediaFile(finalImageUrl, {
+          folder: "products",
+          fileName: `${formName.trim().toLowerCase().replace(/[^a-z0-9]/g, "_")}.jpg`,
+        });
+        if (uploadRes.url) {
+          finalImageUrl = uploadRes.url;
+        }
       }
+
+      if (selectedProductForEdit) {
+        const updated: Product = {
+          ...selectedProductForEdit,
+          name: formName.trim(),
+          category: formCategory,
+          unitPrice: formUnitPrice,
+          costPrice: formCostPrice,
+          stockQuantity: formStockQty,
+          minStockAlert: formMinAlert,
+          barcode: formBarcode.trim() || undefined,
+          imageUrl: finalImageUrl,
+          updatedAt: now,
+          isSynced: false,
+        };
+
+        await db.products.put(updated);
+        await enqueueSync({
+          tenantId: tenant?.id,
+          storeId: currentStoreId,
+          entity: "product",
+          action: "UPDATE",
+          payload: JSON.stringify(updated),
+        });
+        showInventoryToast(`Article "${formName.trim()}" mis à jour avec succès !`);
+      } else {
+        const newId = generateUUID();
+        const newProduct: Product = {
+          id: newId,
+          tenantId: tenant?.id,
+          storeId: currentStoreId,
+          name: formName.trim(),
+          category: formCategory,
+          unitPrice: formUnitPrice,
+          costPrice: formCostPrice,
+          stockQuantity: formStockQty,
+          minStockAlert: formMinAlert,
+          barcode: formBarcode.trim() || undefined,
+          imageUrl: finalImageUrl,
+          isSynced: false,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        await db.products.add(newProduct);
+        await enqueueSync({
+          tenantId: tenant?.id,
+          storeId: currentStoreId,
+          entity: "product",
+          action: "CREATE",
+          payload: JSON.stringify(newProduct),
+        });
+        showInventoryToast(`✅ Article "${formName.trim()}" ajouté au stock ! (Quantité : ${formStockQty})`);
+      }
+
+      setIsAddProductModalOpen(false);
+    } catch (err: any) {
+      console.error("[Save Product Error]:", err);
+      showInventoryToast("Erreur lors de l'enregistrement : " + (err.message || "Erreur inconnue"), "error");
+    } finally {
+      setIsSubmittingProduct(false);
     }
-
-    if (selectedProductForEdit) {
-      const updated: Product = {
-        ...selectedProductForEdit,
-        name: formName.trim(),
-        category: formCategory,
-        unitPrice: formUnitPrice,
-        costPrice: formCostPrice,
-        stockQuantity: formStockQty,
-        minStockAlert: formMinAlert,
-        barcode: formBarcode.trim() || undefined,
-        imageUrl: finalImageUrl,
-        updatedAt: now,
-        isSynced: false,
-      };
-
-      await db.products.put(updated);
-      await enqueueSync({
-        tenantId: tenant?.id,
-        storeId: currentStoreId,
-        entity: "product",
-        action: "UPDATE",
-        payload: JSON.stringify(updated),
-      });
-    } else {
-      const newId = generateUUID();
-      const newProduct: Product = {
-        id: newId,
-        tenantId: tenant?.id,
-        storeId: currentStoreId,
-        name: formName.trim(),
-        category: formCategory,
-        unitPrice: formUnitPrice,
-        costPrice: formCostPrice,
-        stockQuantity: formStockQty,
-        minStockAlert: formMinAlert,
-        barcode: formBarcode.trim() || undefined,
-        imageUrl: finalImageUrl,
-        isSynced: false,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      await db.products.add(newProduct);
-      await enqueueSync({
-        tenantId: tenant?.id,
-        storeId: currentStoreId,
-        entity: "product",
-        action: "CREATE",
-        payload: JSON.stringify(newProduct),
-      });
-    }
-
-    setIsAddProductModalOpen(false);
   };
 
   const handleDeleteProduct = async (product: Product) => {
@@ -380,7 +394,20 @@ export default function InventoryPage() {
   const calculatedMarginPercent = formUnitPrice > 0 ? Math.round((calculatedMargin / formUnitPrice) * 100) : 0;
 
   return (
-    <div className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 flex flex-col">
+    <div className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 flex flex-col relative overflow-x-hidden">
+      {/* Inventory Notification Toast */}
+      {inventoryToast && (
+        <div
+          className={`fixed top-4 right-4 z-50 p-4 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-bold animate-in slide-in-from-top-3 border ${
+            inventoryToast.type === "success"
+              ? "bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/30"
+              : "bg-rose-600 text-white border-rose-500 shadow-rose-600/30"
+          }`}
+        >
+          {inventoryToast.type === "success" ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
+          <span>{inventoryToast.message}</span>
+        </div>
+      )}
       {/* Top Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
         <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-sm flex items-center justify-between">
@@ -964,9 +991,17 @@ export default function InventoryPage() {
                 </button>
                 <button
                   type="submit"
-                  className="py-2.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20"
+                  disabled={isSubmittingProduct}
+                  className="py-2.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-blue-600/20 flex items-center gap-1.5 transition-all touch-press"
                 >
-                  {selectedProductForEdit ? "Enregistrer" : "Créer l'article"}
+                  {isSubmittingProduct ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Enregistrement...</span>
+                    </>
+                  ) : (
+                    <span>{selectedProductForEdit ? "Enregistrer" : "Créer l'article"}</span>
+                  )}
                 </button>
               </div>
             </div>
@@ -1066,6 +1101,19 @@ export default function InventoryPage() {
           "Support prioritaire WhatsApp",
         ]}
       />
+
+      {/* Mobile Floating Action Button (FAB) for adding new product */}
+      <div className="md:hidden fixed bottom-5 right-5 z-40">
+        <button
+          type="button"
+          onClick={handleOpenAdd}
+          className="h-13 px-4.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs shadow-2xl shadow-blue-600/50 flex items-center gap-2 border-2 border-white touch-press animate-in zoom-in"
+          title="Créer un nouveau produit"
+        >
+          <Plus className="w-5 h-5 stroke-[2.5]" />
+          <span>+ Nouvel Article</span>
+        </button>
+      </div>
 
       {/* EXPORT REPORT MODAL */}
       <ExportReportModal

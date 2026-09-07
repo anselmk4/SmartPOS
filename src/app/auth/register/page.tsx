@@ -111,6 +111,7 @@ function RegisterForm() {
   const [pinCode, setPinCode] = useState("");
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>("FREE");
   const [planNotice, setPlanNotice] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [captchaState, setCaptchaState] = useState<CaptchaValidationState>({
     isValid: false,
     captchaToken: "",
@@ -144,8 +145,8 @@ function RegisterForm() {
 
   const selectedActivityObj = BUSINESS_ACTIVITIES.find((a) => a.id === businessActivityId);
   const resolvedBusinessType =
-    businessActivityId === "other_activity"
-      ? customActivity.trim() || "Autre Commerce"
+    businessActivityId === "other_activity" && customActivity.trim()
+      ? customActivity.trim()
       : selectedActivityObj?.name || "Commerce Général";
 
   // Step Validation
@@ -206,6 +207,11 @@ function RegisterForm() {
 
     if (!captchaState.isValid) {
       setErrorMsg("Veuillez résoudre le calcul de sécurité anti-robot pour valider la création de votre boutique.");
+      return;
+    }
+
+    if (!acceptedTerms) {
+      setErrorMsg("Veuillez accepter les Conditions d'Utilisation et la Politique de Confidentialité pour continuer.");
       return;
     }
 
@@ -617,6 +623,37 @@ function RegisterForm() {
 
               {/* Field 3: Anti-Bot Security Captcha */}
               <CaptchaChallenge onValidationChange={setCaptchaState} className="mt-2" />
+
+              {/* Field 4: Terms & Privacy Agreement Checkbox */}
+              <div className="pt-2">
+                <label className="flex items-start gap-3 cursor-pointer p-3 rounded-2xl bg-slate-50 border border-slate-200 hover:bg-slate-100/80 transition-all select-none">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
+                  />
+                  <span className="text-[11px] sm:text-xs text-slate-600 leading-relaxed">
+                    J&apos;accepte sans réserve les{" "}
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      className="font-bold text-blue-600 hover:underline inline-flex items-center gap-0.5"
+                    >
+                      Conditions Générales d&apos;Utilisation
+                    </Link>{" "}
+                    et la{" "}
+                    <Link
+                      href="/privacy"
+                      target="_blank"
+                      className="font-bold text-blue-600 hover:underline inline-flex items-center gap-0.5"
+                    >
+                      Politique de Confidentialité
+                    </Link>{" "}
+                    de Kuettu POS (RDC / OHADA).
+                  </span>
+                </label>
+              </div>
             </div>
           )}
 

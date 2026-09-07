@@ -52,6 +52,7 @@ export interface TenantWithDetails {
   createdAt: string;
   updatedAt: string;
   stores?: Array<{ id: string; name: string; address?: string | null; ownerName?: string | null; currency?: string; businessType?: string | null }>;
+  products?: Array<{ id: string; name: string; category?: string | null; unitPrice: number; costPrice?: number | null; stockQuantity: number; minStockAlert?: number | null; imageUrl?: string | null; barcode?: string | null }>;
   users?: Array<{ id: string; name: string; phone?: string | null; email?: string | null; role: string; isActive: boolean; lastLoginAt?: string | null }>;
   subscriptions?: Array<{ id: string; plan: string; amount: number; currency: string; paymentMethod: string; paymentStatus: string; periodStart: string; periodEnd: string; createdAt: string }>;
   _count?: {
@@ -95,7 +96,7 @@ export function TenantDetailsSidebar({
   onToggleStatus,
 }: TenantDetailsSidebarProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"GENERAL" | "NETWORK" | "SUBSCRIPTIONS">("GENERAL");
+  const [activeTab, setActiveTab] = useState<"GENERAL" | "NETWORK" | "SUBSCRIPTIONS" | "PRODUCTS">("GENERAL");
   const [sidebarSelectedInvoice, setSidebarSelectedInvoice] = useState<Subscription | null>(null);
 
   // Close on Escape key
@@ -235,37 +236,47 @@ export function TenantDetailsSidebar({
           </div>
 
           {/* Tab Toggle Navigation - Clean, High-Contrast */}
-          <div className="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60">
-            <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-2xl text-xs font-bold">
+          <div className="p-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60">
+            <div className="grid grid-cols-4 gap-1 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-2xl text-[11px] font-bold">
               <button
                 onClick={() => setActiveTab("GENERAL")}
-                className={`py-2 px-1 rounded-xl text-center transition-all ${
+                className={`py-2 px-1 rounded-xl text-center transition-all truncate ${
                   activeTab === "GENERAL"
                     ? "bg-white text-blue-600 font-extrabold shadow-sm border border-slate-200/80 dark:bg-slate-700 dark:text-white dark:border-transparent"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
-                Informations Clés
+                Infos Clés
               </button>
               <button
                 onClick={() => setActiveTab("NETWORK")}
-                className={`py-2 px-1 rounded-xl text-center transition-all ${
+                className={`py-2 px-1 rounded-xl text-center transition-all truncate ${
                   activeTab === "NETWORK"
                     ? "bg-white text-blue-600 font-extrabold shadow-sm border border-slate-200/80 dark:bg-slate-700 dark:text-white dark:border-transparent"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
-                Équipe & Dépôts ({tenant.stores?.length || 0})
+                Équipe ({tenant.users?.length || 0})
+              </button>
+              <button
+                onClick={() => setActiveTab("PRODUCTS")}
+                className={`py-2 px-1 rounded-xl text-center transition-all truncate ${
+                  activeTab === "PRODUCTS"
+                    ? "bg-white text-blue-600 font-extrabold shadow-sm border border-slate-200/80 dark:bg-slate-700 dark:text-white dark:border-transparent"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                Articles ({tenant.products?.length || tenant._count?.products || 0})
               </button>
               <button
                 onClick={() => setActiveTab("SUBSCRIPTIONS")}
-                className={`py-2 px-1 rounded-xl text-center transition-all ${
+                className={`py-2 px-1 rounded-xl text-center transition-all truncate ${
                   activeTab === "SUBSCRIPTIONS"
                     ? "bg-white text-blue-600 font-extrabold shadow-sm border border-slate-200/80 dark:bg-slate-700 dark:text-white dark:border-transparent"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
-                Forfait & Paiements
+                Forfait
               </button>
             </div>
           </div>
@@ -701,31 +712,133 @@ export function TenantDetailsSidebar({
             )}
           </div>
 
+            {/* TAB 4: PRODUCTS CATALOGUE */}
+            {activeTab === "PRODUCTS" && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span>Catalogue des Articles ({tenant.products?.length || 0})</span>
+                  </h3>
+                  <span className="text-[11px] text-slate-400">
+                    Total : {tenant._count?.products || tenant.products?.length || 0} référencés
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {tenant.products && tenant.products.length > 0 ? (
+                    tenant.products.map((p) => {
+                      const isOutOfStock = p.stockQuantity <= 0;
+                      const isLowStock = p.stockQuantity > 0 && p.stockQuantity <= (p.minStockAlert || 5);
+
+                      return (
+                        <div
+                          key={p.id}
+                          className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            {p.imageUrl ? (
+                              <img
+                                src={p.imageUrl}
+                                alt={p.name}
+                                className="w-11 h-11 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+                              />
+                            ) : (
+                              <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 shrink-0">
+                                <Package className="w-5 h-5" />
+                              </div>
+                            )}
+
+                            <div className="min-w-0">
+                              <div className="font-bold text-slate-900 dark:text-white truncate text-xs sm:text-sm">
+                                {p.name}
+                              </div>
+                              <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5 flex-wrap">
+                                <span>{p.category || "Général"}</span>
+                                {p.barcode && <span className="font-mono text-[10px]">📟 {p.barcode}</span>}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <div className="font-mono font-black text-slate-900 dark:text-white text-xs sm:text-sm">
+                              {new Intl.NumberFormat("fr-FR").format(p.unitPrice)} {tenant.currency}
+                            </div>
+                            {p.costPrice && p.costPrice > 0 ? (
+                              <div className="text-[10px] text-slate-400 font-mono">
+                                Achat: {new Intl.NumberFormat("fr-FR").format(p.costPrice)} {tenant.currency}
+                              </div>
+                            ) : null}
+                            <span
+                              className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                isOutOfStock
+                                  ? "bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-300"
+                                  : isLowStock
+                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300"
+                                  : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300"
+                              }`}
+                            >
+                              Stock: {p.stockQuantity}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-800/30 text-center text-slate-400 text-xs border border-slate-200/60 dark:border-slate-800 space-y-2">
+                      <Package className="w-8 h-8 text-slate-300 mx-auto" />
+                      <p>Aucun article synchronisé pour ce commerce.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Bottom Actions Bar */}
-          <div className="p-4 sm:p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/95 flex items-center justify-between gap-2.5">
-            <button
-              onClick={() => onToggleStatus(tenant)}
-              className={`py-2.5 px-4 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
-                tenant.isActive
-                  ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200"
-                  : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200"
-              }`}
-            >
-              {tenant.isActive ? <Ban className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-              <span>{tenant.isActive ? "Suspendre la Boutique" : "Activer la Boutique"}</span>
-            </button>
+          <div className="p-4 sm:p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/95 flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onToggleStatus(tenant)}
+                className={`py-2 px-3.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
+                  tenant.isActive
+                    ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200"
+                    : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200"
+                }`}
+              >
+                {tenant.isActive ? <Ban className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                <span>{tenant.isActive ? "Suspendre" : "Activer"}</span>
+              </button>
+
+              {tenant.phone && (
+                <a
+                  href={`https://wa.me/${tenant.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                    `Bonjour ${
+                      tenant.users?.find((u) => u.role === "OWNER")?.name || tenant.name
+                    }, nous vous confirmons que votre commerce "${tenant.name}" a été activé avec succès sur Kuettu Global POS ! 🎉\n\nVous pouvez dès maintenant vous connecter à votre caisse sur https://globalpos.app/auth/login avec votre numéro (${tenant.phone}) et votre code PIN.\n\nNotre équipe reste à votre entière écoute pour toute assistance.`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-sm shadow-emerald-600/30 transition-all touch-press"
+                  title="Relancer / Notifier le gérant par WhatsApp"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>WhatsApp</span>
+                </a>
+              )}
+            </div>
 
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onEdit(tenant)}
-                className="py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 shadow-xs font-bold text-xs flex items-center gap-1.5 transition-colors"
+                className="py-2 px-3.5 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 shadow-xs font-bold text-xs flex items-center gap-1.5 transition-colors"
               >
                 <Edit2 className="w-3.5 h-3.5" />
                 <span>Modifier</span>
               </button>
               <button
                 onClick={() => onChangePlan(tenant)}
-                className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-blue-600/20 transition-all touch-press"
+                className="py-2 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-blue-600/20 transition-all touch-press"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Forfait</span>

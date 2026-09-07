@@ -1035,24 +1035,45 @@ function POSPageContent() {
 
         {/* Sticky Mobile Floating Cart Bar (Bottom of Catalog) */}
         {cart.length > 0 && (
-          <div className="md:hidden shrink-0 p-2.5 bg-white border-t border-slate-200 shadow-xl flex items-center justify-between gap-3 z-30 animate-in slide-in-from-bottom-2">
-            <div className="min-w-0">
-              <span className="text-[10px] font-bold text-slate-500 block uppercase tracking-wider">
-                {totalItemsCount} article{totalItemsCount > 1 ? "s" : ""} sélectionné{totalItemsCount > 1 ? "s" : ""}
-              </span>
-              <span className="text-sm font-black text-blue-700 font-mono">
-                {formatMoney(totalAmount)}
-              </span>
-            </div>
-
+          <div className="md:hidden shrink-0 p-2.5 bg-slate-900 border-t border-slate-800 shadow-2xl flex items-center justify-between gap-2 z-30 animate-in slide-in-from-bottom-2">
             <button
               type="button"
               onClick={() => setMobileTab("CART")}
-              className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-md shadow-blue-600/25 flex items-center gap-1.5 touch-press shrink-0"
+              className="min-w-0 text-left flex-1 p-1 hover:opacity-80 transition-opacity"
             >
-              <span>Voir Panier & Encaisser</span>
-              <ArrowRight className="w-4 h-4" />
+              <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
+                {totalItemsCount} art. • Panier
+              </span>
+              <span className="text-sm font-black text-emerald-400 font-mono truncate block">
+                {formatMoney(totalAmount)}
+              </span>
             </button>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setMobileTab("CART")}
+                className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 touch-press"
+              >
+                Détail
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (isWaiter && !canCollectPayment) {
+                    setWaiterPinInput("");
+                    setWaiterPinError(null);
+                    setIsWaiterUnlockModalOpen(true);
+                  } else {
+                    setIsPaymentModalOpen(true);
+                  }
+                }}
+                className="py-2 px-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-md shadow-blue-600/30 flex items-center gap-1.5 touch-press"
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                <span>Encaisser</span>
+              </button>
+            </div>
           </div>
         )}
       </div>
