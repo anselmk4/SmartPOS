@@ -36,8 +36,12 @@ import {
   Upload,
   Image as ImageIcon,
   Trash2,
+  QrCode,
+  Share2,
+  ExternalLink,
 } from "lucide-react";
 
+import { StoreQRModal } from "@/components/catalog/store-qr-modal";
 import { BUSINESS_ACTIVITIES } from "@/lib/constants/business-activities";
 
 import { convertCurrency, EXCHANGE_RATES } from "@/lib/constants/plans";
@@ -83,6 +87,7 @@ export default function SettingsPage() {
   const [address, setAddress] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [isSaved, setIsSaved] = useState(false);
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
 
   // Security & Password change state
@@ -426,6 +431,34 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* LEFT: Store Profile & Session */}
         <div className="lg:col-span-2 space-y-5">
+          {/* Public Catalog & QR Code Tarifs Card */}
+          <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-3xl p-5 sm:p-6 text-white shadow-xl relative overflow-hidden">
+            <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-[11px] font-bold border border-blue-400/30 mb-1">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Menu & Tarifs Clients par QR Code</span>
+                </div>
+                <h3 className="text-lg sm:text-xl font-black text-white">
+                  Page Publique & Présentoir QR Code
+                </h3>
+                <p className="text-xs text-slate-300 max-w-md">
+                  Générez un QR Code à poser sur votre comptoir ou à partager sur WhatsApp. Vos clients accèdent à vos articles et prix en direct (sans voir vos stocks).
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsQRModalOpen(true)}
+                className="px-4 py-3 bg-blue-500 hover:bg-blue-400 text-white text-xs font-black rounded-2xl shadow-lg shadow-blue-500/30 transition-all flex items-center gap-2 shrink-0 touch-press"
+              >
+                <QrCode className="w-4 h-4" />
+                <span>Générer mon QR Code</span>
+              </button>
+            </div>
+          </div>
+
           {/* Store Profile */}
           <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-sm">
             <h3 className="font-bold text-slate-900 text-base mb-4 flex items-center gap-2">
@@ -972,6 +1005,21 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Store QR Code & Public Menu Modal */}
+      <StoreQRModal
+        isOpen={isQRModalOpen}
+        onClose={() => setIsQRModalOpen(false)}
+        store={{
+          id: currentStoreId,
+          name: storeName || authStore?.name || "Ma Boutique",
+          businessType: businessType || authStore?.businessType,
+          logoUrl: logoUrl || authStore?.logoUrl,
+          phone: phone || authStore?.phone,
+          currency: currency || authStore?.currency,
+          address: address || authStore?.address,
+        }}
+      />
     </div>
   );
 }

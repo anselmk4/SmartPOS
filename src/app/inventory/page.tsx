@@ -31,7 +31,9 @@ import {
   Image as ImageIcon,
   Upload,
   Camera,
+  QrCode,
 } from "lucide-react";
+import { StoreQRModal } from "@/components/catalog/store-qr-modal";
 
 export default function InventoryPage() {
   const { tenant, store: authStore, stores, user, isAuthenticated, isLoading, isOwner, isManager, plan, canAccess } = useAuth();
@@ -54,6 +56,7 @@ export default function InventoryPage() {
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [selectedProductForEdit, setSelectedProductForEdit] = useState<Product | null>(null);
   const [selectedProductForStockAdjust, setSelectedProductForStockAdjust] = useState<Product | null>(null);
 
@@ -501,6 +504,16 @@ export default function InventoryPage() {
           >
             <ArrowRightLeft className="w-3.5 h-3.5" />
             <span>Transfert Inter-Magasin</span>
+          </button>
+
+          {/* QR Code & Public Menu Button */}
+          <button
+            onClick={() => setIsQRModalOpen(true)}
+            className="py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs flex items-center gap-1.5 border border-amber-200 whitespace-nowrap touch-press"
+            title="Générer l'affiche QR Code et le lien public des tarifs"
+          >
+            <QrCode className="w-3.5 h-3.5 text-amber-700" />
+            <span>Menu & Tarifs QR</span>
           </button>
 
           {/* Export Excel button */}
@@ -1120,6 +1133,21 @@ export default function InventoryPage() {
       <ExportReportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
+      />
+
+      {/* STORE QR CODE & PUBLIC MENU MODAL */}
+      <StoreQRModal
+        isOpen={isQRModalOpen}
+        onClose={() => setIsQRModalOpen(false)}
+        store={{
+          id: currentStoreId,
+          name: authStore?.name || "Ma Boutique",
+          businessType: authStore?.businessType,
+          logoUrl: authStore?.logoUrl,
+          phone: authStore?.phone,
+          currency: currency || authStore?.currency,
+          address: authStore?.address,
+        }}
       />
     </div>
   );
