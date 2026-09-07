@@ -9,6 +9,7 @@ import { useSync } from "@/lib/sync/sync-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
 import { printIsolatedDocument } from "@/lib/native/print-service";
 import type { Sale, SaleItem, Customer, HeldOrder } from "@/lib/shared/types";
+import { PaginationControl } from "@/components/shared/pagination-control";
 import {
   Receipt,
   Search,
@@ -123,6 +124,10 @@ export default function SalesHistoryPage() {
   const [statusFilter, setStatusFilter] = useState<"ALL" | "PAID" | "PARTIAL" | "UNPAID" | "PENDING">("ALL");
   const [methodFilter, setMethodFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  // Pagination State (25, 50, 100, 200)
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(25);
 
   // Modal State for Sale Details
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
@@ -239,6 +244,17 @@ export default function SalesHistoryPage() {
     if (filteredSales.length === 0) return 0;
     return totalVolume / filteredSales.length;
   }, [filteredSales, totalVolume]);
+
+  // Reset to page 1 whenever filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [timeFilter, customDate, statusFilter, methodFilter, searchQuery]);
+
+  // Paginated Sales slice
+  const paginatedSales = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredSales.slice(start, start + pageSize);
+  }, [filteredSales, currentPage, pageSize]);
 
   // Selected Sale Details
   const selectedSaleItems = useMemo(() => {
@@ -886,7 +902,7 @@ export default function SalesHistoryPage() {
                 ))}
 
               {/* 2. COMPLETED SALES MOBILE CARDS */}
-              {filteredSales.map((sale) => {
+              {paginatedSales.map((sale) => {
                 const cust = customers.find((c) => c.id === sale.customerId);
                 const isFullyPaid = sale.debtAmount === 0;
                 const isPartial = sale.amountPaid > 0 && sale.debtAmount > 0;
@@ -1168,54 +1184,70 @@ export default function SalesHistoryPage() {
                       </td>
 
                       {/* Payment Method */}
-                      <td className="py-3 px-3 whitespace-nowrap">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         {sale.paymentSplits && sale.paymentSplits.length > 0 ? (
                           <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-200">
                             <Layers className="w-3 h-3" />
-                            <span>Multi ({sale.paymentSplits.length})</span>
+                            <span>Mixte ({sale.paymentSplits.length})</span>
                           </span>
                         ) : (
-                          <span className="text-slate-800 font-bold text-xs">
-                            {sale.paymentMethod}
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200">
+                            {sale.paymentMethod === "CASH" && "💵 Espèces"}
+                            {sale.paymentMethod === "MPESA" && "📱 Vodacom M-Pesa"}
+                            {sale.paymentMethod === "AIRTEL_MONEY" && "📱 Airtel Money"}
+                            {sale.paymentMethod === "ORANGE_MONEY" && "📱 Orange Money"}
+                            {sale.paymentMethod === "AFRIMONEY" && "📱 AfriMoney"}
+                            {sale.paymentMethod === "ILLICOCASH" && "📱 IllicoCash (Rawbank)"}
+                            {sale.paymentMethod === "EQUITY_BCDC" && "🏦 Equity BCDC"}
+                            {sale.paymentMethod === "PEPELE_MOBILE" && "📱 Pepele Mobile (Trust)"}
+                            {sale.paymentMethod === "WAVE" && "🌊 Wave"}
+                            {sale.paymentMethod === "MTN_MOMO" && "🟡 MTN MoMo"}
+                            {sale.paymentMethod === "MOOV_MONEY" && "🔵 Moov Money"}
+                            {sale.paymentMethod === "CARD" && "💳 Carte Bancaire"}
+                            {sale.paymentMethod === "CREDIT" && "📕 Dette / Crédit"}
+                            {sale.paymentMethod === "MIXED" && "🔀 Paiement Mixte"}
+                            {!sale.paymentMethod && "💵 Espèces"}
                           </span>
                         )}
                       </td>
 
                       {/* Total Net */}
-                      <td className="py-3 px-3 text-right font-black text-slate-900 whitespace-nowrap">
+                      <td className="py-3 px-4 text-right font-black text-slate-900 whitespace-nowrap">
                         {formatMoney(sale.totalAmount)}
                       </td>
 
                       {/* Amount Paid */}
-                      <td className="py-3 px-3 text-right font-bold text-emerald-700 whitespace-nowrap">
+                      <td className="py-3 px-4 text-right font-bold text-emerald-700 whitespace-nowrap">
                         {formatMoney(sale.amountPaid)}
                       </td>
 
                       {/* Debt Amount */}
-                      <td className="py-3 px-3 text-right font-black whitespace-nowrap">
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
                         {sale.debtAmount > 0 ? (
-                          <span className="text-rose-600">-{formatMoney(sale.debtAmount)}</span>
+                          <span className="font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                            {formatMoney(sale.debtAmount)}
+                          </span>
                         ) : (
-                          <span className="text-slate-300">0</span>
+                          <span className="text-slate-300 font-medium">-</span>
                         )}
                       </td>
 
                       {/* Status Badge */}
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                      <td className="py-3 px-4 text-center whitespace-nowrap">
                         {isFullyPaid && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full shadow-2xs">
                             <CheckCircle2 className="w-3 h-3" />
-                            <span>Payée</span>
+                            <span>Soldée</span>
                           </span>
                         )}
                         {isPartial && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full shadow-2xs">
                             <Clock className="w-3 h-3" />
-                            <span>Partiel</span>
+                            <span>Acompte</span>
                           </span>
                         )}
                         {isUnpaid && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full shadow-2xs">
                             <AlertTriangle className="w-3 h-3" />
                             <span>Non Payée</span>
                           </span>
@@ -1239,6 +1271,20 @@ export default function SalesHistoryPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {filteredSales.length > 0 && (
+            <div className="p-3 border-t border-slate-100">
+              <PaginationControl
+                currentPage={currentPage}
+                pageSize={pageSize}
+                totalItems={filteredSales.length}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+                pageSizeOptions={[25, 50, 100, 200]}
+              />
+            </div>
+          )}
         </>
       )}
     </div>

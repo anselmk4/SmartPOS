@@ -7,6 +7,7 @@ import { db, generateUUID, enqueueSync, DEFAULT_STORE_ID } from "@/lib/db/dexie-
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
+import { PaginationControl } from "@/components/shared/pagination-control";
 import type { Customer, Sale, SaleItem, DebtPayment } from "@/lib/shared/types";
 import {
   Users,
@@ -53,6 +54,14 @@ export default function CustomersPage() {
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDebtOnly, setFilterDebtOnly] = useState(false);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterDebtOnly]);
 
   // Selected customer for detailed "Fiche Client"
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
@@ -195,6 +204,11 @@ export default function CustomersPage() {
       return true;
     });
   }, [customers, searchQuery, filterDebtOnly]);
+
+  const paginatedCustomers = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredCustomers.slice(start, start + pageSize);
+  }, [filteredCustomers, currentPage, pageSize]);
 
   // Compute Top Clients Leaderboard according to timeframe
   const leaderboard = useMemo(() => {
@@ -481,7 +495,7 @@ export default function CustomersPage() {
 
           {/* Customer Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {filteredCustomers.map((c) => {
+            {paginatedCustomers.map((c) => {
               const stats = customerStatsMap.get(c.id) || {
                 totalSpent: 0,
                 salesCount: 0,
@@ -564,6 +578,14 @@ export default function CustomersPage() {
               </div>
             )}
           </div>
+
+          <PaginationControl
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalItems={filteredCustomers.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
         </div>
       )}
 

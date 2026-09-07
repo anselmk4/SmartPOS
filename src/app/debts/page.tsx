@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
 import { UpgradePromptModal } from "@/components/plans/upgrade-prompt-modal";
 import ExportReportModal from "@/components/reports/export-report-modal";
+import { PaginationControl } from "@/components/shared/pagination-control";
 import type { Customer, PaymentMethod, DebtPayment } from "@/lib/shared/types";
 import {
   BookOpen,
@@ -65,6 +66,10 @@ export default function DebtsPage() {
   const [newCustPhone, setNewCustPhone] = useState("");
   const [initialDebt, setInitialDebt] = useState<number>(0);
 
+  // Pagination State (25, 50, 100, 200)
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(25);
+
   const filteredCustomers = useMemo(() => {
     return customers.filter((c) => {
       const matchSearch =
@@ -77,6 +82,17 @@ export default function DebtsPage() {
       return matchSearch;
     });
   }, [customers, searchQuery, filterType]);
+
+  // Reset to page 1 on filter/search change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterType]);
+
+  // Paginated customers slice
+  const paginatedCustomers = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredCustomers.slice(start, start + pageSize);
+  }, [filteredCustomers, currentPage, pageSize]);
 
   const totalOutstandingDebt = useMemo(() => {
     return customers.reduce((sum, c) => sum + (c.currentDebtBalance > 0 ? c.currentDebtBalance : 0), 0);
@@ -335,74 +351,90 @@ export default function DebtsPage() {
             <p className="text-xs text-slate-400 mt-1">Tous les comptes sont à jour ou aucun client n'a été créé</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pb-8">
-            {filteredCustomers.map((cust) => {
-              const hasDebt = cust.currentDebtBalance > 0;
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pb-4">
+              {paginatedCustomers.map((cust) => {
+                const hasDebt = cust.currentDebtBalance > 0;
 
-              return (
-                <div
-                  key={cust.id}
-                  className={`bg-white rounded-3xl p-4 border transition-all flex flex-col justify-between shadow-sm hover:shadow-md ${
-                    hasDebt ? "border-rose-200/80" : "border-slate-200/80"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-base leading-tight">{cust.name}</h3>
-                      {cust.phone ? (
-                        <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
-                          <Phone className="w-3 h-3 text-slate-400" />
-                          <span>{cust.phone}</span>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-slate-400 italic">Pas de numéro</span>
-                      )}
+                return (
+                  <div
+                    key={cust.id}
+                    className={`bg-white rounded-3xl p-4 border transition-all flex flex-col justify-between shadow-sm hover:shadow-md ${
+                      hasDebt ? "border-rose-200/80" : "border-slate-200/80"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-base leading-tight">{cust.name}</h3>
+                        {cust.phone ? (
+                          <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
+                            <Phone className="w-3 h-3 text-slate-400" />
+                            <span>{cust.phone}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 italic">Pas de numéro</span>
+                        )}
+                      </div>
+
+                      <span
+                        className={`text-xs font-black px-2.5 py-1 rounded-full ${
+                          hasDebt
+                            ? "bg-rose-100 text-rose-700 border border-rose-200"
+                            : "bg-blue-100 text-blue-800"
+                        }`}
+                      >
+                        {hasDebt ? formatMoney(cust.currentDebtBalance) : "À jour"}
+                      </span>
                     </div>
 
-                    <span
-                      className={`text-xs font-black px-2.5 py-1 rounded-full ${
-                        hasDebt
-                          ? "bg-rose-100 text-rose-700 border border-rose-200"
-                          : "bg-blue-100 text-blue-800"
-                      }`}
-                    >
-                      {hasDebt ? formatMoney(cust.currentDebtBalance) : "À jour"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
-                    {hasDebt ? (
-                      <>
-                        <button
-                          onClick={() => handleOpenRepayment(cust)}
-                          className="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm touch-press"
-                        >
-                          <Coins className="w-3.5 h-3.5" />
-                          <span>Encaisser</span>
-                        </button>
-
-                        {cust.phone && (
+                    <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
+                      {hasDebt ? (
+                        <>
                           <button
-                            onClick={() => setSelectedCustomerForWhatsApp(cust)}
-                            className="py-2 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 font-bold text-xs flex items-center justify-center gap-1.5 touch-press"
-                            title="Relancer par WhatsApp"
+                            onClick={() => handleOpenRepayment(cust)}
+                            className="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm touch-press"
                           >
-                            <MessageCircle className="w-3.5 h-3.5 text-blue-600" />
-                            <span>Relancer</span>
+                            <Coins className="w-3.5 h-3.5" />
+                            <span>Encaisser</span>
                           </button>
-                        )}
-                      </>
-                    ) : (
-                      <div className="w-full text-center text-xs text-blue-600 font-semibold py-1 flex items-center justify-center gap-1">
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Compte régularisé</span>
-                      </div>
-                    )}
+
+                          {cust.phone && (
+                            <button
+                              onClick={() => setSelectedCustomerForWhatsApp(cust)}
+                              className="py-2 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 font-bold text-xs flex items-center justify-center gap-1.5 touch-press"
+                              title="Relancer par WhatsApp"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5 text-blue-600" />
+                              <span>Relancer</span>
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <div className="w-full text-center text-xs text-blue-600 font-semibold py-1 flex items-center justify-center gap-1">
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Compte régularisé</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+
+            {/* Pagination Controls */}
+            {filteredCustomers.length > 0 && (
+              <div className="pb-8">
+                <PaginationControl
+                  currentPage={currentPage}
+                  pageSize={pageSize}
+                  totalItems={filteredCustomers.length}
+                  onPageChange={setCurrentPage}
+                  onPageSizeChange={setPageSize}
+                  pageSizeOptions={[25, 50, 100, 200]}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
 

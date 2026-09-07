@@ -34,6 +34,7 @@ import {
   QrCode,
 } from "lucide-react";
 import { StoreQRModal } from "@/components/catalog/store-qr-modal";
+import { PaginationControl } from "@/components/shared/pagination-control";
 
 export default function InventoryPage() {
   const { tenant, store: authStore, stores, user, isAuthenticated, isLoading, isOwner, isManager, plan, canAccess } = useAuth();
@@ -59,6 +60,10 @@ export default function InventoryPage() {
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [selectedProductForEdit, setSelectedProductForEdit] = useState<Product | null>(null);
   const [selectedProductForStockAdjust, setSelectedProductForStockAdjust] = useState<Product | null>(null);
+
+  // Pagination State (25, 50, 100, 200)
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(25);
 
   // Form State for Add / Edit Product
   const [formName, setFormName] = useState("");
@@ -108,6 +113,17 @@ export default function InventoryPage() {
       return matchSearch && matchCat && matchLowStock;
     });
   }, [products, searchQuery, selectedCategory, showLowStockOnly]);
+
+  // Reset to page 1 on filter change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, showLowStockOnly]);
+
+  // Paginated products slice
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredProducts.slice(start, start + pageSize);
+  }, [filteredProducts, currentPage, pageSize]);
 
   const totalStockValue = useMemo(() => {
     return products.reduce((acc, p) => acc + p.stockQuantity * (p.costPrice || p.unitPrice * 0.8), 0);
@@ -555,120 +571,136 @@ export default function InventoryPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pb-8">
-            {filteredProducts.map((p) => {
-              const isOutOfStock = p.stockQuantity <= 0;
-              const isLowStock = p.stockQuantity > 0 && p.stockQuantity <= p.minStockAlert;
-              const margin = p.unitPrice - (p.costPrice || 0);
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pb-4">
+              {paginatedProducts.map((p) => {
+                const isOutOfStock = p.stockQuantity <= 0;
+                const isLowStock = p.stockQuantity > 0 && p.stockQuantity <= p.minStockAlert;
+                const margin = p.unitPrice - (p.costPrice || 0);
 
-              return (
-                <div
-                  key={p.id}
-                  className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
-                >
-                  <div>
-                    {/* Header + Stock badge */}
-                    <div className="flex items-center justify-between gap-1 mb-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        {p.category}
-                      </span>
-                      <span
-                        className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                          isOutOfStock
-                            ? "bg-rose-100 text-rose-700 border border-rose-200"
-                            : isLowStock
-                            ? "bg-amber-100 text-amber-800 border border-amber-200"
-                            : "bg-blue-50 text-blue-700 border border-blue-200"
-                        }`}
-                      >
-                        {isOutOfStock ? "Rupture" : `Stock : ${p.stockQuantity}`}
-                      </span>
-                    </div>
+                return (
+                  <div
+                    key={p.id}
+                    className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                  >
+                    <div>
+                      {/* Header + Stock badge */}
+                      <div className="flex items-center justify-between gap-1 mb-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          {p.category}
+                        </span>
+                        <span
+                          className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                            isOutOfStock
+                              ? "bg-rose-100 text-rose-700 border border-rose-200"
+                              : isLowStock
+                              ? "bg-amber-100 text-amber-800 border border-amber-200"
+                              : "bg-blue-50 text-blue-700 border border-blue-200"
+                          }`}
+                        >
+                          {isOutOfStock ? "Rupture" : `Stock : ${p.stockQuantity}`}
+                        </span>
+                      </div>
 
-                    {/* Product Photo Thumbnail & Title */}
-                    <div className="flex items-center gap-3 mb-2">
-                      {p.imageUrl ? (
-                        <img
-                          src={p.imageUrl}
-                          alt={p.name}
-                          className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shrink-0 shadow-sm"
-                        />
-                      ) : (
-                        <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center shrink-0 border border-slate-200/80">
-                          <Package className="w-6 h-6 stroke-1" />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-snug line-clamp-2">
-                          {p.name}
-                        </h3>
-                        {p.barcode && (
-                          <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-0.5">
-                            <Barcode className="w-3 h-3" />
-                            <span>{p.barcode}</span>
+                      {/* Product Photo Thumbnail & Title */}
+                      <div className="flex items-center gap-3 mb-2">
+                        {p.imageUrl ? (
+                          <img
+                            src={p.imageUrl}
+                            alt={p.name}
+                            className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shrink-0 shadow-sm"
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center shrink-0 border border-slate-200/80">
+                            <Package className="w-6 h-6 stroke-1" />
                           </div>
                         )}
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-snug line-clamp-2">
+                            {p.name}
+                          </h3>
+                          {p.barcode && (
+                            <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-0.5">
+                              <Barcode className="w-3 h-3" />
+                              <span>{p.barcode}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-50 rounded-2xl p-2.5 grid grid-cols-3 gap-1 text-center my-2 border border-slate-100">
+                        <div>
+                          <div className="text-[10px] text-slate-400 uppercase">Achat</div>
+                          <div className="font-bold text-xs text-slate-700">
+                            {formatMoney(p.costPrice || 0)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-slate-400 uppercase">Vente</div>
+                          <div className="font-black text-xs text-blue-700">
+                            {formatMoney(p.unitPrice)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-slate-400 uppercase">Marge</div>
+                          <div className="font-bold text-xs text-indigo-600">
+                            +{formatMoney(margin)}
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="bg-slate-50 rounded-2xl p-2.5 grid grid-cols-3 gap-1 text-center my-2 border border-slate-100">
-                      <div>
-                        <div className="text-[10px] text-slate-400 uppercase">Achat</div>
-                        <div className="font-bold text-xs text-slate-700">
-                          {formatMoney(p.costPrice || 0)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-slate-400 uppercase">Vente</div>
-                        <div className="font-black text-xs text-blue-700">
-                          {formatMoney(p.unitPrice)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-slate-400 uppercase">Marge</div>
-                        <div className="font-bold text-xs text-indigo-600">
-                          +{formatMoney(margin)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 pt-2 border-t border-slate-100 mt-2">
-                    <button
-                      onClick={() => {
-                        setSelectedProductForStockAdjust(p);
-                        setAdjustQuantity(10);
-                        setAdjustType("ADD");
-                        setAdjustReason("RESTOCK");
-                      }}
-                      className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors touch-press"
-                    >
-                      <ArrowUpDown className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Réapprovisionner</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleOpenEdit(p)}
-                      className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
-                      title="Modifier l'article"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-
-                    {isOwner && (
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-100 mt-2">
                       <button
-                        onClick={() => handleDeleteProduct(p)}
-                        className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition-colors border border-rose-100"
-                        title="Supprimer l'article (Réservé au propriétaire)"
+                        onClick={() => {
+                          setSelectedProductForStockAdjust(p);
+                          setAdjustQuantity(10);
+                          setAdjustType("ADD");
+                          setAdjustReason("RESTOCK");
+                        }}
+                        className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors touch-press"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <ArrowUpDown className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Réapprovisionner</span>
                       </button>
-                    )}
+
+                      <button
+                        onClick={() => handleOpenEdit(p)}
+                        className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
+                        title="Modifier l'article"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+
+                      {isOwner && (
+                        <button
+                          onClick={() => handleDeleteProduct(p)}
+                          className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition-colors border border-rose-100"
+                          title="Supprimer l'article (Réservé au propriétaire)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+
+            {/* Pagination Controls */}
+            {filteredProducts.length > 0 && (
+              <div className="pb-8">
+                <PaginationControl
+                  currentPage={currentPage}
+                  pageSize={pageSize}
+                  totalItems={filteredProducts.length}
+                  onPageChange={setCurrentPage}
+                  onPageSizeChange={setPageSize}
+                  pageSizeOptions={[25, 50, 100, 200]}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
 

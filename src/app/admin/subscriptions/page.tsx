@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { adminFetch } from "@/lib/admin/admin-api";
+import { PaginationControl } from "@/components/shared/pagination-control";
 import type { SubscriptionPlan, PaymentMethod } from "@/lib/shared/types";
 import {
   CreditCard,
@@ -64,6 +65,14 @@ export default function AdminSubscriptionsPage() {
   const [operatorFilter, setOperatorFilter] = useState<string>("ALL");
   const [planFilter, setPlanFilter] = useState<string>("ALL");
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [operatorFilter, planFilter]);
+
   // Modal State for manual entry
   const [isManualSubModalOpen, setIsManualSubModalOpen] = useState(false);
   const [subTenantId, setSubTenantId] = useState("");
@@ -117,6 +126,11 @@ export default function AdminSubscriptionsPage() {
       return matchOp && matchPlan;
     });
   }, [subscriptions, operatorFilter, planFilter]);
+
+  const paginatedSubscriptions = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredSubscriptions.slice(start, start + pageSize);
+  }, [filteredSubscriptions, currentPage, pageSize]);
 
   const handleOpenManual = () => {
     if (tenants.length > 0) setSubTenantId(tenants[0].id);
@@ -318,7 +332,7 @@ export default function AdminSubscriptionsPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredSubscriptions.map((s) => (
+                  paginatedSubscriptions.map((s) => (
                     <tr key={s.id} className="hover:bg-slate-800/30 transition-colors">
                       <td className="px-4 py-3.5">
                         <div className="font-bold text-white text-sm">
@@ -377,6 +391,14 @@ export default function AdminSubscriptionsPage() {
               </tbody>
             </table>
           </div>
+
+          <PaginationControl
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalItems={filteredSubscriptions.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
         </div>
       )}
 

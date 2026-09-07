@@ -6,6 +6,7 @@ import { db, DEFAULT_STORE_ID, createExpense, deleteExpense } from "@/lib/db/dex
 import { useSync } from "@/lib/sync/sync-context";
 import { useAuth } from "@/lib/auth/auth-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
+import { PaginationControl } from "@/components/shared/pagination-control";
 import { EXPENSE_CATEGORIES, type Expense, type PaymentMethod, type ExpenseCategory } from "@/lib/shared/types";
 import { uploadMediaFile } from "@/lib/storage/media-storage";
 import { compressImageFile } from "@/lib/utils/image-compressor";
@@ -46,6 +47,14 @@ export default function ExpensesPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<"TODAY" | "WEEK" | "MONTH" | "ALL">("TODAY");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedPeriod, selectedCategoryFilter, searchQuery]);
 
   // Modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -101,31 +110,38 @@ export default function ExpensesPage() {
   const currentMonthStr = todayStr.substring(0, 7);
 
   // Filtered expenses based on period, category and search
-  const filteredExpenses = expenses.filter((e) => {
-    // Period filter
-    if (selectedPeriod === "TODAY" && !e.expenseDate.startsWith(todayStr)) return false;
-    if (selectedPeriod === "MONTH" && !e.expenseDate.startsWith(currentMonthStr)) return false;
-    if (selectedPeriod === "WEEK") {
-      const expDate = new Date(e.expenseDate);
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      if (expDate < sevenDaysAgo) return false;
-    }
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter((e) => {
+      // Period filter
+      if (selectedPeriod === "TODAY" && !e.expenseDate.startsWith(todayStr)) return false;
+      if (selectedPeriod === "MONTH" && !e.expenseDate.startsWith(currentMonthStr)) return false;
+      if (selectedPeriod === "WEEK") {
+        const expDate = new Date(e.expenseDate);
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        if (expDate < sevenDaysAgo) return false;
+      }
 
-    // Category filter
-    if (selectedCategoryFilter !== "ALL" && e.category !== selectedCategoryFilter) return false;
+      // Category filter
+      if (selectedCategoryFilter !== "ALL" && e.category !== selectedCategoryFilter) return false;
 
-    // Search query
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const catObj = EXPENSE_CATEGORIES.find((c) => c.id === e.category);
-      const catName = (catObj?.label || e.category).toLowerCase();
-      const noteStr = (e.notes || "").toLowerCase();
-      return catName.includes(q) || noteStr.includes(q);
-    }
+      // Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const catObj = EXPENSE_CATEGORIES.find((c) => c.id === e.category);
+        const catName = (catObj?.label || e.category).toLowerCase();
+        const noteStr = (e.notes || "").toLowerCase();
+        return catName.includes(q) || noteStr.includes(q);
+      }
 
-    return true;
-  });
+      return true;
+    });
+  }, [expenses, selectedPeriod, selectedCategoryFilter, searchQuery, todayStr, currentMonthStr]);
+
+  const paginatedExpenses = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredExpenses.slice(start, start + pageSize);
+  }, [filteredExpenses, currentPage, pageSize]);
 
   // KPI Calculations
   const todayTotal = expenses
@@ -382,7 +398,7 @@ export default function ExpensesPage() {
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {filteredExpenses.map((exp) => {
+            {paginatedExpenses.map((exp) => {
               const catObj = EXPENSE_CATEGORIES.find((c) => c.id === exp.category) || {
                 label: exp.category,
                 icon: "📝",
@@ -450,6 +466,14 @@ export default function ExpensesPage() {
             })}
           </div>
         )}
+
+        <PaginationControl
+          currentPage={currentPage}
+          pageSize={pageSize}
+          totalItems={filteredExpenses.length}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+        />
       </div>
 
       {/* MODAL: Add Expense */}

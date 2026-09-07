@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { adminFetch } from "@/lib/admin/admin-api";
+import { PaginationControl } from "@/components/shared/pagination-control";
 import {
   Package,
   Search,
@@ -56,6 +57,14 @@ export default function AdminCatalogPage() {
   const [storeFilter, setStoreFilter] = useState<string>("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, tenantFilter, storeFilter, categoryFilter, showLowStockOnly]);
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -117,6 +126,11 @@ export default function AdminCatalogPage() {
       return matchSearch && matchTenant && matchStore && matchCat && matchLowStock;
     });
   }, [products, searchQuery, tenantFilter, storeFilter, categoryFilter, showLowStockOnly]);
+
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredProducts.slice(start, start + pageSize);
+  }, [filteredProducts, currentPage, pageSize]);
 
   const handleOpenEdit = (p: ProductWithTenantStore) => {
     setSelectedProduct(p);
@@ -366,7 +380,7 @@ export default function AdminCatalogPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredProducts.map((p) => {
+                  paginatedProducts.map((p) => {
                     const isLow = p.stockQuantity <= p.minStockAlert;
 
                     return (
@@ -438,6 +452,14 @@ export default function AdminCatalogPage() {
               </tbody>
             </table>
           </div>
+
+          <PaginationControl
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalItems={filteredProducts.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
         </div>
       )}
 

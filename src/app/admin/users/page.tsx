@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { adminFetch } from "@/lib/admin/admin-api";
+import { PaginationControl } from "@/components/shared/pagination-control";
 import type { UserRole } from "@/lib/shared/types";
 import {
   Users as UsersIcon,
@@ -59,6 +60,14 @@ export default function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [tenantFilter, setTenantFilter] = useState<string>("ALL");
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, roleFilter, tenantFilter]);
 
   // Modals state
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
@@ -122,6 +131,11 @@ export default function AdminUsersPage() {
       return matchSearch && matchRole && matchTenant;
     });
   }, [users, searchQuery, roleFilter, tenantFilter]);
+
+  const paginatedUsers = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredUsers.slice(start, start + pageSize);
+  }, [filteredUsers, currentPage, pageSize]);
 
   const handleOpenAdd = () => {
     if (tenants.length > 0) setFormTenantId(tenants[0].id);
@@ -408,7 +422,7 @@ export default function AdminUsersPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((u) => (
+                  paginatedUsers.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-50/70 transition-colors">
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2.5">
@@ -510,6 +524,14 @@ export default function AdminUsersPage() {
               </tbody>
             </table>
           </div>
+
+          <PaginationControl
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalItems={filteredUsers.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
         </div>
       )}
 

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { adminFetch } from "@/lib/admin/admin-api";
 import { TenantDetailsSidebar } from "@/components/admin/tenant-details-sidebar";
+import { PaginationControl } from "@/components/shared/pagination-control";
 import type { SubscriptionPlan, PaymentMethod } from "@/lib/shared/types";
 import { getPlanPriceInfo } from "@/lib/constants/plans";
 import {
@@ -73,6 +74,14 @@ export default function AdminTenantsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [planFilter, setPlanFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, planFilter, statusFilter]);
 
   // Modals & Drawer state
   const [isAddTenantModalOpen, setIsAddTenantModalOpen] = useState(false);
@@ -150,6 +159,11 @@ export default function AdminTenantsPage() {
       return matchSearch && matchPlan && matchStatus;
     });
   }, [tenants, searchQuery, planFilter, statusFilter]);
+
+  const paginatedTenants = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredTenants.slice(start, start + pageSize);
+  }, [filteredTenants, currentPage, pageSize]);
 
   // Actions
   const handleOpenAddModal = () => {
@@ -500,192 +514,188 @@ export default function AdminTenantsPage() {
 
       {/* Tenants Cards / Grid */}
       {!isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTenants.map((t) => {
-            const storesCount = t.stores?.length || 0;
-            const usersCount = t.users?.length || 0;
-            const productsCount = t._count?.products || 0;
-            const salesCount = t._count?.sales || 0;
-            const mainOwner = t.users?.find((u) => u.role === "OWNER")?.name || t.stores?.[0]?.ownerName || "Gérant";
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {paginatedTenants.map((t) => {
+              const storesCount = t.stores?.length || 0;
+              const usersCount = t.users?.length || 0;
+              const productsCount = t._count?.products || 0;
+              const salesCount = t._count?.sales || 0;
+              const mainOwner = t.users?.find((u) => u.role === "OWNER")?.name || t.stores?.[0]?.ownerName || "Gérant";
 
-            return (
-              <div
-                key={t.id}
-                className={`bg-slate-900 rounded-3xl p-5 border transition-all flex flex-col justify-between ${
-                  t.isActive ? "border-slate-800 hover:border-slate-700" : "border-rose-900/40 bg-rose-950/10"
-                }`}
-              >
-                <div>
-                  {/* Top Bar inside Card */}
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <div className="min-w-0 flex-1">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenSidebar(t)}
-                        className="text-left group flex items-center gap-1.5 transition-colors focus:outline-none w-full"
-                        title="Cliquer pour ouvrir la fiche détaillée"
-                      >
-                        <h3 className="font-black text-white text-base truncate group-hover:text-blue-400 transition-colors">
-                          {t.name}
-                        </h3>
-                        <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                      </button>
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <span className="text-[10px] text-slate-400 font-mono truncate">
-                          ID: {t.id.slice(0, 13)}...
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1 ${
-                            t.isActive
-                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                              : "bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse"
-                          }`}
+              return (
+                <div
+                  key={t.id}
+                  className={`bg-slate-900 rounded-3xl p-5 border transition-all flex flex-col justify-between ${
+                    t.isActive ? "border-slate-800 hover:border-slate-700" : "border-rose-900/40 bg-rose-950/10"
+                  }`}
+                >
+                  <div>
+                    {/* Top Bar inside Card */}
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="min-w-0 flex-1">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenSidebar(t)}
+                          className="text-left group flex items-center gap-1.5 transition-colors focus:outline-none w-full"
+                          title="Cliquer pour ouvrir la fiche détaillée"
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${t.isActive ? "bg-emerald-400" : "bg-amber-400"}`} />
-                          <span>{t.isActive ? "Actif (Vérifié)" : "En Attente SMS / Non Activé"}</span>
-                        </span>
+                          <h3 className="font-black text-white text-base truncate group-hover:text-blue-400 transition-colors">
+                            {t.name}
+                          </h3>
+                          <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                        </button>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-[10px] text-slate-400 font-mono truncate">
+                            ID: {t.id.slice(0, 13)}...
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1 ${
+                              t.isActive
+                                ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                                : "bg-rose-500/15 text-rose-400 border border-rose-500/30"
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${t.isActive ? "bg-emerald-400" : "bg-rose-400"}`} />
+                            {t.isActive ? "Actif" : "Suspendu"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Plan Badge */}
+                      <span
+                        className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border shrink-0 ${
+                          t.plan === "BUSINESS"
+                            ? "bg-purple-500/20 text-purple-300 border-purple-500/40"
+                            : t.plan === "PRO"
+                            ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
+                            : t.plan === "BASIC"
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                            : "bg-slate-800 text-slate-400 border-slate-700"
+                        }`}
+                      >
+                        {t.plan}
+                      </span>
+                    </div>
+
+                    {/* Store Meta Info */}
+                    <div className="space-y-1.5 text-xs text-slate-400 mb-4">
+                      <div className="flex items-center gap-2">
+                        <UserIcon className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span className="truncate text-slate-300 font-medium">{mainOwner}</span>
+                      </div>
+                      {t.phone && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          <span className="font-mono text-slate-300">{t.phone}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                        <Calendar className="w-3.5 h-3.5 shrink-0" />
+                        <span>Inscrit le {new Date(t.createdAt).toLocaleDateString("fr-FR")}</span>
                       </div>
                     </div>
 
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase shrink-0 ${
-                        t.plan === "BUSINESS"
-                          ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
-                          : t.plan === "PRO"
-                          ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                          : t.plan === "BASIC"
-                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                          : "bg-slate-800 text-slate-400 border border-slate-700"
-                      }`}
-                    >
-                      {t.plan}
-                    </span>
+                    {/* Metrics Grid */}
+                    <div className="grid grid-cols-4 gap-1.5 bg-slate-800/60 p-2.5 rounded-2xl border border-slate-800/80 mb-4 text-center">
+                      <div>
+                        <span className="block text-[9px] uppercase font-bold text-slate-400 font-mono">Dépôts</span>
+                        <span className="text-xs font-black text-white">{storesCount}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[9px] uppercase font-bold text-slate-400 font-mono">Staff</span>
+                        <span className="text-xs font-black text-white">{usersCount}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[9px] uppercase font-bold text-slate-400 font-mono">Articles</span>
+                        <span className="text-xs font-black text-white">{productsCount}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[9px] uppercase font-bold text-slate-400 font-mono">Ventes</span>
+                        <span className="text-xs font-black text-emerald-400">{salesCount}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Boutique Details */}
-                  <div
-                    onClick={() => handleOpenSidebar(t)}
-                    className="space-y-1.5 text-xs text-slate-300 my-3 bg-slate-800/40 hover:bg-slate-800/70 p-3 rounded-2xl border border-slate-800 hover:border-slate-700 transition-all cursor-pointer group"
-                    title="Cliquer pour afficher la fiche complète"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Gérant :</span>
-                      <span className="font-bold text-white truncate max-w-[150px]">{mainOwner}</span>
+                  {/* Action Bar */}
+                  <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleOpenChangePlanModal(t)}
+                        className="px-2.5 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-xs font-bold transition-all flex items-center gap-1"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                        <span>Abonnement</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleToggleStatus(t)}
+                        className={`px-2 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
+                          t.isActive
+                            ? "bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20"
+                            : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+                        }`}
+                        title={t.isActive ? "Suspendre l'accès" : "Réactiver le commerce"}
+                      >
+                        {t.isActive ? "Suspendre" : "Activer"}
+                      </button>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Contact :</span>
-                      <span className="font-mono text-slate-200">{t.phone || "Non renseigné"}</span>
-                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {t.phone && (
+                        <a
+                          href={`https://wa.me/${t.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                            `Bonjour ${
+                              t.users?.find((u) => u.role === "OWNER")?.name || t.name
+                            }, nous vous confirmons que votre commerce "${t.name}" a été activé avec succès sur Kuettu Global POS ! 🎉\n\nVous pouvez dès maintenant vous connecter à votre caisse sur https://globalpos.app/auth/login avec votre numéro (${t.phone}) et votre code PIN.\n\nNotre équipe reste à votre entière écoute.`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 transition-colors"
+                          title="Notifier le gérant par WhatsApp"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                        </a>
+                      )}
 
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Devise & Pays :</span>
-                      <span className="font-bold text-slate-200">
-                        {t.currency} • {t.countryCode}
-                      </span>
-                    </div>
+                      <button
+                        onClick={() => handleCleanTenantData(t)}
+                        className="p-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 transition-colors"
+                        title="Nettoyer / Purger toutes les données (ventes, articles, clients)"
+                      >
+                        <Eraser className="w-3.5 h-3.5" />
+                      </button>
 
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-400">Secteur :</span>
-                      <span className="font-semibold text-blue-300 truncate max-w-[180px]">
-                        {t.businessType || t.stores?.[0]?.businessType || "Commerce Général"}
-                      </span>
-                    </div>
+                      <button
+                        onClick={() => handleOpenEditModal(t)}
+                        className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                        title="Modifier la boutique"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
 
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-700/40 text-[11px]">
-                      <span className="text-slate-400">Réseau :</span>
-                      <span className="text-blue-400 font-bold">
-                        {storesCount} dépôt(s) • {usersCount} caissier(s)
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-400">Activité :</span>
-                      <span className="text-emerald-400 font-bold">
-                        {productsCount} articles • {salesCount} ventes
-                      </span>
+                      <button
+                        onClick={() => handleDeleteTenant(t)}
+                        className="p-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors"
+                        title="Supprimer définitivement"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 </div>
+              );
+            })}
+          </div>
 
-                {/* Bottom Actions Bar */}
-                <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-1.5 flex-wrap">
-                  <div className="flex items-center gap-1.5">
-                    {!t.isActive ? (
-                      <button
-                        onClick={() => handleToggleStatus(t)}
-                        className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-[11px] flex items-center gap-1.5 shadow-md shadow-emerald-600/30 transition-all touch-press"
-                        title="Activer manuellement cette boutique"
-                      >
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-200" />
-                        <span>Activer Manuellement</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleToggleStatus(t)}
-                        className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-emerald-500/10 text-emerald-400 hover:bg-rose-500/20 hover:text-rose-300 transition-colors flex items-center gap-1"
-                        title="Boutique active (Cliquer pour suspendre)"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Actif</span>
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => handleOpenChangePlanModal(t)}
-                      className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold transition-colors"
-                      title="Modifier le forfait SaaS"
-                    >
-                      Plan
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    {t.phone && (
-                      <a
-                        href={`https://wa.me/${t.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
-                          `Bonjour ${
-                            t.users?.find((u) => u.role === "OWNER")?.name || t.name
-                          }, nous vous confirmons que votre commerce "${t.name}" a été activé avec succès sur Kuettu Global POS ! 🎉\n\nVous pouvez dès maintenant vous connecter à votre caisse sur https://globalpos.app/auth/login avec votre numéro (${t.phone}) et votre code PIN.\n\nNotre équipe reste à votre entière écoute.`
-                        )}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 transition-colors"
-                        title="Notifier le gérant par WhatsApp"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                      </a>
-                    )}
-
-                    <button
-                      onClick={() => handleCleanTenantData(t)}
-                      className="p-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 transition-colors"
-                      title="Nettoyer / Purger toutes les données (ventes, articles, clients)"
-                    >
-                      <Eraser className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      onClick={() => handleOpenEditModal(t)}
-                      className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-                      title="Modifier la boutique"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      onClick={() => handleDeleteTenant(t)}
-                      className="p-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors"
-                      title="Supprimer définitivement"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+          <PaginationControl
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalItems={filteredTenants.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
+        </>
       )}
 
       {/* Modal: Add Boutique */}
