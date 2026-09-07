@@ -73,7 +73,7 @@ export default function SalesHistoryPage() {
     useLiveQuery(async () => {
       if (!currentStoreId && !currentTenantId) return [];
       return await db.products
-        .filter((p) => (currentStoreId && p.storeId === currentStoreId) || (currentTenantId && p.tenantId === currentTenantId))
+        .filter((p) => (!!currentStoreId && p.storeId === currentStoreId) || (!!currentTenantId && p.tenantId === currentTenantId))
         .toArray();
     }, [currentStoreId, currentTenantId]) || [];
 

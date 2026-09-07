@@ -18,6 +18,7 @@ import type {
   PaymentSplit,
   PayrollRecord,
   LeaveRecord,
+  HeldOrder,
 } from "@/lib/shared/types";
 
 export class MicroERPDatabase extends Dexie {

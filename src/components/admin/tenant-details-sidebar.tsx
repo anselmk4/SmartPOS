@@ -710,7 +710,6 @@ export function TenantDetailsSidebar({
                 </div>
               </div>
             )}
-          </div>
 
             {/* TAB 4: PRODUCTS CATALOGUE */}
             {activeTab === "PRODUCTS" && (

@@ -439,7 +439,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   };
 
-  const login = async (identifier: string, pinOrPass: string): Promise<{ success: boolean; message: string }> => {
+  const login = async (
+    identifier: string,
+    pinOrPass: string
+  ): Promise<{
+    success: boolean;
+    message: string;
+    requiresVerification?: boolean;
+    identifier?: string;
+  }> => {
     try {
       const trimmed = identifier.trim();
       const cleanPin = (pinOrPass || "").trim();

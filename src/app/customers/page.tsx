@@ -102,7 +102,7 @@ export default function CustomersPage() {
       async () => {
         if (!currentTenantId) return [];
         return await db.products
-          .filter((p) => p.tenantId === currentTenantId || (currentStoreId && p.storeId === currentStoreId))
+          .filter((p) => p.tenantId === currentTenantId || (!!currentStoreId && p.storeId === currentStoreId))
           .toArray();
       },
       [currentTenantId, currentStoreId]

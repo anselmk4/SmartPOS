@@ -53,21 +53,21 @@ export default function SettingsPage() {
   const productsCount = useLiveQuery(async () => {
     if (!currentTenantId && !currentStoreId) return 0;
     return await db.products
-      .filter((p) => (currentStoreId && p.storeId === currentStoreId) || (currentTenantId && p.tenantId === currentTenantId))
+      .filter((p) => (!!currentStoreId && p.storeId === currentStoreId) || (!!currentTenantId && p.tenantId === currentTenantId))
       .count();
   }, [currentTenantId, currentStoreId]) || 0;
 
   const customersCount = useLiveQuery(async () => {
     if (!currentTenantId && !currentStoreId) return 0;
     return await db.customers
-      .filter((c) => (currentStoreId && c.storeId === currentStoreId) || (currentTenantId && c.tenantId === currentTenantId))
+      .filter((c) => (!!currentStoreId && c.storeId === currentStoreId) || (!!currentTenantId && c.tenantId === currentTenantId))
       .count();
   }, [currentTenantId, currentStoreId]) || 0;
 
   const salesCount = useLiveQuery(async () => {
     if (!currentTenantId && !currentStoreId) return 0;
     return await db.sales
-      .filter((s) => (currentStoreId && s.storeId === currentStoreId) || (currentTenantId && s.tenantId === currentTenantId))
+      .filter((s) => (!!currentStoreId && s.storeId === currentStoreId) || (!!currentTenantId && s.tenantId === currentTenantId))
       .count();
   }, [currentTenantId, currentStoreId]) || 0;
 
@@ -173,9 +173,9 @@ export default function SettingsPage() {
     try {
       if (user?.id) {
         await db.users.update(user.id, {
-          passwordHash: newPasswordInput,
+          pinCode: newPasswordInput,
           updatedAt: new Date().toISOString(),
-        });
+        } as any);
 
         await enqueueSync({
           tenantId: currentTenantId,

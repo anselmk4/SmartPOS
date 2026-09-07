@@ -640,6 +640,7 @@ export default function AdminTenantsPage() {
                     </button>
                   </div>
 
+                  <div className="flex items-center gap-1.5">
                     {t.phone && (
                       <a
                         href={`https://wa.me/${t.phone.replace(/\D/g, "")}?text=${encodeURIComponent(

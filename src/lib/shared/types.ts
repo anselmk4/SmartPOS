@@ -385,6 +385,7 @@ export interface CartItem {
 
 export interface HeldOrder {
   id: string;
+  tenantId?: string;
   storeId: string;
   label: string; // Ex: Table 4, Commande Paul, Terrasse
   customerId?: string | null;
@@ -396,9 +397,11 @@ export interface HeldOrder {
   discountAmount: number;
   discountType?: "PERCENT" | "FIXED";
   discountValue?: number;
+  cartDiscount?: any;
   totalAmount: number;
   notes?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface PlanConfig {
