@@ -333,7 +333,7 @@ export default function SalesHistoryPage() {
 
       <div class="divider"></div>
       <div class="text-center" style="margin-top: 6px;">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https%3A%2F%2Fglobalpos.app" alt="QR Code Global POS" style="width: 55px; height: 55px; margin: 0 auto 3px auto; display: block;" />
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https%3A%2F%2Fglobalpos.app" alt="QR Code Kuettu Global POS" style="width: 55px; height: 55px; margin: 0 auto 3px auto; display: block;" />
         <p style="font-size: 8px; color: #555; margin: 0;">Vérification : https://globalpos.app</p>
         <p style="font-size: 9px; font-weight: bold; margin-top: 3px;">Merci pour votre confiance !</p>
       </div>
@@ -478,7 +478,7 @@ export default function SalesHistoryPage() {
             <p style="margin: 2px 0;">Merci pour votre confiance !</p>
           </div>
           <div style="text-align: center;">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=https%3A%2F%2Fglobalpos.app" alt="QR Code Global POS" style="width: 60px; height: 60px; display: block; margin: 0 auto 2px auto;" />
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=https%3A%2F%2Fglobalpos.app" alt="QR Code Kuettu Global POS" style="width: 60px; height: 60px; display: block; margin: 0 auto 2px auto;" />
             <span style="font-size: 8px; color: #94a3b8;">Scanner pour vérifier</span>
           </div>
         </div>

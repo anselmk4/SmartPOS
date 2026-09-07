@@ -395,12 +395,13 @@ export default function PublicStoreCatalogPage() {
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span>{store.name}</span>
           </div>
-          <p className="text-[11px] text-slate-400">
-            Catalogue en ligne synchronisé & propulsé par{" "}
-            <a href="/" className="font-bold text-blue-600 hover:underline">
-              SmartPOS
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+            <span>Catalogue en ligne synchronisé & propulsé par</span>
+            <a href="/" className="inline-flex items-center gap-1 font-black text-blue-600 hover:text-blue-700 hover:underline">
+              <img src="/images/logo.png" alt="Kuettu Global POS" className="h-4 w-auto object-contain inline-block" />
+              <span>Kuettu Global POS</span>
             </a>
-          </p>
+          </div>
         </div>
       </footer>
     </div>

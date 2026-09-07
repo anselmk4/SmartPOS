@@ -217,8 +217,11 @@ export function generatePrintableCounterStandHTML(params: {
       </div>
 
       <div class="footer">
-        <span>${address ? escapeHtml(address) : "Tarifs officiels"}</span>
-        <span>Propulsé par SmartPOS</span>
+        <span>${address ? escapeHtml(address) : "Tarifs officiels vérifiés"}</span>
+        <span style="display: flex; items-center; gap: 4px; font-weight: 700; color: #2563eb;">
+          <img src="https://globalpos.app/images/logo.png" alt="Kuettu" style="height: 12px; width: auto; vertical-align: middle; display: inline-block; margin-right: 4px;" onerror="this.style.display='none'" />
+          Propulsé par Kuettu Global POS
+        </span>
       </div>
     </div>
     

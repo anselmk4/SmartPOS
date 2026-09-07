@@ -460,7 +460,7 @@ export function TenantDetailsSidebar({
                       <div className="flex items-center gap-2 shrink-0">
                         <a
                           href={`https://wa.me/${cleanPhoneDigits}?text=${encodeURIComponent(
-                            `Bonjour ${mainOwner}, nous vous contactons depuis l'assistance SmartPOS Global concernant votre boutique "${tenant.name}".`
+                            `Bonjour ${mainOwner}, nous vous contactons depuis l'assistance Kuettu Global POS concernant votre boutique "${tenant.name}".`
                           )}`}
                           target="_blank"
                           rel="noreferrer"

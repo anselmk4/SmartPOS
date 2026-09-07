@@ -16,11 +16,9 @@ export default function PrivacyPage() {
                         <ArrowLeft className="w-4 h-4" />
                         <span>Retour à l&apos;accueil</span>
                     </Link>
-                    <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-black text-sm">
-                            K
-                        </div>
-                        <span className="font-bold tracking-tight text-white">Kuettu POS</span>
+                    <div className="flex items-center gap-2.5">
+                        <img src="/images/logo.png" alt="Kuettu Global POS" className="h-7 w-auto object-contain" />
+                        <span className="font-extrabold tracking-tight text-white text-base">Kuettu Global POS</span>
                     </div>
                 </div>
             </header>
@@ -135,9 +133,9 @@ export default function PrivacyPage() {
                             Pour toute question relative à la protection de vos données ou pour signaler un incident technique, contactez l&apos;équipe Kuettu :
                         </p>
                         <div className="mt-4 p-4 rounded-xl bg-slate-950 border border-slate-800 text-sm space-y-1">
-                            <p><strong className="text-white">Kuettu POS - Département Sécurité & Conformité</strong></p>
-                            <p className="text-slate-400">Kinshasa, République Démocratique du Congo</p>
-                            <p className="text-emerald-400">Email : support@kuettu.com | WhatsApp : +243 820 000 000</p>
+                            <p><strong className="text-white">Kuettu Global POS - Département Sécurité & Conformité</strong></p>
+                            <p className="text-slate-400">Kinshasa & Bukavu, République Démocratique du Congo</p>
+                            <p className="text-emerald-400">Email : support@kuettu.com | WhatsApp Officiel : +243 990 387 237</p>
                         </div>
                     </section>
 
@@ -145,7 +143,7 @@ export default function PrivacyPage() {
 
                 {/* Footer links */}
                 <div className="mt-12 pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
-                    <p>&copy; {new Date().getFullYear()} Kuettu POS. Tous droits réservés.</p>
+                    <p>&copy; {new Date().getFullYear()} Kuettu Global POS. Tous droits réservés.</p>
                     <div className="flex gap-4">
                         <Link href="/terms" className="hover:text-emerald-400 transition-colors">
                             Conditions Générales d&apos;Utilisation

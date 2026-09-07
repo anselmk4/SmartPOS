@@ -125,15 +125,15 @@ export function SubscriptionInvoiceModal({
       const bodyHtml = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a; line-height: 1.4; padding: 10px;">
           
-          <!-- TOP HEADER: GlobalPOS Branding & Platform Info -->
+          <!-- TOP HEADER: Kuettu Global POS Branding & Platform Info -->
           <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2563eb; padding-bottom: 16px; margin-bottom: 20px;">
             <div style="display: flex; align-items: center; gap: 14px;">
-              <div style="width: 52px; height: 52px; background: linear-gradient(135deg, #1e3a8a, #2563eb); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: 900; font-size: 24px; box-shadow: 0 4px 10px rgba(37,99,235,0.2);">
-                GP
+              <div style="width: 54px; height: 54px; background: #ffffff; border: 2px solid #e2e8f0; border-radius: 14px; display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                <img src="https://globalpos.app/images/logo.png" alt="Kuettu Logo" style="width: 44px; height: 44px; object-fit: contain;" onerror="this.onerror=null; this.src='/images/logo.png';" />
               </div>
               <div>
-                <div style="font-size: 22px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; line-height: 1.1;">
-                  GLOBAL<span style="color: #2563eb;">POS</span>
+                <div style="font-size: 20px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; line-height: 1.1;">
+                  KUETTU <span style="color: #2563eb;">GLOBAL POS</span>
                 </div>
                 <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 1px; margin-top: 2px;">
                   Micro-ERP & Retail Cloud SaaS
@@ -146,9 +146,9 @@ export function SubscriptionInvoiceModal({
 
             <div style="text-align: right; font-size: 10px; color: #475569; max-width: 300px; line-height: 1.45;">
               <div style="font-weight: bold; color: #0f172a; font-size: 11px;">Kuettu Corporation SARL</div>
-              <div>Bukavu - République Démocratique du Congo</div>
+              <div>Bukavu & Kinshasa - République Démocratique du Congo</div>
               <div>RCCM : CD/BKV/RCCM/20-B-00023</div>
-              <div>Support : <b>support@globalpos.app</b> | <b>+243 990 387 237</b></div>
+              <div>Support : <b>support@kuettu.com</b> | <b>+243 990 387 237</b></div>
             </div>
           </div>
 
@@ -224,7 +224,7 @@ export function SubscriptionInvoiceModal({
               <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
                 <td style="padding: 14px 12px; vertical-align: top;">
                   <div style="font-size: 14px; font-weight: 900; color: #0f172a;">
-                    Abonnement Logiciel GlobalPOS — ${planName}
+                    Abonnement Logiciel Kuettu Global POS — ${planName}
                   </div>
                   <div style="font-size: 11px; color: #64748b; margin-top: 4px; line-height: 1.35;">
                     Licence d'utilisation cloud, caisses tactiles, gestion des stocks, carnet de dettes clients, sauvegarde automatique et synchronisation multi-terminaux.
@@ -303,13 +303,13 @@ export function SubscriptionInvoiceModal({
           <!-- FOOTER & AUTHENTICITY URL -->
           <div style="border-top: 2px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #64748b;">
             <div>
-              <div style="font-weight: bold; color: #0f172a;">Document officiel émis par Kuettu Corporation SARL — GlobalPOS Cloud ERP</div>
+              <div style="font-weight: bold; color: #0f172a;">Document officiel émis par Kuettu Corporation SARL — Kuettu Global POS Cloud ERP</div>
               <div style="margin-top: 2px;">Vérification de validité en ligne : <a href="https://globalpos.app" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: bold;">https://globalpos.app</a></div>
-              <div style="margin-top: 2px; color: #94a3b8;">RCCM : CD/BKV/RCCM/20-B-00023 • Bukavu, Sud-Kivu, RDC</div>
+              <div style="margin-top: 2px; color: #94a3b8;">RCCM : CD/BKV/RCCM/20-B-00023 • Bukavu & Kinshasa, RDC</div>
             </div>
 
             <div style="text-align: center;">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${qrData}" alt="QR Code GlobalPOS" style="width: 55px; height: 55px; display: block; margin: 0 auto 2px auto;" />
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${qrData}" alt="QR Code Kuettu Global POS" style="width: 55px; height: 55px; display: block; margin: 0 auto 2px auto;" />
               <span style="font-size: 8px; color: #94a3b8;">Scanner pour vérifier</span>
             </div>
           </div>
@@ -403,9 +403,10 @@ export function SubscriptionInvoiceModal({
           {/* Header row */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
             <div>
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1.5">
+                <img src="/images/logo.png" alt="Kuettu Global POS" className="h-7 w-auto object-contain" />
                 <span className="text-xl font-black text-white tracking-tight">
-                  GLOBAL<span className="text-blue-500">POS</span>
+                  KUETTU <span className="text-blue-500">GLOBAL POS</span>
                 </span>
                 <span className="px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-400 text-[10px] font-black uppercase">
                   Kuettu Corp
@@ -415,7 +416,7 @@ export function SubscriptionInvoiceModal({
                 Plateforme Centrale SaaS • Caisses & Stocks
               </p>
               <p className="text-[11px] text-slate-500">
-                Kuettu Corporation SARL • Bukavu, RDC
+                Kuettu Corporation SARL • Bukavu & Kinshasa, RDC
               </p>
             </div>
 
