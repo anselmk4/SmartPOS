@@ -160,6 +160,7 @@ function BillingPageContent() {
       popular: false,
       features: [
         "1 000 ventes par mois",
+        "Création d'articles en masse (grille rapide)",
         "Jusqu'à 10 Caisses & Caissiers (PIN)",
         "Carnet de dettes (100 clients)",
         "Relances WhatsApp en 1 clic",
@@ -178,6 +179,7 @@ function BillingPageContent() {
       popular: true,
       features: [
         "Ventes et caisse illimitées (sans quota)",
+        "Création d'articles en masse & grille rapide",
         "Caisses et caissiers illimités (PIN dédié)",
         "Carnet de dettes clients illimité",
         "Bilan Personnalisé & Synthèse Fiscale A4",
@@ -214,6 +216,7 @@ function BillingPageContent() {
 
   const comparisonFeatures = [
     { title: "Limite de ventes mensuelles", free: "100 ventes", basic: "1 000 ventes", pro: "Illimité", biz: "Illimité" },
+    { title: "Création d'articles en masse (grille rapide)", free: false, basic: true, pro: true, biz: true },
     { title: "Nombre de caisses & caissiers", free: "1 caisse", basic: "10 caisses", pro: "Illimité", biz: "Illimité" },
     { title: "Carnet de dettes clients", free: "10 clients", basic: "100 clients", pro: "Illimité", biz: "Illimité" },
     { title: "Factures en attente & Additions serveurs", free: true, basic: true, pro: true, biz: true },

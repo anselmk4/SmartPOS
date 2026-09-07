@@ -423,6 +423,7 @@ export interface PlanConfig {
   canPerformCashClosing: boolean;
   canAccessCustomDeclarativeReport: boolean;
   canManagePayrollAndLeaves: boolean;
+  canBulkCreateProducts: boolean;
 }
 
 export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
@@ -445,6 +446,7 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     canPerformCashClosing: false,
     canAccessCustomDeclarativeReport: false,
     canManagePayrollAndLeaves: false,
+    canBulkCreateProducts: false,
   },
   BASIC: {
     id: "BASIC",
@@ -465,6 +467,7 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     canPerformCashClosing: true,
     canAccessCustomDeclarativeReport: false,
     canManagePayrollAndLeaves: false,
+    canBulkCreateProducts: true,
   },
   PRO: {
     id: "PRO",
@@ -485,6 +488,7 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     canPerformCashClosing: true,
     canAccessCustomDeclarativeReport: true,
     canManagePayrollAndLeaves: false,
+    canBulkCreateProducts: true,
   },
   BUSINESS: {
     id: "BUSINESS",
@@ -505,5 +509,6 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     canPerformCashClosing: true,
     canAccessCustomDeclarativeReport: true,
     canManagePayrollAndLeaves: true,
+    canBulkCreateProducts: true,
   },
 };

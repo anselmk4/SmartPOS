@@ -57,6 +57,7 @@ export default function InventoryPage() {
   // Modals
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [isBulkUpgradePromptOpen, setIsBulkUpgradePromptOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -196,6 +197,14 @@ export default function InventoryPage() {
     setFormBarcode("");
     setFormImageUrl("");
     setIsAddProductModalOpen(true);
+  };
+
+  const handleOpenBulk = () => {
+    if (!canAccess("canBulkCreateProducts")) {
+      setIsBulkUpgradePromptOpen(true);
+      return;
+    }
+    setIsBulkModalOpen(true);
   };
 
   const handleOpenEdit = (p: Product) => {
@@ -548,9 +557,9 @@ export default function InventoryPage() {
 
           {/* Bulk Product Creation button */}
           <button
-            onClick={() => setIsBulkModalOpen(true)}
+            onClick={handleOpenBulk}
             className="py-2 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center gap-1.5 border border-indigo-200 whitespace-nowrap touch-press shadow-sm"
-            title="Créer rapidement plusieurs articles sur une grille tabulaire"
+            title="Créer rapidement plusieurs articles sur une grille tabulaire (Disponible dès le Forfait Basic à 15 000 FC)"
           >
             <Layers className="w-4 h-4 text-indigo-600" />
             <span>⚡ Saisie Multiple</span>
@@ -577,7 +586,7 @@ export default function InventoryPage() {
             </p>
             <div className="flex items-center justify-center gap-2.5 mt-4 flex-wrap">
               <button
-                onClick={() => setIsBulkModalOpen(true)}
+                onClick={handleOpenBulk}
                 className="py-2.5 px-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs inline-flex items-center gap-1.5 border border-indigo-200 shadow-sm touch-press"
               >
                 <Layers className="w-4 h-4 text-indigo-600" />
@@ -871,10 +880,10 @@ export default function InventoryPage() {
                     type="button"
                     onClick={() => {
                       setIsAddProductModalOpen(false);
-                      setIsBulkModalOpen(true);
+                      handleOpenBulk();
                     }}
                     className="px-2.5 py-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1 transition-colors touch-press border border-indigo-200"
-                    title="Basculer vers la saisie rapide en masse"
+                    title="Basculer vers la saisie rapide en masse (Dès le forfait Basic 15 000 FC)"
                   >
                     <Layers className="w-3.5 h-3.5" />
                     <span>Saisie en Masse ⚡</span>
@@ -1240,6 +1249,23 @@ export default function InventoryPage() {
         storeId={currentStoreId}
         currency={currency}
         existingCategories={categories}
+      />
+
+      {/* BULK PRODUCT CREATION UPGRADE PROMPT MODAL (15 000 FC PLAN) */}
+      <UpgradePromptModal
+        isOpen={isBulkUpgradePromptOpen}
+        onClose={() => setIsBulkUpgradePromptOpen(false)}
+        title="Création d'Articles en Masse"
+        description="La saisie tabulaire rapide en masse permettant d'ajouter des dizaines d'articles instantanément est disponible à partir du forfait Commerçant Basic (15 000 FC / mois)."
+        targetPlan="BASIC"
+        features={[
+          "Création et importation d'articles en masse (grille rapide)",
+          "Jusqu'à 1 000 ventes par mois",
+          "Jusqu'à 10 Caisses & Caissiers dédiés (code PIN)",
+          "Carnet de dettes (100 clients) & Relances WhatsApp",
+          "Sauvegarde Cloud automatique continue",
+          "Clôture de caisse quotidienne (Ticket Z)",
+        ]}
       />
     </div>
   );
