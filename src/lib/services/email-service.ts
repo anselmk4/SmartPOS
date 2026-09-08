@@ -35,7 +35,8 @@ function renderBaseEmailTemplate({
   disclaimerText?: string;
 }): string {
   const currentYear = new Date().getFullYear();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.kuettu.com";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
+  const logoUrl = `${appUrl.replace(/\/+$/, "")}/logo.png`;
 
   return `
 <!DOCTYPE html>
@@ -78,7 +79,7 @@ function renderBaseEmailTemplate({
       padding: 36px 32px 28px 32px;
     }
     .logo-container {
-      margin-bottom: 28px;
+      margin-bottom: 24px;
     }
     .brand-title {
       font-size: 22px;
@@ -183,21 +184,11 @@ function renderBaseEmailTemplate({
       <div class="top-accent-bar"></div>
       <div class="card-body">
         
-        <!-- BRAND HEADER -->
+        <!-- OFFICIAL BRAND LOGO HEADER -->
         <div class="logo-container">
-          <table cellpadding="0" cellspacing="0" border="0">
-            <tr>
-              <td style="vertical-align: middle; padding-right: 12px;">
-                <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #4F46E5 0%, #D97706 100%); border-radius: 8px; text-align: center; line-height: 36px; color: #ffffff; font-weight: 900; font-size: 18px;">
-                  K
-                </div>
-              </td>
-              <td style="vertical-align: middle;">
-                <span style="font-size: 19px; font-weight: 800; color: #0f172a; letter-spacing: 1.5px;">KUETTU</span>
-                <span style="font-size: 19px; font-weight: 600; color: #4F46E5; letter-spacing: 1px; margin-left: 4px;">GLOBAL POS</span>
-              </td>
-            </tr>
-          </table>
+          <a href="${appUrl}" target="_blank" style="text-decoration: none; display: inline-block;">
+            <img src="${logoUrl}" alt="Kuettu Global POS" width="170" style="display: block; max-width: 170px; height: auto; border: 0;" />
+          </a>
         </div>
 
         <!-- MAIN TITLE -->
@@ -216,10 +207,10 @@ function renderBaseEmailTemplate({
 
     <!-- EXTERNAL FOOTER -->
     <div class="footer-section">
-      <div style="margin-bottom: 6px;">
-        <span style="font-weight: 700; color: #64748b; letter-spacing: 1px;">KUETTU GLOBAL POS</span>
+      <div style="margin-bottom: 8px;">
+        <img src="${logoUrl}" alt="Kuettu Global POS" width="90" style="display: inline-block; max-width: 90px; height: auto; opacity: 0.85;" />
       </div>
-      <p style="margin: 4px 0;">Global POS App.</p>
+      <p style="margin: 4px 0; font-weight: 600; color: #64748b;">Global POS App.</p>
       <p style="margin: 4px 0;">© ${currentYear} Kuettu Corporation SARL. Tous droits réservés.</p>
       <p style="margin: 4px 0;">
         Vous recevez cet e-mail car vous utilisez Global POS sur <a href="${appUrl}" class="footer-link">${appUrl.replace(/^https?:\/\//, "")}</a>
@@ -568,7 +559,7 @@ export async function sendPaymentNotificationEmail(
     </table>
 
     <div style="text-align: center; margin-top: 24px;">
-      <a href="https://globalpos.kuettu.com/admin/subscriptions" class="btn-action">
+      <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app"}/admin/subscriptions" class="btn-action">
         Consulter dans l'administration
       </a>
     </div>
@@ -599,6 +590,7 @@ export async function sendManualActivationEmail(
 ): Promise<SendEmailResult> {
   const cleanEmail = toEmail.trim().toLowerCase();
   const salutation = ownerName?.trim() ? `Bonjour ${ownerName},` : "Bonjour,";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
 
   const contentHtml = `
     <p class="body-text">${salutation}</p>
@@ -610,7 +602,7 @@ export async function sendManualActivationEmail(
     </p>
 
     <div style="text-align: center; margin: 28px 0;">
-      <a href="https://globalpos.kuettu.com/auth/login" class="btn-action">
+      <a href="${appUrl}/auth/login" class="btn-action">
         Accéder à ma caisse Global POS
       </a>
     </div>
