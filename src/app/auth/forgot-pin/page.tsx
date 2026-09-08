@@ -30,7 +30,6 @@ export default function ForgotPinPage() {
   const [newPinCode, setNewPinCode] = useState("");
   const [confirmPinCode, setConfirmPinCode] = useState("");
 
-  const [simulatedOtp, setSimulatedOtp] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [tenantName, setTenantName] = useState<string | null>(null);
   const [maskedPhone, setMaskedPhone] = useState<string | null>(null);
@@ -38,7 +37,6 @@ export default function ForgotPinPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   // Step 1: Request OTP Code
   const handleRequestCode = async (e: React.FormEvent) => {
@@ -69,7 +67,6 @@ export default function ForgotPinPage() {
         return;
       }
 
-      setSimulatedOtp(data.codePreview || null);
       setUserName(data.userName || null);
       setTenantName(data.tenantName || null);
       setMaskedPhone(data.maskedIdentifier || identifier);
@@ -138,14 +135,6 @@ export default function ForgotPinPage() {
     } catch (err: any) {
       setIsLoading(false);
       setErrorMsg(err.message || "Erreur lors de la mise à jour");
-    }
-  };
-
-  const copyOtpToInput = () => {
-    if (simulatedOtp) {
-      setOtpCode(simulatedOtp);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -235,7 +224,7 @@ export default function ForgotPinPage() {
                 </span>
               </div>
               <p className="text-[11px] text-emerald-800">
-                Un code de vérification à 6 chiffres a été envoyé par <b>{email ? "e-mail" : "SMS"}</b>.
+                Un code de vérification à 6 chiffres a été envoyé par <b>{identifier.includes("@") ? "e-mail" : "SMS"}</b> à <b>{maskedPhone}</b>.
               </p>
             </div>
 
