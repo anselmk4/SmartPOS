@@ -804,7 +804,7 @@ function POSPageContent() {
       {/* ========================================================================= */}
       {/* LEFT: Product Catalog Grid                                               */}
       {/* ========================================================================= */}
-      <div className={`${mobileTab === "CATALOG" ? "flex" : "hidden"} md:flex flex-1 flex-col min-w-0 h-full max-h-full min-h-0 overflow-hidden relative`}>
+      <div className={`${mobileTab === "CATALOG" ? "flex" : "hidden"} md:flex flex-1 flex-col min-w-0 min-h-0 overflow-hidden relative`}>
         {/* Top Header: 1. Tariff Options on Top (Bars & Restaurants only) -> 2. Search & Categories Below */}
         <div className="shrink-0 p-2.5 sm:p-3 bg-white border-b border-slate-200/90 shadow-2xs z-10 space-y-2">
           {/* LIGNE 1 (AU-DESSUS) : Grilles Tarifaires (SEULEMENT POUR BARS & RESTAURANTS / HORECA) */}
@@ -1035,7 +1035,7 @@ function POSPageContent() {
 
         {/* Sticky Mobile Floating Cart Bar (Bottom of Catalog) */}
         {cart.length > 0 && (
-          <div className="md:hidden shrink-0 p-2.5 bg-slate-900 border-t border-slate-800 shadow-2xl flex items-center justify-between gap-2 z-30 animate-in slide-in-from-bottom-2">
+          <div className="md:hidden shrink-0 p-2.5 pb-[max(1rem,env(safe-area-inset-bottom))] bg-slate-900 border-t border-slate-800 shadow-2xl flex items-center justify-between gap-2 z-30 animate-in slide-in-from-bottom-2">
             <button
               type="button"
               onClick={() => setMobileTab("CART")}
@@ -1081,7 +1081,7 @@ function POSPageContent() {
       {/* ========================================================================= */}
       {/* RIGHT: Modern Cart & Flexible Invoicing Checkout Panel                   */}
       {/* ========================================================================= */}
-      <div className={`${mobileTab === "CART" ? "flex" : "hidden"} md:flex w-full md:w-[360px] lg:w-[390px] xl:w-[420px] bg-white border-t md:border-t-0 md:border-l border-slate-200 flex-col shadow-xl z-20 h-full max-h-full min-h-0 overflow-hidden shrink-0`}>
+      <div className={`${mobileTab === "CART" ? "flex" : "hidden"} md:flex w-full md:w-[360px] lg:w-[390px] xl:w-[420px] bg-white border-t md:border-t-0 md:border-l border-slate-200 flex-col shadow-xl z-20 flex-1 md:flex-initial md:h-full max-h-full min-h-0 overflow-hidden shrink-0`}>
         {/* Cart Header */}
         <div className="shrink-0 p-2.5 sm:p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
           <div className="flex items-center gap-2">
@@ -1313,7 +1313,7 @@ function POSPageContent() {
         </div>
 
         {/* Cart Financial Summary & Action Toolbar */}
-        <div className="shrink-0 mt-auto p-2.5 sm:p-3 bg-white border-t border-slate-200 space-y-2 sm:space-y-2.5">
+        <div className="shrink-0 mt-auto p-2.5 sm:p-3 pb-6 sm:pb-3.5 bg-white border-t border-slate-200 space-y-2 sm:space-y-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] z-10">
           {/* Subtotal, Discount & Total Net */}
           <div className="space-y-0.5 text-xs">
             <div className="flex items-center justify-between text-slate-500">
@@ -1403,7 +1403,7 @@ function POSPageContent() {
               <button
                 onClick={() => setIsHoldModalOpen(true)}
                 disabled={cart.length === 0}
-                className="w-full py-3 px-4 rounded-2xl font-black text-xs sm:text-sm text-white bg-amber-600 hover:bg-amber-500 flex items-center justify-center gap-2 shadow-lg shadow-amber-600/30 transition-all touch-press disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed"
+                className="w-full py-3 sm:py-3.5 px-4 rounded-2xl font-black text-xs sm:text-sm text-white bg-amber-600 hover:bg-amber-500 flex items-center justify-center gap-2 shadow-lg shadow-amber-600/30 transition-all touch-press disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed"
               >
                 <Utensils className="w-4 h-4" />
                 <span>Enregistrer Table / Bon de Commande</span>
@@ -1418,7 +1418,7 @@ function POSPageContent() {
                   setIsWaiterUnlockModalOpen(true);
                 }}
                 disabled={cart.length === 0}
-                className="w-full py-1.5 px-3 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40"
+                className="w-full py-2 px-3 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40"
               >
                 <Lock className="w-3.5 h-3.5 text-amber-600" />
                 <span>Encaisser (PIN Superviseur Requis)</span>
@@ -1428,11 +1428,11 @@ function POSPageContent() {
             <button
               onClick={() => setIsPaymentModalOpen(true)}
               disabled={cart.length === 0}
-              className={`w-full py-3 px-4 rounded-2xl font-black text-xs sm:text-sm text-white flex items-center justify-center gap-2 shadow-lg transition-all touch-press ${
+              className={`w-full py-3 sm:py-3.5 px-4 rounded-2xl font-black text-xs sm:text-sm text-white flex items-center justify-center gap-2 shadow-lg transition-all touch-press ${
                 cart.length > 0
                   ? isFreeQuotaReached
                     ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/25"
-                    : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/25"
+                    : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-600/30"
                   : "bg-slate-300 cursor-not-allowed shadow-none"
               }`}
             >
