@@ -1,6 +1,6 @@
 {
-  "verificationMethod": "SMS",
-  "isSimulationMode": true,
+  "verificationMethod": "EMAIL",
+  "isSimulationMode": false,
   "otpExpiryMinutes": 10,
   "twilio": {
     "accountSid": "",
@@ -10,8 +10,8 @@
   },
   "email": {
     "provider": "SUPABASE",
-    "fromEmail": "info@kuettu.com",
+    "fromEmail": "notifications@kuettu.com",
     "fromName": "Kuettu Global POS"
   },
-  "updatedAt": "2026-08-21T10:42:35.208Z"
+  "updatedAt": "2026-09-09T01:17:00.000Z"
 }

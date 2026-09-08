@@ -247,12 +247,17 @@ async function dispatchViaResend({
   html: string;
 }): Promise<SendEmailResult> {
   const config = await getSystemVerificationConfig();
-  const resendApiKey = process.env.RESEND_API_KEY || process.env.NEXT_PUBLIC_RESEND_API_KEY;
+  const resendApiKey =
+    process.env.RESEND_API_KEY ||
+    process.env.NEXT_PUBLIC_RESEND_API_KEY ||
+    (config.email as any)?.apiKey ||
+    (config.email as any)?.resendApiKey;
+
   const toList = Array.isArray(to) ? to : [to];
   const ccList = cc ? (Array.isArray(cc) ? cc : [cc]) : undefined;
 
-  // 1. Simulation Mode if explicitly enabled or no API key available
-  if (config.isSimulationMode || (!resendApiKey && process.env.NODE_ENV !== "production")) {
+  // 1. Simulation Mode ONLY if explicitly enabled in system settings
+  if (config.isSimulationMode) {
     console.log("=================================================");
     console.log("✉️ [EMAIL RESEND SIMULATION] Déclenchement :");
     console.log(`➡️ Destinataire(s) : ${toList.join(", ")}`);

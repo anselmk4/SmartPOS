@@ -66,21 +66,35 @@ export async function triggerRegistrationOtp(params: TriggerOtpParams): Promise<
   const expiryMinutes = config.otpExpiryMinutes || 10;
   const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
 
-  // Normalize identifier based on method
-  let targetIdentifier: string;
-  if (method === "EMAIL" && params.email) {
-    targetIdentifier = params.email.trim().toLowerCase();
-  } else {
-    targetIdentifier = formatPhoneNumberE164(params.phone);
+  const cleanEmail = params.email ? params.email.trim().toLowerCase() : null;
+  const formattedPhone = params.phone ? formatPhoneNumberE164(params.phone) : null;
+
+  // Determine primary identifier and method
+  let targetIdentifier = cleanEmail || formattedPhone || params.phone.trim();
+  let effectiveMethod: VerificationMethod = method;
+
+  if (cleanEmail) {
+    targetIdentifier = cleanEmail;
+    effectiveMethod = "EMAIL";
+  } else if (method === "EMAIL" && !cleanEmail) {
+    effectiveMethod = "SMS";
+    targetIdentifier = formattedPhone || params.phone.trim();
   }
 
-  // 1. Invalidate previous pending OTPs for this identifier
+  // 1. Invalidate previous pending OTPs for both email and phone
+  const identifiersToInvalidate = [targetIdentifier];
+  if (cleanEmail && !identifiersToInvalidate.includes(cleanEmail)) identifiersToInvalidate.push(cleanEmail);
+  if (formattedPhone && !identifiersToInvalidate.includes(formattedPhone)) identifiersToInvalidate.push(formattedPhone);
+
   await prisma.otpVerification.updateMany({
-    where: { identifier: targetIdentifier, consumed: false },
+    where: {
+      identifier: { in: identifiersToInvalidate },
+      consumed: false,
+    },
     data: { consumed: true },
   });
 
-  // 2. Insert new OTP record
+  // 2. Insert new OTP records (for both email and phone so verification works with either)
   await prisma.otpVerification.create({
     data: {
       identifier: targetIdentifier,
@@ -92,21 +106,39 @@ export async function triggerRegistrationOtp(params: TriggerOtpParams): Promise<
     },
   });
 
+  if (formattedPhone && formattedPhone !== targetIdentifier) {
+    await prisma.otpVerification.create({
+      data: {
+        identifier: formattedPhone,
+        codeHash,
+        userId: params.userId,
+        tenantId: params.tenantId,
+        expiresAt,
+        consumed: false,
+      },
+    }).catch(() => {});
+  }
+
   // 3. Dispatch via selected channel
-  if (method === "EMAIL" && params.email) {
+  if (cleanEmail) {
     const emailRes = await sendVerificationEmail(
-      params.email,
+      cleanEmail,
       rawCode,
       params.storeName,
       params.ownerName
     );
 
+    // If phone exists and SMS is also configured, send SMS as secondary
+    if (method === "SMS" && formattedPhone) {
+      sendVerificationSms(formattedPhone, rawCode, params.storeName).catch(() => {});
+    }
+
     return {
       success: emailRes.success,
       verificationMethod: "EMAIL",
-      identifier: targetIdentifier,
+      identifier: cleanEmail,
       expiresAt: expiresAt.toISOString(),
-      isSimulated: emailRes.isSimulated || true,
+      isSimulated: Boolean(emailRes.isSimulated),
       simulatedCode: rawCode,
       error: emailRes.error,
     };
@@ -123,7 +155,7 @@ export async function triggerRegistrationOtp(params: TriggerOtpParams): Promise<
       verificationMethod: "SMS",
       identifier: targetIdentifier,
       expiresAt: expiresAt.toISOString(),
-      isSimulated: smsRes.isSimulated || true,
+      isSimulated: Boolean(smsRes.isSimulated),
       simulatedCode: rawCode,
       error: smsRes.error,
     };
