@@ -26,7 +26,6 @@ function VerifyOtpContent() {
   const phoneParam = searchParams?.get("phone") || "";
   const emailParam = searchParams?.get("email") || "";
   const methodParam = searchParams?.get("method") || "EMAIL";
-  const codeParam = searchParams?.get("code") || "";
 
   const identifier = methodParam === "EMAIL" ? emailParam || phoneParam : phoneParam || emailParam;
 

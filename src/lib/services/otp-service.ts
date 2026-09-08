@@ -139,7 +139,6 @@ export async function triggerRegistrationOtp(params: TriggerOtpParams): Promise<
       identifier: cleanEmail,
       expiresAt: expiresAt.toISOString(),
       isSimulated: Boolean(emailRes.isSimulated),
-      simulatedCode: rawCode,
       error: emailRes.error,
     };
   } else {
@@ -156,7 +155,6 @@ export async function triggerRegistrationOtp(params: TriggerOtpParams): Promise<
       identifier: targetIdentifier,
       expiresAt: expiresAt.toISOString(),
       isSimulated: Boolean(smsRes.isSimulated),
-      simulatedCode: rawCode,
       error: smsRes.error,
     };
   }
