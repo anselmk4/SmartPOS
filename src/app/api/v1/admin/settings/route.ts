@@ -7,7 +7,11 @@ import {
   type VerificationMethod,
 } from "@/lib/services/system-settings";
 import { sendVerificationSms } from "@/lib/services/sms-service";
-import { sendVerificationEmail } from "@/lib/services/email-service";
+import {
+  sendVerificationEmail,
+  sendForgotPinEmail,
+  sendPaymentNotificationEmail,
+} from "@/lib/services/email-service";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -103,21 +107,59 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { action, verificationMethod, isSimulationMode, twilio, email, testPhone, testEmail } = body;
+    const {
+      action,
+      verificationMethod,
+      isSimulationMode,
+      twilio,
+      email,
+      testPhone,
+      testEmail,
+      templateType = "OTP",
+    } = body;
 
     // Action 1: Test SMS or Email Dispatch
     if (action === "TEST_DISPATCH") {
       const testCode = "789123";
 
       if (verificationMethod === "EMAIL" && testEmail) {
-        const res = await sendVerificationEmail(testEmail, testCode, "Boutique Test Admin", "Super Administrateur");
+        let res: any;
+
+        if (templateType === "FORGOT_PIN") {
+          res = await sendForgotPinEmail(
+            testEmail,
+            testCode,
+            "Super Administrateur",
+            "Boutique Démo"
+          );
+        } else if (templateType === "PAYMENT") {
+          res = await sendPaymentNotificationEmail({
+            tenantName: "Boutique Démo Test",
+            storeName: "Caisse Principale",
+            customerEmail: testEmail,
+            amount: 30000,
+            currency: "CDF",
+            paymentMethod: "MPESA",
+            transactionId: `TEST-TX-${Date.now().toString().slice(-6)}`,
+            plan: "PRO",
+            notes: "Test de notification de paiement automatique",
+          });
+        } else {
+          res = await sendVerificationEmail(
+            testEmail,
+            testCode,
+            "Boutique Test Admin",
+            "Super Administrateur"
+          );
+        }
+
         return NextResponse.json({
           success: res.success,
           isSimulated: res.isSimulated,
           simulatedCode: res.simulatedCode,
           message: res.isSimulated
-            ? `[Simulation] E-mail de test déclenché vers ${testEmail} avec le code ${testCode}`
-            : `E-mail de test envoyé avec succès vers ${testEmail}`,
+            ? `[Simulation] E-mail (${templateType}) déclenché vers ${testEmail}`
+            : `E-mail (${templateType}) envoyé avec succès vers ${testEmail}`,
           error: res.error,
         });
       } else if (testPhone) {

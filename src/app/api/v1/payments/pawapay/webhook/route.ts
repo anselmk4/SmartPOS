@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkPawaPayDepositStatus } from "@/lib/payments/pawapay-client";
+import { sendPaymentNotificationEmail } from "@/lib/services/email-service";
 import type { SubscriptionPlan, PaymentMethod } from "@/lib/shared/types";
 import crypto from "crypto";
 
@@ -126,7 +127,7 @@ export async function POST(req: NextRequest) {
 
       if (currentStatus === "COMPLETED" || currentStatus === "SUCCESS" || currentStatus === "DEPOSIT_COMPLETED") {
         // Activate tenant plan
-        await prisma.tenant.update({
+        const updatedTenant = await prisma.tenant.update({
           where: { id: tenantId },
           data: {
             plan,
@@ -134,7 +135,11 @@ export async function POST(req: NextRequest) {
             planExpiresAt: periodEnd,
             updatedAt: now,
           },
+          include: { users: true, stores: true },
         });
+
+        const payAmount = Number(body.amount || 0);
+        const payCurrency = body.currency || updatedTenant.currency || "CDF";
 
         // Update or create subscription record
         if (transactionId) {
@@ -157,8 +162,8 @@ export async function POST(req: NextRequest) {
               data: {
                 tenantId,
                 plan,
-                amount: Number(body.amount || 0),
-                currency: body.currency || "CDF",
+                amount: payAmount,
+                currency: payCurrency,
                 paymentMethod,
                 paymentStatus: "ACTIVE",
                 transactionId,
@@ -168,6 +173,23 @@ export async function POST(req: NextRequest) {
             });
           }
         }
+
+        // Send payment notification email to kuettusocial@gmail.com and CC info@kuettu.com
+        const ownerEmail = updatedTenant.users?.find((u) => u.role === "OWNER")?.email || updatedTenant.users?.[0]?.email;
+        sendPaymentNotificationEmail({
+          tenantName: updatedTenant.name,
+          storeName: updatedTenant.stores?.[0]?.name,
+          customerEmail: ownerEmail,
+          amount: payAmount,
+          currency: payCurrency,
+          paymentMethod,
+          transactionId,
+          plan,
+          periodEnd,
+          notes: `Paiement PawaPay Mobile Money confirmé via Webhook (${detectedProvider || paymentMethod})`,
+        }).catch((emailErr) => {
+          console.error("[PawaPay Webhook] Failed to send payment notification email:", emailErr);
+        });
       } else if (
         currentStatus === "FAILED" ||
         currentStatus === "REJECTED" ||

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifySuperAdmin, unauthorizedAdminResponse } from "@/lib/admin/admin-guard";
 import { getPlanPriceInfo, convertCurrency } from "@/lib/constants/plans";
+import { sendPaymentNotificationEmail } from "@/lib/services/email-service";
 import type { SubscriptionPlan } from "@/lib/shared/types";
 import crypto from "crypto";
 
@@ -174,6 +175,20 @@ export async function POST(req: NextRequest) {
         },
       }),
     ]);
+
+    // Send payment notification email to kuettusocial@gmail.com with CC info@kuettu.com
+    sendPaymentNotificationEmail({
+      tenantName: tenant.name,
+      amount: finalAmount,
+      currency: finalCurrency,
+      paymentMethod: String(paymentMethod),
+      transactionId: txRef,
+      plan: String(plan),
+      periodEnd,
+      notes: `Enregistrement abonnement manuel par Super Admin (${isFree ? "Gratuit" : "Payé"})`,
+    }).catch((emailErr) => {
+      console.error("[Admin Subscriptions] Failed to send payment notification email:", emailErr);
+    });
 
     return NextResponse.json({
       success: true,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, resetRateLimit } from "@/lib/security/rate-limiter";
 import { sendTwilioSMS } from "@/lib/sms/twilio-client";
+import { sendForgotPinEmail } from "@/lib/services/email-service";
 import { hashPinCode, verifyPinCode } from "@/lib/security/password";
 import crypto from "crypto";
 
@@ -122,7 +123,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Deliver OTP code via Twilio SMS
+      // Deliver OTP code via Twilio SMS if phone exists
       const destinationPhone = user.phone || (cleanDigits.length >= 8 ? cleanInput : null);
       let smsResult: any = { success: false, isSimulated: false };
 
@@ -133,20 +134,45 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      // Deliver OTP code via Email (Resend) if user email exists or if identifier is an email
+      const destinationEmail = user.email || (cleanInput.includes("@") ? cleanInput : null);
+      let emailResult: any = { success: false, isSimulated: false };
+
+      if (destinationEmail) {
+        emailResult = await sendForgotPinEmail(
+          destinationEmail,
+          otpCode,
+          user.name,
+          user.tenant?.name
+        );
+      }
+
       const maskedPhone = user.phone
         ? user.phone.replace(/(\d{3})\d{4}(\d{3})/, "$1****$2")
         : cleanInput;
+      const maskedEmail = destinationEmail
+        ? destinationEmail.replace(/(.{2})(.*)(@.*)/, "$1***$3")
+        : null;
+
+      let deliveryMessage = "Code de sécurité à 6 chiffres généré avec succès.";
+      if (destinationPhone && destinationEmail) {
+        deliveryMessage = `Code de sécurité envoyé par SMS au ${maskedPhone} et par e-mail à ${maskedEmail}.`;
+      } else if (destinationPhone) {
+        deliveryMessage = `Code de sécurité envoyé par SMS au ${maskedPhone}.`;
+      } else if (destinationEmail) {
+        deliveryMessage = `Code de sécurité envoyé par e-mail à ${maskedEmail}.`;
+      }
 
       return NextResponse.json({
         success: true,
-        message: destinationPhone
-          ? `Code de sécurité envoyé par SMS au numéro ${maskedPhone}.`
-          : `Code de sécurité à 6 chiffres généré avec succès pour ${user.name}.`,
-        maskedIdentifier: maskedPhone,
+        message: deliveryMessage,
+        maskedIdentifier: maskedPhone || maskedEmail,
         userName: user.name,
         tenantName: user.tenant?.name,
         smsDelivered: smsResult.success,
+        emailDelivered: emailResult.success,
         isSimulatedSms: smsResult.isSimulated || false,
+        isSimulatedEmail: emailResult.isSimulated || false,
       });
     }
 

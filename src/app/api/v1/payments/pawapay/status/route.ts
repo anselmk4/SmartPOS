@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkPawaPayDepositStatus } from "@/lib/payments/pawapay-client";
+import { sendPaymentNotificationEmail } from "@/lib/services/email-service";
 import type { SubscriptionPlan, PaymentMethod } from "@/lib/shared/types";
 
 export const dynamic = "force-dynamic";
@@ -57,7 +58,7 @@ export async function GET(req: NextRequest) {
     if (status === "COMPLETED" || status === "SUCCESS") {
       if (tenantId) {
         try {
-          await prisma.tenant.update({
+          const updatedTenant = await prisma.tenant.update({
             where: { id: tenantId },
             data: {
               plan,
@@ -65,7 +66,11 @@ export async function GET(req: NextRequest) {
               planExpiresAt: periodEnd,
               updatedAt: now,
             },
+            include: { users: true, stores: true },
           });
+
+          const payAmount = Number(checkRes.amount || checkRes.raw?.data?.amount || 0);
+          const payCurrency = checkRes.currency || checkRes.raw?.data?.currency || updatedTenant.currency || "CDF";
 
           const existingSub = await prisma.subscription.findFirst({
             where: { transactionId: depositId },
@@ -86,8 +91,8 @@ export async function GET(req: NextRequest) {
               data: {
                 tenantId,
                 plan,
-                amount: Number(checkRes.amount || checkRes.raw?.data?.amount || 0),
-                currency: checkRes.currency || checkRes.raw?.data?.currency || "CDF",
+                amount: payAmount,
+                currency: payCurrency,
                 paymentMethod,
                 paymentStatus: "ACTIVE",
                 transactionId: depositId,
@@ -96,6 +101,23 @@ export async function GET(req: NextRequest) {
               },
             });
           }
+
+          // Send payment notification email to kuettusocial@gmail.com and CC info@kuettu.com
+          const ownerEmail = updatedTenant.users?.find((u) => u.role === "OWNER")?.email || updatedTenant.users?.[0]?.email;
+          sendPaymentNotificationEmail({
+            tenantName: updatedTenant.name,
+            storeName: updatedTenant.stores?.[0]?.name,
+            customerEmail: ownerEmail,
+            amount: payAmount,
+            currency: payCurrency,
+            paymentMethod,
+            transactionId: depositId,
+            plan,
+            periodEnd,
+            notes: `Paiement PawaPay Mobile Money confirmé via Vérification d'état (${detectedProvider || paymentMethod})`,
+          }).catch((emailErr) => {
+            console.error("[PawaPay Status] Failed to send payment notification email:", emailErr);
+          });
         } catch (dbErr: any) {
           console.warn("[PawaPay Status Check] DB update error:", dbErr.message);
         }
