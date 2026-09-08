@@ -35,8 +35,7 @@ function renderBaseEmailTemplate({
   disclaimerText?: string;
 }): string {
   const currentYear = new Date().getFullYear();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app";
-  const logoUrl = `${appUrl.replace(/\/+$/, "")}/logo.png`;
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://globalpos.app").replace(/\/+$/, "");
 
   return `
 <!DOCTYPE html>
@@ -72,14 +71,14 @@ function renderBaseEmailTemplate({
     }
     .top-accent-bar {
       height: 6px;
-      background: linear-gradient(90deg, #4338CA 0%, #4F46E5 50%, #6366F1 100%);
+      background: linear-gradient(90deg, #0b4ec7 0%, #2563eb 50%, #3b82f6 100%);
       width: 100%;
     }
     .card-body {
       padding: 36px 32px 28px 32px;
     }
     .logo-container {
-      margin-bottom: 24px;
+      margin-bottom: 28px;
     }
     .brand-title {
       font-size: 22px;
@@ -102,25 +101,25 @@ function renderBaseEmailTemplate({
     .code-badge {
       display: inline-block;
       padding: 16px 36px;
-      background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
+      background: linear-gradient(135deg, #0b4ec7 0%, #1d4ed8 100%);
       color: #ffffff !important;
       font-size: 32px;
       font-weight: 800;
       letter-spacing: 8px;
       border-radius: 12px;
       font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+      box-shadow: 0 4px 12px rgba(11, 78, 199, 0.25);
     }
     .btn-action {
       display: inline-block;
       padding: 14px 32px;
-      background-color: #4F46E5;
+      background-color: #0b4ec7;
       color: #ffffff !important;
       font-size: 15px;
       font-weight: 700;
       border-radius: 10px;
       text-decoration: none;
-      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+      box-shadow: 0 4px 12px rgba(11, 78, 199, 0.25);
     }
     .expiry-text {
       font-size: 12px;
@@ -143,8 +142,9 @@ function renderBaseEmailTemplate({
       line-height: 1.6;
     }
     .footer-link {
-      color: #6366F1;
+      color: #0b4ec7;
       text-decoration: none;
+      font-weight: 600;
     }
     .info-table {
       width: 100%;
@@ -184,10 +184,15 @@ function renderBaseEmailTemplate({
       <div class="top-accent-bar"></div>
       <div class="card-body">
         
-        <!-- OFFICIAL BRAND LOGO HEADER -->
+        <!-- OFFICIAL BRAND LOGO HEADER: BUTTERFLY | GLOBAL POS -->
         <div class="logo-container">
           <a href="${appUrl}" target="_blank" style="text-decoration: none; display: inline-block;">
-            <img src="${logoUrl}" alt="Kuettu Global POS" width="170" style="display: block; max-width: 170px; height: auto; border: 0;" />
+            <img 
+              src="${appUrl}/images/logo-globalpos.png" 
+              alt="Global POS" 
+              width="165" 
+              style="display: block; width: 165px; max-width: 100%; height: auto; border: 0; outline: none; text-decoration: none;" 
+            />
           </a>
         </div>
 
@@ -207,12 +212,19 @@ function renderBaseEmailTemplate({
 
     <!-- EXTERNAL FOOTER -->
     <div class="footer-section">
-      <div style="margin-bottom: 8px;">
-        <img src="${logoUrl}" alt="Kuettu Global POS" width="90" style="display: inline-block; max-width: 90px; height: auto; opacity: 0.85;" />
+      <div style="margin-bottom: 12px;">
+        <a href="${appUrl}" target="_blank" style="text-decoration: none; display: inline-block;">
+          <img 
+            src="${appUrl}/images/logo-globalpos.png" 
+            alt="Global POS" 
+            width="110" 
+            style="display: block; margin: 0 auto; width: 110px; max-width: 100%; height: auto; border: 0; opacity: 0.85;" 
+          />
+        </a>
       </div>
-      <p style="margin: 4px 0; font-weight: 600; color: #64748b;">Global POS App.</p>
-      <p style="margin: 4px 0;">© ${currentYear} Kuettu Corporation SARL. Tous droits réservés.</p>
-      <p style="margin: 4px 0;">
+      <p style="margin: 4px 0; font-weight: 600; color: #64748b;">Global POS • Kuettu Corporation</p>
+      <p style="margin: 4px 0; font-size: 11px; color: #94a3b8;">© ${currentYear} Kuettu Corporation SARL. Tous droits réservés.</p>
+      <p style="margin: 4px 0; font-size: 11px;">
         Vous recevez cet e-mail car vous utilisez Global POS sur <a href="${appUrl}" class="footer-link">${appUrl.replace(/^https?:\/\//, "")}</a>
       </p>
     </div>

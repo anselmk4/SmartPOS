@@ -1,0 +1,19 @@
+<svg width="240" height="60" viewBox="0 0 240 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Butterfly Icon -->
+  <g transform="translate(4, 5) scale(0.6)">
+    <path d="M48 24C48 20 49 14 50 12C51 14 52 20 52 24V58C52 64 50 68 50 68C50 68 48 64 48 58V24Z" fill="#0b4ec7"/>
+    <path d="M47 22C40 12 26 2 12 3C4 4 1 10 2 18C4 28 10 38 18 44C26 50 36 50 46 44C47 43 47.5 41 47 40C46 38 46 32 47 22Z" fill="#0b4ec7"/>
+    <path d="M53 22C60 12 74 2 88 3C96 4 99 10 98 18C96 28 90 38 82 44C74 50 64 50 54 44C53 43 52.5 41 53 40C54 38 54 32 53 22Z" fill="#0b4ec7"/>
+    <path d="M46 46C38 48 28 52 22 58C16 64 16 72 22 78C28 84 38 82 44 72C46 68 46.5 60 46 54C46 50 46 47 46 46Z" fill="#0b4ec7"/>
+    <path d="M54 46C62 48 72 52 78 58C84 64 84 72 78 78C72 84 62 82 56 72C54 68 53.5 60 54 54C54 50 54 47 54 46Z" fill="#0b4ec7"/>
+    <path d="M49 14C45 8 40 4 37 3M51 14C55 8 60 4 63 3" stroke="#0b4ec7" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="37" cy="3" r="2" fill="#0b4ec7"/>
+    <circle cx="63" cy="3" r="2" fill="#0b4ec7"/>
+  </g>
+
+  <!-- Divider Line -->
+  <line x1="72" y1="12" x2="72" y2="48" stroke="#0b4ec7" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Wordmark -->
+  <text x="84" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="28" font-weight="800" fill="#0b4ec7" letter-spacing="-0.5">Global POS</text>
+</svg>
