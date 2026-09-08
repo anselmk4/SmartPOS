@@ -29,7 +29,6 @@ function VerifyOtpContent() {
   const codeParam = searchParams?.get("code") || "";
 
   const identifier = methodParam === "EMAIL" ? emailParam || phoneParam : phoneParam || emailParam;
-  const [activeTestCode, setActiveTestCode] = useState<string>(codeParam);
 
   // 6 digits OTP array
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
@@ -42,21 +41,6 @@ function VerifyOtpContent() {
   // Resend cooldown timer (60s)
   const [resendCooldown, setResendCooldown] = useState(60);
   const [isResending, setIsResending] = useState(false);
-
-  useEffect(() => {
-    if (codeParam) {
-      setActiveTestCode(codeParam);
-    }
-  }, [codeParam]);
-
-  const handleAutofill = (codeToFill: string) => {
-    const clean = codeToFill.replace(/\D/g, "").slice(0, 6);
-    if (clean.length === 6) {
-      const arr = clean.split("");
-      setDigits(arr);
-      verifyCode(clean);
-    }
-  };
 
   useEffect(() => {
     // Focus first input on mount
@@ -206,9 +190,6 @@ function VerifyOtpContent() {
       if (!res.ok || !data.success) {
         setErrorMsg(data.error || "Impossible de renvoyer le code");
       } else {
-        if (data.simulatedCode) {
-          setActiveTestCode(data.simulatedCode);
-        }
         setSuccessMsg("Un nouveau code a été généré !");
         setResendCooldown(60);
         setTimeout(() => setSuccessMsg(null), 3500);
@@ -242,29 +223,6 @@ function VerifyOtpContent() {
           {identifier || "Votre adresse"}
         </div>
       </div>
-
-      {/* Test Mode OTP Banner with 1-Click Autofill */}
-      {activeTestCode && (
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/80 to-indigo-950/80 border border-blue-500/40 shadow-lg shadow-blue-950/50 space-y-2.5 animate-in fade-in slide-in-from-top-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-blue-200 flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-amber-300" />
-              Code OTP de Confirmation :
-            </span>
-            <span className="font-mono font-black text-amber-300 text-base tracking-widest bg-slate-900/90 px-3 py-1 rounded-xl border border-amber-400/40 shadow-inner">
-              {activeTestCode}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => handleAutofill(activeTestCode)}
-            className="w-full py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-md shadow-blue-600/30 transition-all touch-press flex items-center justify-center gap-2"
-          >
-            <span>⚡ Remplir & Ouvrir ma Caisse en 1 Clic</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
 
       {/* Error / Success Alerts */}
       {errorMsg && (

@@ -235,27 +235,9 @@ export default function ForgotPinPage() {
                 </span>
               </div>
               <p className="text-[11px] text-emerald-800">
-                Un code de vérification à 6 chiffres a été généré pour <b>{maskedPhone}</b>.
+                Un code de vérification à 6 chiffres a été envoyé par <b>{email ? "e-mail" : "SMS"}</b>.
               </p>
             </div>
-
-            {/* Simulated OTP Display Helper */}
-            {simulatedOtp && (
-              <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-amber-800 block">Code de vérification (Sécurité)</span>
-                  <span className="font-mono text-base font-black tracking-widest text-amber-950">{simulatedOtp}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={copyOtpToInput}
-                  className="py-1.5 px-3 rounded-xl bg-amber-200/70 hover:bg-amber-200 text-amber-900 text-xs font-bold flex items-center gap-1.5 transition-all"
-                >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-700" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copied ? "Inséré !" : "Insérer"}</span>
-                </button>
-              </div>
-            )}
 
             {/* 6-Digit OTP Field */}
             <div>
