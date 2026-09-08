@@ -463,21 +463,20 @@ export default function LoginPage() {
           </form>
         )}
 
-        {/* Footer: Register link & Legal links */}
-        {!isTerminalLinked && (
-          <div className="pt-4 border-t border-slate-100 text-center">
-            <p className="text-xs text-slate-500 mb-1.5">
-              Nouvelle boutique ?
-            </p>
-            <Link
-              href="/auth/register"
-              className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1"
-            >
-              <span>Créer un compte boutique SaaS gratuitement</span>
-              <Sparkles className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        )}
+        {/* Footer: Register link & Prominent Create Store Button */}
+        <div className="pt-4 border-t border-slate-100 space-y-2 text-center">
+          <p className="text-xs text-slate-500 font-medium">
+            Vous n&apos;avez pas encore de compte ou souhaitez ajouter une boutique ?
+          </p>
+          <Link
+            href="/auth/register"
+            className="w-full py-3 px-4 rounded-2xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold text-xs border border-indigo-200/80 flex items-center justify-center gap-2 shadow-xs transition-all touch-press"
+          >
+            <Store className="w-4 h-4 text-indigo-600" />
+            <span>+ Créer un Nouveau Commerce</span>
+            <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
+          </Link>
+        </div>
 
         {/* Legal links */}
         <div className="mt-4 pt-3 border-t border-slate-100/60 flex items-center justify-center gap-3 text-[11px] text-slate-400">
