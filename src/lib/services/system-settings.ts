@@ -16,7 +16,8 @@ export interface SystemVerificationConfig {
     messagingServiceSid?: string;
   };
   email: {
-    provider: "SUPABASE" | "SMTP";
+    provider: "RESEND" | "SUPABASE" | "SMTP";
+    apiKey?: string;
     fromEmail?: string;
     fromName?: string;
   };
@@ -34,8 +35,9 @@ const DEFAULT_CONFIG: SystemVerificationConfig = {
     messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID || "",
   },
   email: {
-    provider: "SUPABASE",
-    fromEmail: process.env.ADMIN_EMAIL || "info@kuettu.com",
+    provider: "RESEND",
+    apiKey: process.env.RESEND_API_KEY || "",
+    fromEmail: process.env.RESEND_FROM_EMAIL || process.env.ADMIN_EMAIL || "notifications@kuettu.com",
     fromName: "Kuettu Global POS",
   },
 };

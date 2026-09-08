@@ -292,63 +292,62 @@ async function dispatchViaResend({
       payload.cc = ccList;
     }
 
-    if (resendApiKey) {
-      const response = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendApiKey.trim()}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const resData = await response.json();
-
-      if (!response.ok) {
-        console.error("[Resend API Error Response]:", resData);
-        // If domain verification issue with custom from address, fallback to onboarding@resend.dev
-        if (response.status === 403 && fromAddress !== "onboarding@resend.dev") {
-          console.warn("[Resend] Attempting retry with onboarding@resend.dev sender...");
-          const retryRes = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${resendApiKey.trim()}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              ...payload,
-              from: "Kuettu Global POS <onboarding@resend.dev>",
-            }),
-          });
-          const retryData = await retryRes.json();
-          if (retryRes.ok) {
-            return {
-              success: true,
-              messageId: retryData.id || `resend_${Date.now()}`,
-              isSimulated: false,
-            };
-          }
-        }
-
-        return {
-          success: false,
-          isSimulated: false,
-          error: resData.message || "Erreur lors de l'envoi via Resend",
-        };
-      }
-
+    if (!resendApiKey) {
+      console.error("[Email Service Error]: Aucune clé API Resend (RESEND_API_KEY) n'est configurée.");
       return {
-        success: true,
-        messageId: resData.id || `resend_${Date.now()}`,
+        success: false,
         isSimulated: false,
+        error: "Clé API Resend manquante. Veuillez renseigner votre clé RESEND_API_KEY dans le fichier .env ou les paramètres d'administration.",
       };
     }
 
-    // 3. Fallback when Supabase handles SMTP directly
-    console.log(`[Email Service] Dispatched email to ${toList.join(", ")}`);
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendApiKey.trim()}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const resData = await response.json();
+
+    if (!response.ok) {
+      console.error("[Resend API Error Response]:", resData);
+      // If domain verification issue with custom from address, fallback to onboarding@resend.dev
+      if (response.status === 403 && fromAddress !== "onboarding@resend.dev") {
+        console.warn("[Resend] Attempting retry with onboarding@resend.dev sender...");
+        const retryRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendApiKey.trim()}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...payload,
+            from: "Kuettu Global POS <onboarding@resend.dev>",
+          }),
+        });
+        const retryData = await retryRes.json();
+        if (retryRes.ok) {
+          return {
+            success: true,
+            messageId: retryData.id || `resend_${Date.now()}`,
+            isSimulated: false,
+          };
+        }
+      }
+
+      return {
+        success: false,
+        isSimulated: false,
+        error: resData.message || resData.error || "Erreur lors de l'envoi via Resend",
+      };
+    }
+
     return {
       success: true,
-      messageId: `supabase_mail_${Date.now()}`,
+      messageId: resData.id || `resend_${Date.now()}`,
       isSimulated: false,
     };
   } catch (err: any) {

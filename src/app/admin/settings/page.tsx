@@ -77,15 +77,21 @@ export default function AdminSettingsPage() {
 
   // Verification Settings State
   const [verificationMethod, setVerificationMethod] = useState<"SMS" | "EMAIL" | "DISABLED">("EMAIL");
-  const [isSimulationMode, setIsSimulationMode] = useState(true);
+  const [isSimulationMode, setIsSimulationMode] = useState(false);
   const [twilioSid, setTwilioSid] = useState("");
   const [twilioToken, setTwilioToken] = useState("");
   const [twilioPhone, setTwilioPhone] = useState("");
   const [twilioServiceSid, setTwilioServiceSid] = useState("");
 
+  // Email & Resend Settings State
+  const [resendApiKey, setResendApiKey] = useState("");
+  const [resendFromEmail, setResendFromEmail] = useState("notifications@kuettu.com");
+  const [resendFromName, setResendFromName] = useState("Kuettu Global POS");
+
   // Test Dispatch
   const [testTargetPhone, setTestTargetPhone] = useState("+243 810 000 000");
-  const [testTargetEmail, setTestTargetEmail] = useState("test@commerce.cd");
+  const [testTargetEmail, setTestTargetEmail] = useState("kuettusocial@gmail.com");
+  const [testTemplateType, setTestTemplateType] = useState<"OTP" | "FORGOT_PIN" | "PAYMENT">("OTP");
   const [isTestingDispatch, setIsTestingDispatch] = useState(false);
   const [testFeedback, setTestFeedback] = useState<string | null>(null);
 
@@ -106,12 +112,15 @@ export default function AdminSettingsPage() {
         // Load verification config into local form
         if (res.data.verificationConfig) {
           const cfg = res.data.verificationConfig;
-          setVerificationMethod(cfg.verificationMethod || "SMS");
-          setIsSimulationMode(cfg.isSimulationMode ?? true);
+          setVerificationMethod(cfg.verificationMethod || "EMAIL");
+          setIsSimulationMode(cfg.isSimulationMode ?? false);
           setTwilioSid(cfg.twilio?.accountSid || "");
           setTwilioToken(cfg.twilio?.authToken || "");
           setTwilioPhone(cfg.twilio?.phoneNumber || "");
           setTwilioServiceSid(cfg.twilio?.messagingServiceSid || "");
+          setResendApiKey((cfg.email as any)?.apiKey || "");
+          setResendFromEmail(cfg.email?.fromEmail || "notifications@kuettu.com");
+          setResendFromName(cfg.email?.fromName || "Kuettu Global POS");
         }
       } else {
         setError(res.error || "Erreur de connexion à la base de données");
@@ -142,6 +151,12 @@ export default function AdminSettingsPage() {
             phoneNumber: twilioPhone.trim(),
             messagingServiceSid: twilioServiceSid.trim(),
           },
+          email: {
+            provider: "RESEND",
+            apiKey: resendApiKey.trim(),
+            fromEmail: resendFromEmail.trim(),
+            fromName: resendFromName.trim(),
+          },
         }),
       });
 
@@ -166,10 +181,24 @@ export default function AdminSettingsPage() {
         body: JSON.stringify({
           action: "TEST_DISPATCH",
           verificationMethod,
+          templateType: testTemplateType,
           testPhone: testTargetPhone,
           testEmail: testTargetEmail,
         }),
       });
+
+      if (res.success) {
+        setTestFeedback(res.message || "Envoi test réussi !");
+        showToast("Test de confirmation déclenché !");
+      } else {
+        setTestFeedback(`Erreur: ${res.error || "Échec de l'envoi"}`);
+      }
+    } catch (err: any) {
+      setTestFeedback(`Erreur: ${err.message}`);
+    } finally {
+      setIsTestingDispatch(false);
+    }
+  };
 
       if (res.success) {
         setTestFeedback(res.message || "Envoi test réussi !");
@@ -479,28 +508,106 @@ export default function AdminSettingsPage() {
             </div>
           )}
 
+          {/* Resend Email Configuration Fields */}
+          {verificationMethod === "EMAIL" && (
+            <div className="bg-slate-800/40 p-5 rounded-2xl border border-indigo-500/30 space-y-4 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-indigo-400" />
+                  <h4 className="font-bold text-white text-sm">Configuration Resend API & Expéditeur</h4>
+                </div>
+
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isSimulationMode}
+                    onChange={(e) => setIsSimulationMode(e.target.checked)}
+                    className="w-4 h-4 rounded text-indigo-600"
+                  />
+                  <span>Mode Simulation (Activer pour simuler sans appel API)</span>
+                </label>
+              </div>
+
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Renseignez votre clé d'API Resend (<code className="text-indigo-300 font-mono">re_...</code>) pour acheminer directement les e-mails réels (OTP, PIN oublié, et alertes de paiement).
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-1">
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Clé API Resend (API Key)
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="re_123456789abcdef..."
+                    value={resendApiKey}
+                    onChange={(e) => setResendApiKey(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    E-mail Expéditeur (From Email)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="notifications@kuettu.com ou onboarding@resend.dev"
+                    value={resendFromEmail}
+                    onChange={(e) => setResendFromEmail(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Nom Expéditeur (From Name)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Kuettu Global POS"
+                    value={resendFromName}
+                    onChange={(e) => setResendFromName(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons & Test Dispatch Tool */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-2">
             <button
               type="submit"
-              className="py-3 px-6 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition-all touch-press flex items-center gap-2"
+              className="py-3 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all touch-press flex items-center gap-2"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>Enregistrer les Paramètres de Validation</span>
             </button>
 
             {/* Test Tool Trigger */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              {verificationMethod === "EMAIL" && (
+                <select
+                  value={testTemplateType}
+                  onChange={(e: any) => setTestTemplateType(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-medium"
+                >
+                  <option value="OTP">Template OTP Inscription</option>
+                  <option value="FORGOT_PIN">Template PIN Oublié</option>
+                  <option value="PAYMENT">Notification Paiement</option>
+                </select>
+              )}
               <input
                 type="text"
-                placeholder={verificationMethod === "EMAIL" ? "email@test.cd" : "+243 810 000 000"}
+                placeholder={verificationMethod === "EMAIL" ? "kuettusocial@gmail.com" : "+243 810 000 000"}
                 value={verificationMethod === "EMAIL" ? testTargetEmail : testTargetPhone}
                 onChange={(e) =>
                   verificationMethod === "EMAIL"
                     ? setTestTargetEmail(e.target.value)
                     : setTestTargetPhone(e.target.value)
                 }
-                className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono w-44"
+                className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono w-48"
               />
               <button
                 type="button"
