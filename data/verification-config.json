@@ -9,9 +9,9 @@
     "messagingServiceSid": ""
   },
   "email": {
-    "provider": "SUPABASE",
-    "fromEmail": "notifications@kuettu.com",
+    "provider": "RESEND",
+    "fromEmail": "noreply@globalpos.app",
     "fromName": "Kuettu Global POS"
   },
-  "updatedAt": "2026-09-09T01:17:00.000Z"
+  "updatedAt": "2026-09-09T02:02:00.000Z"
 }

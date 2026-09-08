@@ -249,6 +249,7 @@ async function dispatchViaResend({
   const config = await getSystemVerificationConfig();
   const resendApiKey =
     process.env.RESEND_API_KEY ||
+    process.env.resend_api ||
     process.env.NEXT_PUBLIC_RESEND_API_KEY ||
     (config.email as any)?.apiKey ||
     (config.email as any)?.resendApiKey;
@@ -276,10 +277,12 @@ async function dispatchViaResend({
 
   // 2. Direct Resend REST API Dispatch
   try {
-    const fromAddress =
-      process.env.RESEND_FROM_EMAIL ||
-      process.env.EMAIL_FROM ||
-      "Kuettu Global POS <notifications@kuettu.com>";
+    const configFromEmail = config.email?.fromEmail?.trim() || "noreply@globalpos.app";
+    const configFromName = config.email?.fromName?.trim() || "Kuettu Global POS";
+
+    const fromAddress = configFromEmail.includes("<")
+      ? configFromEmail
+      : `${configFromName} <${configFromEmail}>`;
 
     const payload: any = {
       from: fromAddress,
@@ -314,10 +317,35 @@ async function dispatchViaResend({
 
     if (!response.ok) {
       console.error("[Resend API Error Response]:", resData);
-      // If domain verification issue with custom from address, fallback to onboarding@resend.dev
-      if (response.status === 403 && fromAddress !== "onboarding@resend.dev") {
-        console.warn("[Resend] Attempting retry with onboarding@resend.dev sender...");
+      
+      // Fallback 1: If custom domain error, retry with noreply@globalpos.app
+      if (response.status === 403 && !fromAddress.includes("globalpos.app")) {
+        console.warn("[Resend] Attempting retry with Kuettu Global POS <noreply@globalpos.app>...");
         const retryRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendApiKey.trim()}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...payload,
+            from: "Kuettu Global POS <noreply@globalpos.app>",
+          }),
+        });
+        const retryData = await retryRes.json();
+        if (retryRes.ok) {
+          return {
+            success: true,
+            messageId: retryData.id || `resend_${Date.now()}`,
+            isSimulated: false,
+          };
+        }
+      }
+
+      // Fallback 2: retry with onboarding@resend.dev
+      if (response.status === 403) {
+        console.warn("[Resend] Attempting fallback with onboarding@resend.dev...");
+        const fallbackRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${resendApiKey.trim()}`,
@@ -328,11 +356,11 @@ async function dispatchViaResend({
             from: "Kuettu Global POS <onboarding@resend.dev>",
           }),
         });
-        const retryData = await retryRes.json();
-        if (retryRes.ok) {
+        const fallbackData = await fallbackRes.json();
+        if (fallbackRes.ok) {
           return {
             success: true,
-            messageId: retryData.id || `resend_${Date.now()}`,
+            messageId: fallbackData.id || `resend_${Date.now()}`,
             isSimulated: false,
           };
         }

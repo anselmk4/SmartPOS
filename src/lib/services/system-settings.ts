@@ -36,8 +36,8 @@ const DEFAULT_CONFIG: SystemVerificationConfig = {
   },
   email: {
     provider: "RESEND",
-    apiKey: process.env.RESEND_API_KEY || "",
-    fromEmail: process.env.RESEND_FROM_EMAIL || process.env.ADMIN_EMAIL || "notifications@kuettu.com",
+    apiKey: process.env.RESEND_API_KEY || process.env.resend_api || "",
+    fromEmail: process.env.RESEND_FROM_EMAIL || "noreply@globalpos.app",
     fromName: "Kuettu Global POS",
   },
 };
