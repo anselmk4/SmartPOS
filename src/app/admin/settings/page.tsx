@@ -200,19 +200,6 @@ export default function AdminSettingsPage() {
     }
   };
 
-      if (res.success) {
-        setTestFeedback(res.message || "Envoi test réussi !");
-        showToast("Test de confirmation déclenché !");
-      } else {
-        setTestFeedback(`Erreur: ${res.error || "Échec de l'envoi"}`);
-      }
-    } catch (err: any) {
-      setTestFeedback(`Erreur: ${err.message}`);
-    } finally {
-      setIsTestingDispatch(false);
-    }
-  };
-
   const handleExportFullDatabaseJson = async () => {
     setIsExporting(true);
     try {
