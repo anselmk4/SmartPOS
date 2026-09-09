@@ -177,29 +177,29 @@ export class SyncEngine {
         }
       }
 
-      const unsyncedUsers = await db.users.toArray();
-      for (const u of unsyncedUsers) {
-        const existingQueue = await db.syncQueue
-          .filter((q) => q.entity === "user" && q.status === "PENDING")
-          .toArray();
-        const alreadyInQueue = existingQueue.some((q) => {
-          try {
-            const parsed = JSON.parse(q.payload);
-            return parsed.id === u.id;
-          } catch {
-            return false;
-          }
-        });
-
-        if (!alreadyInQueue) {
-          await enqueueSync({
-            tenantId: u.tenantId,
-            storeId: u.storeId || storeId,
-            entity: "user",
-            action: "CREATE",
-            payload: JSON.stringify(u),
-          });
+      // Clean up any duplicate or exhausted pending items to keep the queue fast and clean
+      const allQueueItems = await db.syncQueue.toArray();
+      const seenPayloadKeys = new Set<string>();
+      const idsToDelete: string[] = [];
+      for (const item of allQueueItems) {
+        if (item.retryCount >= 5) {
+          idsToDelete.push(item.id);
+          continue;
         }
+        try {
+          const parsed = JSON.parse(item.payload);
+          const key = `${item.entity}:${item.action}:${parsed.id || item.id}`;
+          if (seenPayloadKeys.has(key)) {
+            idsToDelete.push(item.id);
+          } else {
+            seenPayloadKeys.add(key);
+          }
+        } catch {
+          // ignore
+        }
+      }
+      if (idsToDelete.length > 0) {
+        await db.syncQueue.bulkDelete(idsToDelete);
       }
 
       // 2. Get pending mutations

@@ -41,8 +41,21 @@ export async function GET(req: NextRequest) {
       whereClause.isActive = false;
     }
 
-    // 1. Auto-reconcile any sales, products, and customers whose storeId belongs to a specific tenant
+    // 1. Auto-reconcile tenant names, sales, products, and customers whose storeId belongs to a specific tenant
     try {
+      await prisma.$executeRawUnsafe(`
+        UPDATE tenants t
+        SET name = st.name,
+            business_type = COALESCE(st.business_type, t.business_type),
+            phone = COALESCE(st.phone, t.phone)
+        FROM stores st
+        WHERE st.tenant_id = t.id 
+          AND st.id != '00000000-0000-4000-8000-000000000001'
+          AND st.name IS NOT NULL 
+          AND st.name != ''
+          AND t.name != st.name;
+      `);
+
       await prisma.$executeRawUnsafe(`
         UPDATE sales s
         SET tenant_id = st.tenant_id

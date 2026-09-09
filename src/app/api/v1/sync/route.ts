@@ -493,6 +493,19 @@ export async function POST(req: NextRequest) {
                 updatedAt: now,
               },
             }).catch(() => {});
+
+            // Synchronize tenant display name & business type with its active store name
+            if (activeTenantId && data.name && activeTenantId !== "00000000-0000-4000-8000-000000000000") {
+              await prisma.tenant.update({
+                where: { id: activeTenantId },
+                data: {
+                  name: data.name.trim(),
+                  businessType: data.businessType ? String(data.businessType).trim() : undefined,
+                  phone: data.phone ? String(data.phone).trim() : undefined,
+                  updatedAt: now,
+                },
+              }).catch(() => {});
+            }
             syncedIds.push(id);
           } else if (entity === "user" && (action === "CREATE" || action === "UPDATE")) {
             const activeTenantId = (session && session.tenantId !== "global-platform-admin" ? session.tenantId : null) || tenantId || data.tenantId;
@@ -503,23 +516,39 @@ export async function POST(req: NextRequest) {
 
             if (data.id && activeTenantId) {
               try {
+                // Find existing user by ID or by phone/email to prevent unique constraint conflicts
+                let existingUser = await prisma.user.findUnique({ where: { id: data.id } }).catch(() => null);
+                if (!existingUser && (data.phone || data.email)) {
+                  existingUser = await prisma.user.findFirst({
+                    where: {
+                      tenantId: activeTenantId,
+                      OR: [
+                        ...(data.phone ? [{ phone: data.phone }] : []),
+                        ...(data.email ? [{ email: data.email }] : []),
+                      ],
+                    },
+                  }).catch(() => null);
+                }
+
+                const targetUserId = existingUser?.id || data.id;
+
                 await prisma.user.upsert({
-                  where: { id: data.id },
+                  where: { id: targetUserId },
                   update: {
                     name: data.name || "Membre",
-                    phone: data.phone,
-                    email: data.email,
+                    phone: data.phone || undefined,
+                    email: data.email || undefined,
                     pinCode: safePin,
                     role: requestedRole,
                     isActive: data.isActive !== undefined ? data.isActive : true,
                     updatedAt: now,
                   },
                   create: {
-                    id: data.id,
+                    id: targetUserId,
                     tenantId: activeTenantId,
                     name: data.name || "Membre",
-                    phone: data.phone,
-                    email: data.email,
+                    phone: data.phone || undefined,
+                    email: data.email || undefined,
                     pinCode: safePin,
                     role: requestedRole,
                     isActive: data.isActive !== undefined ? data.isActive : true,
@@ -528,32 +557,7 @@ export async function POST(req: NextRequest) {
                   },
                 });
               } catch (userUpsertErr: any) {
-                if (requestedRole === "WAITER" || userUpsertErr?.message?.includes("UserRole")) {
-                  await prisma.user.upsert({
-                    where: { id: data.id },
-                    update: {
-                      name: data.name || "Membre",
-                      phone: data.phone,
-                      email: data.email,
-                      pinCode: safePin,
-                      role: "CASHIER",
-                      isActive: data.isActive !== undefined ? data.isActive : true,
-                      updatedAt: now,
-                    },
-                    create: {
-                      id: data.id,
-                      tenantId: activeTenantId,
-                      name: data.name || "Membre",
-                      phone: data.phone,
-                      email: data.email,
-                      pinCode: safePin,
-                      role: "CASHIER",
-                      isActive: data.isActive !== undefined ? data.isActive : true,
-                      createdAt: new Date(data.createdAt || now),
-                      updatedAt: now,
-                    },
-                  }).catch(() => {});
-                }
+                console.warn("[Sync User Upsert Warning]:", userUpsertErr?.message);
               }
             }
             syncedIds.push(id);
