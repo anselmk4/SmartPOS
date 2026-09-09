@@ -154,6 +154,9 @@ export async function reconcileTenantsData(prismaClient: typeof prisma, force = 
       "tapas", "brochette", "capitaine", "malangwa", "riz", "kosa"
     ];
 
+    const catalinaProductIds: string[] = [];
+    const wakeUpProductIds: string[] = [];
+
     for (const prod of allProducts) {
       const lowerName = (prod.name || "").toLowerCase();
       const lowerCat = (prod.category || "").toLowerCase();
@@ -172,45 +175,34 @@ export async function reconcileTenantsData(prismaClient: typeof prisma, force = 
         lowerCat.includes("bar");
 
       if (isCosmetic && prod.tenantId !== catalinaTenant.id) {
-        await prismaClient.product.update({
-          where: { id: prod.id },
-          data: {
-            tenantId: catalinaTenant.id,
-            storeId: catalinaStoreId,
-            updatedAt: now,
-          },
-        });
-        productsReassignedToCatalina++;
+        catalinaProductIds.push(prod.id);
       } else if (isRestaurant && prod.tenantId !== wakeUpTenant.id) {
-        await prismaClient.product.update({
-          where: { id: prod.id },
-          data: {
-            tenantId: wakeUpTenant.id,
-            storeId: wakeUpStoreId,
-            updatedAt: now,
-          },
-        });
-        productsReassignedToWakeUp++;
+        wakeUpProductIds.push(prod.id);
       }
     }
-  }
 
-  // 5. General Integrity Check: Ensure every product and sale in the entire database has a valid storeId matching its tenant
-  const orphanedProducts = await prismaClient.product.findMany({
-    include: { store: { select: { tenantId: true } } },
-  });
-
-  for (const prod of orphanedProducts) {
-    if (!prod.store || prod.store.tenantId !== prod.tenantId) {
-      const validStore = await prismaClient.store.findFirst({
-        where: { tenantId: prod.tenantId },
+    if (catalinaProductIds.length > 0) {
+      await prismaClient.product.updateMany({
+        where: { id: { in: catalinaProductIds } },
+        data: {
+          tenantId: catalinaTenant.id,
+          storeId: catalinaStoreId,
+          updatedAt: now,
+        },
       });
-      if (validStore) {
-        await prismaClient.product.update({
-          where: { id: prod.id },
-          data: { storeId: validStore.id, updatedAt: now },
-        });
-      }
+      productsReassignedToCatalina = catalinaProductIds.length;
+    }
+
+    if (wakeUpProductIds.length > 0) {
+      await prismaClient.product.updateMany({
+        where: { id: { in: wakeUpProductIds } },
+        data: {
+          tenantId: wakeUpTenant.id,
+          storeId: wakeUpStoreId,
+          updatedAt: now,
+        },
+      });
+      productsReassignedToWakeUp = wakeUpProductIds.length;
     }
   }
 

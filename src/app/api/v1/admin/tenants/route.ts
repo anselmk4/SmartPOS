@@ -4,7 +4,6 @@ import { verifySuperAdmin, unauthorizedAdminResponse, validateAdminPassword } fr
 import { sendManualActivationSms } from "@/lib/services/sms-service";
 import { sendManualActivationEmail } from "@/lib/services/email-service";
 import crypto from "crypto";
-import { reconcileTenantsData } from "@/app/api/v1/admin/reconcile-tenants/route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -40,13 +39,6 @@ export async function GET(req: NextRequest) {
       whereClause.isActive = true;
     } else if (status === "SUSPENDED") {
       whereClause.isActive = false;
-    }
-
-    // 1. Safe multi-tenant restitution & validation
-    try {
-      await reconcileTenantsData(prisma);
-    } catch (reconcileErr) {
-      console.warn("[Admin Tenants Reconcile Warning]:", reconcileErr);
     }
 
     const tenants = await prisma.tenant.findMany({
