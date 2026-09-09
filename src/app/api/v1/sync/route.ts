@@ -151,8 +151,6 @@ export async function POST(req: NextRequest) {
       } catch (upsertErr) {
         console.warn("[Sync] Tenant/Store auto-upsert error:", upsertErr);
       }
-        console.warn("[Sync] Tenant/Store auto-upsert error:", upsertErr);
-      }
 
       for (const mutation of mutations) {
         try {
