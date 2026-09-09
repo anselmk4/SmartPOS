@@ -102,7 +102,7 @@ export const CATEGORY_PRESETS: CategoryPreset[] = [
 interface CategoryManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  products: Product[];
+  products?: Product[];
   storeId?: string;
   tenantId?: string;
   onCategorySelect?: (categoryName: string) => void;
@@ -111,7 +111,7 @@ interface CategoryManagerModalProps {
 export function CategoryManagerModal({
   isOpen,
   onClose,
-  products,
+  products = [],
   storeId,
   tenantId,
   onCategorySelect,
@@ -130,7 +130,7 @@ export function CategoryManagerModal({
   // Compute category statistics from current products
   const categoryStats = useMemo(() => {
     const counts: Record<string, number> = {};
-    products.forEach((p) => {
+    (products || []).forEach((p) => {
       const cat = p.category?.trim() || "Général";
       counts[cat] = (counts[cat] || 0) + 1;
     });

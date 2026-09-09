@@ -1319,6 +1319,9 @@ export default function InventoryPage() {
       <CategoryManagerModal
         isOpen={isCategoryModalOpen}
         onClose={() => setIsCategoryModalOpen(false)}
+        products={products}
+        storeId={currentStoreId}
+        tenantId={tenant?.id}
       />
     </div>
   );
