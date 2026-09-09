@@ -45,16 +45,21 @@ export default function InventoryPage() {
   const { formatMoney, currency } = useSync();
 
   const currentStoreId = authStore?.id || DEFAULT_STORE_ID;
+  const currentTenantId = tenant?.id;
   const products = useLiveQuery(async () => {
-    if (!currentStoreId && !currentTenantId) return [];
-    return await db.products
-      .filter((p) => {
-        if (currentTenantId && p.tenantId) {
-          return p.tenantId === currentTenantId;
-        }
-        return Boolean(currentStoreId) && p.storeId === currentStoreId;
-      })
-      .toArray();
+    try {
+      if (typeof window === "undefined" || (!currentStoreId && !currentTenantId)) return [];
+      return await db.products
+        .filter((p) => {
+          if (currentTenantId && p.tenantId) {
+            return p.tenantId === currentTenantId;
+          }
+          return Boolean(currentStoreId) && p.storeId === currentStoreId;
+        })
+        .toArray();
+    } catch {
+      return [];
+    }
   }, [currentStoreId, currentTenantId]) || [];
 
   const [searchQuery, setSearchQuery] = useState("");
