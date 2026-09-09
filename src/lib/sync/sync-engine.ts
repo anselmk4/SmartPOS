@@ -181,10 +181,33 @@ export class SyncEngine {
             payload: JSON.stringify(c),
           });
         }
+      const unsyncedUsers = await db.users.toArray();
+      for (const u of unsyncedUsers) {
+        const existingQueue = await db.syncQueue
+          .filter((q) => q.entity === "user" && q.status === "PENDING")
+          .toArray();
+        const alreadyInQueue = existingQueue.some((q) => {
+          try {
+            const parsed = JSON.parse(q.payload);
+            return parsed.id === u.id;
+          } catch {
+            return false;
+          }
+        });
+
+        if (!alreadyInQueue) {
+          await enqueueSync({
+            tenantId: u.tenantId,
+            storeId: u.storeId || storeId,
+            entity: "user",
+            action: "CREATE",
+            payload: JSON.stringify(u),
+          });
+        }
       }
 
       // 2. Get pending mutations
-      const pendingItems = await getPendingSyncItems(storeId, 100);
+      const pendingItems = await getPendingSyncItems(storeId, 200);
       const lastPulledAt = typeof window !== "undefined" ? localStorage.getItem(LAST_PULLED_KEY) || undefined : undefined;
 
       const mutations = pendingItems.map((item) => {

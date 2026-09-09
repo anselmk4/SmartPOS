@@ -795,6 +795,44 @@ export async function updateStoreBranding(
 }
 
 /**
+ * Create a new user / staff member with immediate sync enqueue
+ */
+export async function createStaffUser(data: {
+  tenantId: string;
+  storeId?: string;
+  name: string;
+  phone?: string;
+  pinCode?: string;
+  role: import("@/lib/shared/types").UserRole;
+}): Promise<User> {
+  const now = new Date().toISOString();
+  const newUser: User = {
+    id: generateUUID(),
+    tenantId: data.tenantId,
+    storeId: data.storeId || DEFAULT_STORE_ID,
+    name: data.name.trim(),
+    phone: data.phone?.trim() || undefined,
+    pinCode: data.pinCode?.trim() || "0000",
+    role: data.role,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await db.users.add(newUser);
+
+  await enqueueSync({
+    tenantId: newUser.tenantId,
+    storeId: newUser.storeId || DEFAULT_STORE_ID,
+    entity: "user",
+    action: "CREATE",
+    payload: JSON.stringify(newUser),
+  });
+
+  return newUser;
+}
+
+/**
  * Update user / staff member (PIN, name, phone, role, store)
  */
 export async function updateStaffUser(

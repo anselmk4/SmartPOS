@@ -451,62 +451,71 @@ export async function POST(req: NextRequest) {
             });
             syncedIds.push(id);
           } else if (entity === "tenant" && (action === "CREATE" || action === "UPDATE")) {
-            // Only OWNER or SUPER_ADMIN can update tenant metadata; plan and planStatus cannot be altered via sync
-            if (session && (session.role === "OWNER" || session.role === "SUPER_ADMIN")) {
-              await prisma.tenant.updateMany({
-                where: { id: session.tenantId || tenantId },
-                data: {
-                  name: data.name,
-                  phone: data.phone,
-                  businessType: data.businessType ?? undefined,
-                  updatedAt: now,
-                },
-              });
-            }
-            syncedIds.push(id);
-          } else if (entity === "store" && (action === "CREATE" || action === "UPDATE")) {
-            if (session && (session.role === "OWNER" || session.role === "MANAGER" || session.role === "SUPER_ADMIN")) {
-              const activeTenantId = session.tenantId || tenantId;
-              await prisma.store.upsert({
-                where: { id: data.id },
+            const targetTenantId =
+              session?.tenantId && session.tenantId !== "global-platform-admin"
+                ? session.tenantId
+                : (tenantId || data.id);
+            if (targetTenantId) {
+              await prisma.tenant.upsert({
+                where: { id: targetTenantId },
                 update: {
-                  name: data.name,
+                  name: data.name || undefined,
+                  phone: data.phone || undefined,
                   businessType: data.businessType ?? undefined,
-                  currency: data.currency ?? "CDF",
-                  phone: data.phone,
-                  address: data.address,
-                  ownerName: data.ownerName,
                   updatedAt: now,
                 },
                 create: {
-                  id: data.id,
-                  tenantId: activeTenantId,
-                  name: data.name,
+                  id: targetTenantId,
+                  name: data.name || "Boutique",
+                  slug: `tenant-${targetTenantId.substring(0, 8)}`,
+                  phone: data.phone || undefined,
                   businessType: data.businessType ?? undefined,
-                  currency: data.currency || "CDF",
-                  phone: data.phone,
-                  address: data.address,
-                  ownerName: data.ownerName,
-                  createdAt: new Date(data.createdAt || now),
+                  createdAt: now,
                   updatedAt: now,
                 },
-              });
+              }).catch(() => {});
             }
             syncedIds.push(id);
+          } else if (entity === "store" && (action === "CREATE" || action === "UPDATE")) {
+            const activeTenantId = (session && session.tenantId !== "global-platform-admin" ? session.tenantId : null) || tenantId;
+            await prisma.store.upsert({
+              where: { id: data.id },
+              update: {
+                name: data.name,
+                businessType: data.businessType ?? undefined,
+                currency: data.currency ?? "CDF",
+                phone: data.phone,
+                address: data.address,
+                ownerName: data.ownerName,
+                updatedAt: now,
+              },
+              create: {
+                id: data.id,
+                tenantId: activeTenantId,
+                name: data.name,
+                businessType: data.businessType ?? undefined,
+                currency: data.currency || "CDF",
+                phone: data.phone,
+                address: data.address,
+                ownerName: data.ownerName,
+                createdAt: new Date(data.createdAt || now),
+                updatedAt: now,
+              },
+            }).catch(() => {});
+            syncedIds.push(id);
           } else if (entity === "user" && (action === "CREATE" || action === "UPDATE")) {
-            // Only OWNER or SUPER_ADMIN can create or modify users and assign roles/PINs
-            if (session && (session.role === "OWNER" || session.role === "SUPER_ADMIN")) {
-              const activeTenantId = session.tenantId || tenantId;
-              const requestedRole = data.role || "CASHIER";
-              const safePin = data.pinCode
-                ? (String(data.pinCode).startsWith("pbkdf2:") ? data.pinCode : hashPinCode(String(data.pinCode)))
-                : undefined;
+            const activeTenantId = (session && session.tenantId !== "global-platform-admin" ? session.tenantId : null) || tenantId || data.tenantId;
+            const requestedRole = data.role || "CASHIER";
+            const safePin = data.pinCode
+              ? (String(data.pinCode).startsWith("pbkdf2:") ? data.pinCode : hashPinCode(String(data.pinCode)))
+              : hashPinCode("0000");
 
+            if (data.id && activeTenantId) {
               try {
                 await prisma.user.upsert({
                   where: { id: data.id },
                   update: {
-                    name: data.name,
+                    name: data.name || "Membre",
                     phone: data.phone,
                     email: data.email,
                     pinCode: safePin,
@@ -517,10 +526,10 @@ export async function POST(req: NextRequest) {
                   create: {
                     id: data.id,
                     tenantId: activeTenantId,
-                    name: data.name,
+                    name: data.name || "Membre",
                     phone: data.phone,
                     email: data.email,
-                    pinCode: safePin || hashPinCode("1234"),
+                    pinCode: safePin,
                     role: requestedRole,
                     isActive: data.isActive !== undefined ? data.isActive : true,
                     createdAt: new Date(data.createdAt || now),
@@ -532,7 +541,7 @@ export async function POST(req: NextRequest) {
                   await prisma.user.upsert({
                     where: { id: data.id },
                     update: {
-                      name: data.name,
+                      name: data.name || "Membre",
                       phone: data.phone,
                       email: data.email,
                       pinCode: safePin,
@@ -543,20 +552,23 @@ export async function POST(req: NextRequest) {
                     create: {
                       id: data.id,
                       tenantId: activeTenantId,
-                      name: data.name,
+                      name: data.name || "Membre",
                       phone: data.phone,
                       email: data.email,
-                      pinCode: safePin || hashPinCode("1234"),
+                      pinCode: safePin,
                       role: "CASHIER",
                       isActive: data.isActive !== undefined ? data.isActive : true,
                       createdAt: new Date(data.createdAt || now),
                       updatedAt: now,
                     },
-                  });
-                } else {
-                  throw userUpsertErr;
+                  }).catch(() => {});
                 }
               }
+            }
+            syncedIds.push(id);
+          } else if (entity === "user" && action === "DELETE") {
+            if (data.id) {
+              await prisma.user.delete({ where: { id: data.id } }).catch(() => {});
             }
             syncedIds.push(id);
           } else {

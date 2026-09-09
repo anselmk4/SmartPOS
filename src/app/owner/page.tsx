@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, generateUUID, DEFAULT_STORE_ID, updateStaffUser, deleteStaffUser } from "@/lib/db/dexie-db";
+import { db, generateUUID, DEFAULT_STORE_ID, createStaffUser, updateStaffUser, deleteStaffUser } from "@/lib/db/dexie-db";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
 import { PinLockScreen } from "@/components/auth/pin-lock-screen";
@@ -279,20 +279,14 @@ export default function OwnerSupervisionPage() {
     e.preventDefault();
     if (!newUserName.trim() || !tenant) return;
 
-    const newUser: User = {
-      id: generateUUID(),
+    await createStaffUser({
       tenantId: tenant.id,
       storeId: newUserStoreId || currentStoreId,
       name: newUserName.trim(),
       phone: newUserPhone.trim() || undefined,
       pinCode: newUserPin.trim() || "0000",
       role: newUserRole,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    await db.users.add(newUser);
+    });
     setNewUserName("");
     setNewUserPhone("");
     setNewUserPin("0000");

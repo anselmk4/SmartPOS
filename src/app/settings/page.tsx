@@ -826,9 +826,22 @@ export default function SettingsPage() {
                 <Layers className="w-5 h-5 text-indigo-600" />
                 <span>File d'Attente de Synchronisation (`SyncQueue`)</span>
               </h3>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                {syncQueueItems.length} mutation{syncQueueItems.length > 1 ? "s" : ""}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                  {syncQueueItems.length} mutation{syncQueueItems.length > 1 ? "s" : ""}
+                </span>
+                {syncQueueItems.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleManualSync}
+                    disabled={isSyncing}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isSyncing ? "animate-spin" : ""}`} />
+                    <span>Transmettre</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {syncQueueItems.length === 0 ? (

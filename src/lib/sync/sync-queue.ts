@@ -1,11 +1,9 @@
 import { db } from "../db/dexie-db";
 import type { SyncQueueItem, SyncStatus } from "../shared/types";
 
-export async function getPendingSyncItems(storeId: string, limit = 50): Promise<SyncQueueItem[]> {
+export async function getPendingSyncItems(storeId?: string, limit = 100): Promise<SyncQueueItem[]> {
   return await db.syncQueue
-    .where("storeId")
-    .equals(storeId)
-    .and((item) => item.status === "PENDING" || item.status === "FAILED")
+    .filter((item) => item.status === "PENDING" || item.status === "FAILED")
     .limit(limit)
     .toArray();
 }
@@ -30,10 +28,8 @@ export async function removeSyncedItems(ids: string[]): Promise<void> {
   await db.syncQueue.bulkDelete(ids);
 }
 
-export async function countPendingSyncItems(storeId: string): Promise<number> {
+export async function countPendingSyncItems(storeId?: string): Promise<number> {
   return await db.syncQueue
-    .where("storeId")
-    .equals(storeId)
-    .and((item) => item.status === "PENDING" || item.status === "FAILED")
+    .filter((item) => item.status === "PENDING" || item.status === "FAILED")
     .count();
 }
