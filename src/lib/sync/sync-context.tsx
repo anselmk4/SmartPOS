@@ -158,7 +158,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         if (lastTime) setLastSyncedAt(lastTime);
       });
 
-      syncEngine.startPeriodicSync(30000);
+      syncEngine.startPeriodicSync(5000);
 
       return () => {
         window.removeEventListener("online", handleOnline);

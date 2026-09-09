@@ -1106,18 +1106,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     await db.tenants.put(updated);
     setTenant(updated);
+    setTerminalTenant((prev) => (prev ? { ...prev, ...updated } : updated));
 
     if (typeof navigator !== "undefined" && navigator.onLine) {
       try {
-        await fetch("/api/v1/billing/update-plan", {
+        const token = typeof window !== "undefined" ? localStorage.getItem("kuettu_session_token") || localStorage.getItem("kuettu_admin_token") : null;
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        const apiUrl = getApiEndpoint("/api/v1/billing/update-plan");
+        const res = await fetch(apiUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({
             tenantId: tenant.id,
             plan: newPlan,
             planStatus: "ACTIVE",
+            planExpiresAt: newPlan === "FREE" ? undefined : periodEnd,
           }),
         });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.data) {
+            await db.tenants.put({ ...updated, ...data.data });
+            setTenant((prev) => ({ ...prev, ...data.data }));
+          }
+        }
       } catch (e) {
         console.warn("[Auth] Cloud plan update fallback:", e);
       }

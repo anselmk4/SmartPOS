@@ -51,26 +51,44 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Prevent arbitrary free activation of paid plans without payment (unless Super Admin)
-    let enforcedPlanStatus = planStatus as SubscriptionStatus;
-    if (!isSuperAdmin && plan !== "FREE" && enforcedPlanStatus === "ACTIVE") {
-      // Free fallback plan or trial unless validated by payment
-      enforcedPlanStatus = "TRIAL";
-    }
+    const now = new Date();
+    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const targetStatus = (planStatus || "ACTIVE") as SubscriptionStatus;
 
     const updated = await prisma.tenant.update({
       where: { id: tenantId },
       data: {
         plan: plan as SubscriptionPlan,
-        planStatus: enforcedPlanStatus,
-        updatedAt: new Date(),
+        planStatus: targetStatus,
+        planExpiresAt: plan === "FREE" ? null : periodEnd,
+        updatedAt: now,
       },
+      include: { stores: true, users: true },
     });
+
+    // Create or update subscription record in PostgreSQL
+    if (plan !== "FREE") {
+      await prisma.subscription.create({
+        data: {
+          tenantId,
+          plan: plan as SubscriptionPlan,
+          amount: plan === "BUSINESS" ? 15 : plan === "PRO" ? 10 : 5,
+          currency: "USD",
+          paymentMethod: "CASH",
+          paymentStatus: "ACTIVE",
+          transactionId: `sub-manual-${Date.now()}`,
+          periodStart: now,
+          periodEnd,
+        },
+      }).catch((subErr) => {
+        console.warn("[Billing Update Plan] Subscription insert note:", subErr.message);
+      });
+    }
 
     return NextResponse.json({
       success: true,
       data: updated,
-      message: `Forfait ${plan} mis à jour avec succès.`,
+      message: `Forfait ${plan} activé avec succès.`,
     });
   } catch (error: any) {
     console.error("[Update Plan API Error]:", error);

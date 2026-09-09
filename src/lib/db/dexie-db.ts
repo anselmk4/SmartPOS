@@ -152,6 +152,12 @@ export async function getOrCreateDefaultStore(): Promise<{ tenant: Tenant; store
   return { tenant, store, user };
 }
 
+let onSyncEnqueueListener: ((storeId: string) => void) | null = null;
+
+export function registerSyncEnqueueListener(listener: (storeId: string) => void) {
+  onSyncEnqueueListener = listener;
+}
+
 /**
  * Enqueue an operation into local SyncQueue
  */
@@ -176,6 +182,13 @@ export async function enqueueSync(item: {
     updatedAt: new Date().toISOString(),
   };
   await db.syncQueue.add(queueItem);
+
+  if (onSyncEnqueueListener) {
+    try {
+      onSyncEnqueueListener(item.storeId);
+    } catch {}
+  }
+
   return queueId;
 }
 

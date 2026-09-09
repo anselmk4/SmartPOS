@@ -1,13 +1,14 @@
-import { db, DEFAULT_STORE_ID, enqueueSync } from "../db/dexie-db";
+import { db, DEFAULT_STORE_ID, enqueueSync, registerSyncEnqueueListener } from "../db/dexie-db";
 import { getPendingSyncItems, removeSyncedItems, updateQueueItemStatus } from "./sync-queue";
 import type { SyncPushRequest, SyncPushResponse } from "../shared/types";
 
 const LAST_PULLED_KEY = "micro_erp_last_pulled_at";
-const MAX_IDLE_SYNC_MS = 10 * 60 * 1000; // 10 minutes maximum without syncing
+const MAX_IDLE_SYNC_MS = 2 * 60 * 1000; // 2 minutes maximum without syncing
 
 export class SyncEngine {
   private isSyncing = false;
   private syncTimer: any = null;
+  private debounceTimer: any = null;
   private listeners: Array<() => void> = [];
   private activeStoreId: string = DEFAULT_STORE_ID;
 
@@ -15,19 +16,24 @@ export class SyncEngine {
     if (typeof window !== "undefined") {
       // 1. Auto-sync immediately when network connection is restored
       window.addEventListener("online", () => {
-        console.log("[SyncEngine] 🌐 Connexion rétablie -> Déclenchement de la synchronisation automatique");
+        console.log("[SyncEngine] 🌐 Connexion rétablie -> Synchronisation immédiate");
         this.triggerSync(this.activeStoreId);
       });
 
-      // 2. Auto-sync on window focus / visibility change if > 10 minutes elapsed
+      // 2. Auto-sync on window focus / visibility change
       document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {
-          this.checkAndTriggerIdleSync(this.activeStoreId);
+          this.triggerSync(this.activeStoreId);
         }
       });
 
       window.addEventListener("focus", () => {
-        this.checkAndTriggerIdleSync(this.activeStoreId);
+        this.triggerSync(this.activeStoreId);
+      });
+
+      // 3. Register real-time sync listener on local mutations (articles, users, sales, etc.)
+      registerSyncEnqueueListener((storeId) => {
+        this.triggerDebouncedSync(storeId || this.activeStoreId, 300);
       });
     }
   }
@@ -36,8 +42,15 @@ export class SyncEngine {
     this.activeStoreId = storeId;
   }
 
+  public triggerDebouncedSync(storeId: string = this.activeStoreId, delayMs = 300) {
+    if (this.debounceTimer) clearTimeout(this.debounceTimer);
+    this.debounceTimer = setTimeout(() => {
+      this.triggerSync(storeId);
+    }, delayMs);
+  }
+
   /**
-   * Cron/Heartbeat check: checks if > 10 minutes elapsed or pending mutations exist
+   * Heartbeat check: checks if idle sync is needed
    */
   public checkAndTriggerIdleSync(storeId: string = this.activeStoreId) {
     if (typeof window === "undefined" || !navigator.onLine || this.isSyncing) return;
@@ -52,7 +65,6 @@ export class SyncEngine {
     const elapsed = Date.now() - lastSyncedTime;
 
     if (elapsed >= MAX_IDLE_SYNC_MS) {
-      console.log(`[SyncEngine] ⏱️ Plus de 10 min sans synchronisation (${Math.round(elapsed / 60000)} min) -> Synchronisation automatique déclenchée`);
       this.triggerSync(storeId);
     }
   }
@@ -68,11 +80,10 @@ export class SyncEngine {
     this.listeners.forEach((l) => l());
   }
 
-  public startPeriodicSync(intervalMs = 30000) {
+  public startPeriodicSync(intervalMs = 5000) {
     if (this.syncTimer) clearInterval(this.syncTimer);
     if (typeof window !== "undefined") {
-      // Cron loop running every 30 seconds:
-      // Checks for pending mutations OR > 10 min inactivity
+      // Periodic background sync loop (default 5s for fast multi-device updates):
       this.syncTimer = setInterval(async () => {
         if (navigator.onLine && !this.isSyncing) {
           const pending = await getPendingSyncItems(this.activeStoreId, 1);
@@ -343,6 +354,9 @@ export class SyncEngine {
           await db.tenants.put({
             ...existingT,
             ...cloudTenant,
+            plan: cloudTenant.plan || existingT?.plan || "FREE",
+            planStatus: cloudTenant.planStatus || existingT?.planStatus || "ACTIVE",
+            planExpiresAt: cloudTenant.planExpiresAt !== undefined ? cloudTenant.planExpiresAt : existingT?.planExpiresAt,
             businessType: cloudTenant.businessType || existingT?.businessType,
           });
         }
