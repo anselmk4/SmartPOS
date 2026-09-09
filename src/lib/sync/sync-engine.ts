@@ -361,7 +361,7 @@ export class SyncEngine {
             await db.users.put({
               ...existingU,
               ...u,
-              pinCode: existingU?.pinCode || u.pinCode,
+              pinCode: u.pinCode !== undefined && u.pinCode !== null && u.pinCode !== "" ? u.pinCode : (existingU?.pinCode || "1234"),
             });
           }
         }

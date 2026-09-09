@@ -33,10 +33,12 @@ import {
   Camera,
   QrCode,
   Layers,
+  Tag,
 } from "lucide-react";
 import { StoreQRModal } from "@/components/catalog/store-qr-modal";
 import { PaginationControl } from "@/components/shared/pagination-control";
 import { BulkProductModal } from "@/components/inventory/bulk-product-modal";
+import { CategoryManagerModal } from "@/components/inventory/category-manager-modal";
 
 export default function InventoryPage() {
   const { tenant, store: authStore, stores, user, isAuthenticated, isLoading, isOwner, isManager, plan, canAccess } = useAuth();
@@ -57,6 +59,7 @@ export default function InventoryPage() {
 
   // Modals
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isBulkUpgradePromptOpen, setIsBulkUpgradePromptOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -100,23 +103,25 @@ export default function InventoryPage() {
   const [isSubmittingTransfer, setIsSubmittingTransfer] = useState(false);
 
   const categories = useMemo(() => {
-    const cats = new Set<string>(["Tous"]);
+    const cats = new Set<string>();
     products.forEach((p) => {
-      if (p.category) cats.add(p.category);
+      if (p.category && p.category.trim()) cats.add(p.category.trim());
     });
-    return Array.from(cats);
+    return ["Tous", ...Array.from(cats).sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }))];
   }, [products]);
 
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
-      const matchSearch =
-        !searchQuery ||
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.barcode && p.barcode.includes(searchQuery));
-      const matchCat = selectedCategory === "Tous" || p.category === selectedCategory;
-      const matchLowStock = !showLowStockOnly || p.stockQuantity <= p.minStockAlert;
-      return matchSearch && matchCat && matchLowStock;
-    });
+    return products
+      .filter((p) => {
+        const matchSearch =
+          !searchQuery ||
+          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (p.barcode && p.barcode.includes(searchQuery));
+        const matchCat = selectedCategory === "Tous" || p.category === selectedCategory;
+        const matchLowStock = !showLowStockOnly || p.stockQuantity <= p.minStockAlert;
+        return matchSearch && matchCat && matchLowStock;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" }));
   }, [products, searchQuery, selectedCategory, showLowStockOnly]);
 
   // Reset to page 1 on filter change
@@ -524,6 +529,17 @@ export default function InventoryPage() {
               </option>
             ))}
           </select>
+
+          {/* Category Management button */}
+          <button
+            type="button"
+            onClick={() => setIsCategoryModalOpen(true)}
+            className="py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs flex items-center gap-1.5 border border-purple-200 whitespace-nowrap touch-press shadow-xs"
+            title="Créer, modifier et organiser librement vos catégories de produits"
+          >
+            <Tag className="w-3.5 h-3.5 text-purple-600" />
+            <span>Gérer Catégories</span>
+          </button>
 
           {/* Transfer stock button */}
           <button
@@ -970,20 +986,50 @@ export default function InventoryPage() {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs font-semibold text-slate-600 block mb-1">
-                    Catégorie
-                  </label>
-                  <select
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-slate-600">
+                      Catégorie *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsCategoryModalOpen(true)}
+                      className="text-[10px] text-blue-600 hover:text-blue-800 font-bold underline"
+                    >
+                      Organiser
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    list="product-form-categories-list"
+                    required
+                    placeholder="ex: Bières, Grillades..."
                     value={formCategory}
                     onChange={(e) => setFormCategory(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  >
-                    <option value="Alimentation">Alimentation</option>
-                    <option value="Boissons">Boissons</option>
-                    <option value="Hygiène & Entretien">Hygiène & Entretien</option>
-                    <option value="Services & Crédit">Services & Crédit</option>
-                    <option value="Divers">Divers</option>
-                  </select>
+                    className="w-full p-2.5 bg-slate-50 rounded-xl text-sm border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium"
+                  />
+                  <datalist id="product-form-categories-list">
+                    {categories.filter((c) => c !== "Tous").map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                    <option value="Sucrés" />
+                    <option value="Bières" />
+                    <option value="Liqueurs / Cognacs" />
+                    <option value="Vins" />
+                    <option value="Bralima" />
+                    <option value="Brasimba" />
+                    <option value="Bralirwa" />
+                    <option value="Brarudi" />
+                    <option value="Grillades" />
+                    <option value="Poissons" />
+                    <option value="Viandes" />
+                    <option value="Accompagnements" />
+                    <option value="Légumes" />
+                    <option value="Plats complets" />
+                    <option value="Snacks" />
+                    <option value="Petit-déjeuner" />
+                    <option value="Alimentation" />
+                    <option value="Divers" />
+                  </datalist>
                 </div>
 
                 <div>
@@ -1267,6 +1313,12 @@ export default function InventoryPage() {
           "Sauvegarde Cloud automatique continue",
           "Clôture de caisse quotidienne (Ticket Z)",
         ]}
+      />
+
+      {/* CATEGORY MANAGER MODAL */}
+      <CategoryManagerModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
       />
     </div>
   );

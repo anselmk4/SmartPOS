@@ -67,6 +67,7 @@ import {
   ShieldAlert,
   KeyRound,
   ShieldCheck,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import { printThermalReceipt } from "@/lib/native/native-pos";
@@ -89,7 +90,7 @@ function POSPageContent() {
     canCollectPayment,
     canManageTariffs,
   } = useAuth();
-  const { formatMoney, currency, syncNow } = useSync();
+  const { formatMoney, currency, syncNow, isSyncing } = useSync();
 
   const currentStoreId = authStore?.id || DEFAULT_STORE_ID;
 
@@ -246,25 +247,27 @@ function POSPageContent() {
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [isProcessingSale, setIsProcessingSale] = useState(false);
 
-  // Categories list
+  // Categories list (Sorted alphabetically A-Z with 'Tous' first)
   const categories = useMemo(() => {
-    const cats = new Set<string>(["Tous"]);
+    const cats = new Set<string>();
     products.forEach((p) => {
-      if (p.category) cats.add(p.category);
+      if (p.category && p.category.trim()) cats.add(p.category.trim());
     });
-    return Array.from(cats);
+    return ["Tous", ...Array.from(cats).sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }))];
   }, [products]);
 
-  // Filtered products
+  // Filtered products (Sorted alphabetically A-Z)
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
-      const matchCat = selectedCategory === "Tous" || p.category === selectedCategory;
-      const matchQuery =
-        !searchQuery ||
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.barcode && p.barcode.includes(searchQuery));
-      return matchCat && matchQuery;
-    });
+    return products
+      .filter((p) => {
+        const matchCat = selectedCategory === "Tous" || p.category === selectedCategory;
+        const matchQuery =
+          !searchQuery ||
+          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (p.barcode && p.barcode.includes(searchQuery));
+        return matchCat && matchQuery;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" }));
   }, [products, selectedCategory, searchQuery]);
 
   // Financial calculations
@@ -844,24 +847,40 @@ function POSPageContent() {
 
           {/* LIGNE 2 (EN-DESSOUS) : Barre de recherche + Catégories */}
           <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
-            {/* Search Input */}
-            <div className="relative w-full md:w-72 lg:w-80 shrink-0">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Rechercher article, code-barres..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-8 py-1.5 sm:py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white rounded-xl text-xs sm:text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs font-bold"
-                >
-                  ✕
-                </button>
-              )}
+            {/* Search Input & Sync Button */}
+            <div className="flex items-center gap-1.5 w-full md:w-auto shrink-0">
+              <div className="relative flex-1 md:w-64 lg:w-72">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Rechercher article, code-barres..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-8 py-1.5 sm:py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white rounded-xl text-xs sm:text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs font-bold"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => syncNow()}
+                disabled={isSyncing}
+                title="Synchroniser immédiatement les données avec tous les terminaux"
+                className={`p-2 rounded-xl border flex items-center justify-center transition-all ${
+                  isSyncing
+                    ? "bg-blue-50 border-blue-200 text-blue-600 shadow-xs"
+                    : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin text-blue-600" : ""}`} />
+              </button>
             </div>
 
             {/* Categories Horizontal Scroll */}

@@ -984,3 +984,60 @@ export async function repairAndRestoreStandardProductPrices(): Promise<number> {
   return repairedCount;
 }
 
+/**
+ * Renames a category across all products in local Dexie DB and enqueues sync updates
+ */
+export async function renameCategoryCascade(
+  oldCategoryName: string,
+  newCategoryName: string,
+  options?: { storeId?: string; tenantId?: string }
+): Promise<number> {
+  const cleanOld = oldCategoryName.trim();
+  const cleanNew = newCategoryName.trim();
+  if (!cleanOld || !cleanNew || cleanOld === cleanNew) return 0;
+
+  const now = new Date().toISOString();
+  let matchingProducts = await db.products
+    .filter((p) => {
+      const matchCat = p.category?.trim().toLowerCase() === cleanOld.toLowerCase();
+      const matchStore = !options?.storeId || p.storeId === options.storeId;
+      const matchTenant = !options?.tenantId || p.tenantId === options.tenantId;
+      return matchCat && (matchStore || matchTenant);
+    })
+    .toArray();
+
+  let updatedCount = 0;
+  for (const prod of matchingProducts) {
+    const updatedProd: Product = {
+      ...prod,
+      category: cleanNew,
+      updatedAt: now,
+      isSynced: false,
+    };
+
+    await db.products.put(updatedProd);
+
+    await enqueueSync({
+      tenantId: prod.tenantId || options?.tenantId || DEFAULT_TENANT_ID,
+      storeId: prod.storeId || options?.storeId || DEFAULT_STORE_ID,
+      entity: "product",
+      action: "UPDATE",
+      payload: JSON.stringify(updatedProd),
+    });
+
+    updatedCount++;
+  }
+
+  return updatedCount;
+}
+
+/**
+ * Reassigns products from a deleted category to a fallback category (e.g. "Général")
+ */
+export async function deleteCategoryCascade(
+  categoryToDelete: string,
+  fallbackCategory: string = "Général",
+  options?: { storeId?: string; tenantId?: string }
+): Promise<number> {
+  return renameCategoryCascade(categoryToDelete, fallbackCategory, options);
+}

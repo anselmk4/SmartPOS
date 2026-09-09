@@ -587,7 +587,7 @@ export async function POST(req: NextRequest) {
     let updates: any = {};
     if (isDbConnected && tenantId && tenantId !== "00000000-0000-4000-8000-000000000000") {
       try {
-        const pullSince = lastPulledAt ? new Date(lastPulledAt) : new Date(0);
+        const pullSince = lastPulledAt ? new Date(new Date(lastPulledAt).getTime() - 10000) : new Date(0);
         const [updatedProducts, updatedCustomers, updatedSales, updatedPayments, updatedTenant, updatedStores, updatedUsers] =
           await Promise.all([
             prisma.product.findMany({
@@ -620,7 +620,7 @@ export async function POST(req: NextRequest) {
               where: { tenantId },
             }),
             prisma.user.findMany({
-              where: { tenantId, ...(lastPulledAt ? { updatedAt: { gt: pullSince } } : {}) },
+              where: { tenantId, ...(lastPulledAt ? { updatedAt: { gt: new Date(new Date(lastPulledAt).getTime() - 10000) } } : {}) },
               select: {
                 id: true,
                 tenantId: true,
@@ -628,6 +628,7 @@ export async function POST(req: NextRequest) {
                 name: true,
                 phone: true,
                 email: true,
+                pinCode: true,
                 role: true,
                 isActive: true,
                 createdAt: true,

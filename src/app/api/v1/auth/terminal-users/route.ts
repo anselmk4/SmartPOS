@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
             name: true,
             phone: true,
             email: true,
+            pinCode: true,
             role: true,
             isActive: true,
             createdAt: true,

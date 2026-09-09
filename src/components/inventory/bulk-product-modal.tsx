@@ -30,12 +30,24 @@ export interface BulkProductRow {
 }
 
 const DEFAULT_CATEGORIES = [
+  "Bières",
+  "Sucrés",
+  "Vins",
+  "Liqueurs / Cognacs",
+  "Bralima",
+  "Brasimba",
+  "Grillades",
+  "Poissons",
+  "Viandes",
+  "Accompagnements",
+  "Légumes",
+  "Plats complets",
+  "Snacks",
+  "Petit-déjeuner",
   "Alimentation",
   "Boissons",
   "Hygiène & Entretien",
   "Services & Crédit",
-  "Vêtements & Mode",
-  "Électronique",
   "Divers",
 ];
 
@@ -94,10 +106,10 @@ export function BulkProductModal({
 
   if (!isOpen) return null;
 
-  // Available categories merged
+  // Available categories merged & sorted alphabetically
   const availableCategories = Array.from(
     new Set([...DEFAULT_CATEGORIES, ...existingCategories.filter((c) => c && c !== "Tous")])
-  );
+  ).sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
 
   const handleAddRow = (category: string = "Alimentation") => {
     setRows((prev) => [...prev, createEmptyRow(category)]);
@@ -424,19 +436,17 @@ export function BulkProductModal({
                         />
                       </td>
 
-                      {/* Category */}
+                      {/* Category with autocomplete datalist & custom entry */}
                       <td className="py-2 px-2">
-                        <select
+                        <input
+                          type="text"
+                          list="bulk-categories-options"
+                          required={isFilled}
+                          placeholder="Catégorie..."
                           value={row.category}
                           onChange={(e) => handleRowChange(index, "category", e.target.value)}
                           className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-                        >
-                          {availableCategories.map((c) => (
-                            <option key={c} value={c}>
-                              {c}
-                            </option>
-                          ))}
-                        </select>
+                        />
                       </td>
 
                       {/* Unit Selling Price */}
@@ -553,6 +563,12 @@ export function BulkProductModal({
               </tbody>
             </table>
           </div>
+
+          <datalist id="bulk-categories-options">
+            {availableCategories.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
 
           {/* Footer Summary & Submit */}
           <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/70 flex flex-col sm:flex-row items-center justify-between gap-3">

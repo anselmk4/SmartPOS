@@ -194,7 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   await db.users.put({
                     ...existing,
                     ...u,
-                    pinCode: existing?.pinCode || u.pinCode,
+                    pinCode: u.pinCode !== undefined && u.pinCode !== null && u.pinCode !== "" ? u.pinCode : (existing?.pinCode || "1234"),
                   });
                 }
                 if (data.tenant) {
@@ -254,7 +254,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         await db.users.put({
                           ...existing,
                           ...u,
-                          pinCode: existing?.pinCode || u.pinCode,
+                          pinCode: u.pinCode !== undefined && u.pinCode !== null && u.pinCode !== "" ? u.pinCode : (existing?.pinCode || "1234"),
                         });
                       }
                       const freshUsers = await db.users.where("tenantId").equals(t.id).filter((u) => u.isActive).toArray();
@@ -368,7 +368,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       if (cloudData.users && Array.isArray(cloudData.users)) {
         for (const u of cloudData.users) {
-          await db.users.put(u);
+          const existing = await db.users.get(u.id);
+          await db.users.put({
+            ...existing,
+            ...u,
+            pinCode: u.pinCode !== undefined && u.pinCode !== null && u.pinCode !== "" ? u.pinCode : (existing?.pinCode || "1234"),
+          });
         }
       }
       if (cloudData.products && Array.isArray(cloudData.products)) {
