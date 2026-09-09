@@ -181,6 +181,8 @@ export class SyncEngine {
             payload: JSON.stringify(c),
           });
         }
+      }
+
       const unsyncedUsers = await db.users.toArray();
       for (const u of unsyncedUsers) {
         const existingQueue = await db.syncQueue
