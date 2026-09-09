@@ -93,36 +93,44 @@ function POSPageContent() {
 
   const currentStoreId = authStore?.id || DEFAULT_STORE_ID;
 
+  const currentTenantId = tenant?.id;
+
   // 1. Data queries safely guarded
   const products =
     useLiveQuery(async () => {
       try {
-        if (typeof window === "undefined" || !currentStoreId) return [];
-        return await db.products.filter((p) => p.storeId === currentStoreId).toArray();
+        if (typeof window === "undefined" || (!currentStoreId && !currentTenantId)) return [];
+        return await db.products
+          .filter((p) => (Boolean(currentStoreId) && p.storeId === currentStoreId) || (Boolean(currentTenantId) && p.tenantId === currentTenantId))
+          .toArray();
       } catch {
         return [];
       }
-    }, [currentStoreId]) || [];
+    }, [currentStoreId, currentTenantId]) || [];
 
   const customers =
     useLiveQuery(async () => {
       try {
-        if (typeof window === "undefined" || !currentStoreId) return [];
-        return await db.customers.filter((c) => c.storeId === currentStoreId).toArray();
+        if (typeof window === "undefined" || (!currentStoreId && !currentTenantId)) return [];
+        return await db.customers
+          .filter((c) => (Boolean(currentStoreId) && c.storeId === currentStoreId) || (Boolean(currentTenantId) && c.tenantId === currentTenantId))
+          .toArray();
       } catch {
         return [];
       }
-    }, [currentStoreId]) || [];
+    }, [currentStoreId, currentTenantId]) || [];
 
   const allSales =
     useLiveQuery(async () => {
       try {
-        if (typeof window === "undefined" || !currentStoreId) return [];
-        return await db.sales.filter((s) => s.storeId === currentStoreId).toArray();
+        if (typeof window === "undefined" || (!currentStoreId && !currentTenantId)) return [];
+        return await db.sales
+          .filter((s) => (Boolean(currentStoreId) && s.storeId === currentStoreId) || (Boolean(currentTenantId) && s.tenantId === currentTenantId))
+          .toArray();
       } catch {
         return [];
       }
-    }, [currentStoreId]) || [];
+    }, [currentStoreId, currentTenantId]) || [];
 
   const heldOrders =
     useLiveQuery(async () => {

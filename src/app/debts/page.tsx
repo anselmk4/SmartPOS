@@ -37,12 +37,13 @@ export default function DebtsPage() {
   const { formatMoney, currency } = useSync();
 
   const currentStoreId = authStore?.id || DEFAULT_STORE_ID;
+  const currentTenantId = tenant?.id;
   const customers = useLiveQuery(async () => {
-    if (!currentStoreId) return [];
+    if (!currentStoreId && !currentTenantId) return [];
     return await db.customers
-      .filter((c) => c.storeId === currentStoreId)
+      .filter((c) => (Boolean(currentStoreId) && c.storeId === currentStoreId) || (Boolean(currentTenantId) && c.tenantId === currentTenantId))
       .toArray();
-  }, [currentStoreId]) || [];
+  }, [currentStoreId, currentTenantId]) || [];
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "debtors" | "cleared">("debtors");

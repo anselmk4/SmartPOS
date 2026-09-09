@@ -68,19 +68,19 @@ export async function POST(req: NextRequest) {
     const storeId: string = rawData.storeId;
     let tenantId: string = rawData.tenantId || "00000000-0000-4000-8000-000000000000";
 
+    // JWT session token validation & strict tenant scoping
+    const session = token ? verifySessionToken(token) : null;
+    if (session && session.tenantId && session.tenantId !== "global-platform-admin") {
+      // Authenticated session is the single authoritative source of truth
+      tenantId = session.tenantId;
+    } else if (rawData.tenantId && rawData.tenantId !== "00000000-0000-4000-8000-000000000000") {
+      tenantId = rawData.tenantId;
+    }
+
     let isDbConnected = true;
     try {
       if (!process.env.DATABASE_URL) {
         isDbConnected = false;
-      } else if (storeId) {
-        // If the store already exists in PostgreSQL, prioritize its real tenant
-        const existingStore = await prisma.store.findUnique({
-          where: { id: storeId },
-          select: { tenantId: true },
-        });
-        if (existingStore?.tenantId) {
-          tenantId = existingStore.tenantId;
-        }
       }
     } catch {
       isDbConnected = false;
@@ -88,14 +88,7 @@ export async function POST(req: NextRequest) {
 
     let refreshedToken: string | undefined = undefined;
 
-    // JWT session token validation & auto-healing
-    let session = token ? verifySessionToken(token) : null;
     if (session) {
-      if (session.tenantId !== "global-platform-admin") {
-        if (!rawData.tenantId || rawData.tenantId === "00000000-0000-4000-8000-000000000000") {
-          tenantId = session.tenantId;
-        }
-      }
       // Re-issue a fresh token to keep the client session perpetually active
       refreshedToken = createSessionToken({
         userId: session.userId || "sync-user",
@@ -138,10 +131,8 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        const existingTenantStores = await prisma.store.findMany({
-          where: { tenantId },
-        });
-        if (existingTenantStores.length === 0 || storeId !== "00000000-0000-4000-8000-000000000001") {
+        // Only create default store record if storeId is not colliding with another tenant
+        if (storeId && storeId !== "00000000-0000-4000-8000-000000000001") {
           await prisma.store.upsert({
             where: { id: storeId },
             update: {
@@ -158,6 +149,8 @@ export async function POST(req: NextRequest) {
           });
         }
       } catch (upsertErr) {
+        console.warn("[Sync] Tenant/Store auto-upsert error:", upsertErr);
+      }
         console.warn("[Sync] Tenant/Store auto-upsert error:", upsertErr);
       }
 
@@ -455,7 +448,7 @@ export async function POST(req: NextRequest) {
               session?.tenantId && session.tenantId !== "global-platform-admin"
                 ? session.tenantId
                 : (tenantId || data.id);
-            if (targetTenantId) {
+            if (targetTenantId && (!data.id || data.id === targetTenantId)) {
               await prisma.tenant.upsert({
                 where: { id: targetTenantId },
                 update: {
@@ -588,21 +581,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Pull updates for this specific Tenant since lastPulledAt
+    // Pull updates for this specific Tenant
     let updates: any = {};
-    if (isDbConnected && lastPulledAt) {
+    if (isDbConnected && tenantId && tenantId !== "00000000-0000-4000-8000-000000000000") {
       try {
-        const pullSince = new Date(lastPulledAt);
+        const pullSince = lastPulledAt ? new Date(lastPulledAt) : new Date(0);
         const [updatedProducts, updatedCustomers, updatedSales, updatedPayments, updatedTenant, updatedStores, updatedUsers] =
           await Promise.all([
             prisma.product.findMany({
-              where: { tenantId, storeId, updatedAt: { gt: pullSince } },
+              where: { tenantId, updatedAt: { gt: pullSince } },
             }),
             prisma.customer.findMany({
-              where: { tenantId, storeId, updatedAt: { gt: pullSince } },
+              where: { tenantId, updatedAt: { gt: pullSince } },
             }),
             prisma.sale.findMany({
-              where: { tenantId, storeId, updatedAt: { gt: pullSince } },
+              where: { tenantId, updatedAt: { gt: pullSince } },
+              take: 500,
+              orderBy: { createdAt: "desc" },
               include: {
                 items: {
                   include: {
@@ -612,7 +607,9 @@ export async function POST(req: NextRequest) {
               },
             }),
             prisma.debtPayment.findMany({
-              where: { tenantId, storeId, updatedAt: { gt: pullSince } },
+              where: { tenantId, updatedAt: { gt: pullSince } },
+              take: 200,
+              orderBy: { createdAt: "desc" },
             }),
             prisma.tenant.findUnique({
               where: { id: tenantId },
@@ -621,7 +618,7 @@ export async function POST(req: NextRequest) {
               where: { tenantId },
             }),
             prisma.user.findMany({
-              where: { tenantId, updatedAt: { gt: pullSince } },
+              where: { tenantId, ...(lastPulledAt ? { updatedAt: { gt: pullSince } } : {}) },
               select: {
                 id: true,
                 tenantId: true,

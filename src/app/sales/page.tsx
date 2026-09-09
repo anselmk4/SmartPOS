@@ -49,12 +49,12 @@ export default function SalesHistoryPage() {
   // 1. Data queries
   const sales =
     useLiveQuery(async () => {
-      if (!currentStoreId) return [];
+      if (!currentStoreId && !currentTenantId) return [];
       return await db.sales
-        .filter((s) => s.storeId === currentStoreId)
+        .filter((s) => (Boolean(currentStoreId) && s.storeId === currentStoreId) || (Boolean(currentTenantId) && s.tenantId === currentTenantId))
         .reverse()
         .sortBy("createdAt");
-    }, [currentStoreId]) || [];
+    }, [currentStoreId, currentTenantId]) || [];
 
   const heldOrders =
     useLiveQuery(async () => {
@@ -80,9 +80,11 @@ export default function SalesHistoryPage() {
 
   const customers =
     useLiveQuery(async () => {
-      if (!currentStoreId) return [];
-      return await db.customers.filter((c) => c.storeId === currentStoreId).toArray();
-    }, [currentStoreId]) || [];
+      if (!currentStoreId && !currentTenantId) return [];
+      return await db.customers
+        .filter((c) => (Boolean(currentStoreId) && c.storeId === currentStoreId) || (Boolean(currentTenantId) && c.tenantId === currentTenantId))
+        .toArray();
+    }, [currentStoreId, currentTenantId]) || [];
 
   // Build product ID -> Name lookup map
   const productsMap = useMemo(() => {

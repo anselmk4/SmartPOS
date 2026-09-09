@@ -57,15 +57,15 @@ export default function DashboardPage() {
 
   // Live Queries
   const sales = useLiveQuery(async () => {
-    if (!currentStoreId) return [];
+    if (!currentStoreId && !currentTenantId) return [];
     return await db.sales
-      .filter((s) => s.storeId === currentStoreId)
+      .filter((s) => (Boolean(currentStoreId) && s.storeId === currentStoreId) || (Boolean(currentTenantId) && s.tenantId === currentTenantId))
       .reverse()
       .sortBy("createdAt");
-  }, [currentStoreId]) || [];
+  }, [currentStoreId, currentTenantId]) || [];
 
   const storeUsers = useLiveQuery(async () => {
-    if (!currentStoreId) return [];
+    if (!currentStoreId && !currentTenantId) return [];
     return await db.users
       .filter((u) => u.storeId === currentStoreId || Boolean(currentTenantId && u.tenantId === currentTenantId))
       .toArray();
@@ -81,25 +81,25 @@ export default function DashboardPage() {
   const saleItems = useLiveQuery(() => db.saleItems.toArray()) || [];
 
   const products = useLiveQuery(async () => {
-    if (!currentStoreId) return [];
+    if (!currentStoreId && !currentTenantId) return [];
     return await db.products
-      .filter((p) => p.storeId === currentStoreId)
+      .filter((p) => (Boolean(currentStoreId) && p.storeId === currentStoreId) || (Boolean(currentTenantId) && p.tenantId === currentTenantId))
       .toArray();
-  }, [currentStoreId]) || [];
+  }, [currentStoreId, currentTenantId]) || [];
 
   const customers = useLiveQuery(async () => {
-    if (!currentStoreId) return [];
+    if (!currentStoreId && !currentTenantId) return [];
     return await db.customers
-      .filter((c) => c.storeId === currentStoreId)
+      .filter((c) => (Boolean(currentStoreId) && c.storeId === currentStoreId) || (Boolean(currentTenantId) && c.tenantId === currentTenantId))
       .toArray();
-  }, [currentStoreId]) || [];
+  }, [currentStoreId, currentTenantId]) || [];
 
   const expenses = useLiveQuery(async () => {
-    if (!currentStoreId) return [];
+    if (!currentStoreId && !currentTenantId) return [];
     return await db.expenses
-      .filter((e) => e.storeId === currentStoreId)
+      .filter((e) => (Boolean(currentStoreId) && e.storeId === currentStoreId) || (Boolean(currentTenantId) && e.tenantId === currentTenantId))
       .toArray();
-  }, [currentStoreId]) || [];
+  }, [currentStoreId, currentTenantId]) || [];
 
   if (isLoading) {
     return (

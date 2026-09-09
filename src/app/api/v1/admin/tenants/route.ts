@@ -47,21 +47,27 @@ export async function GET(req: NextRequest) {
         UPDATE sales s
         SET tenant_id = st.tenant_id
         FROM stores st
-        WHERE s.store_id = st.id AND (s.tenant_id IS NULL OR s.tenant_id != st.tenant_id);
+        WHERE s.store_id = st.id 
+          AND st.id != '00000000-0000-4000-8000-000000000001'
+          AND (s.tenant_id IS NULL OR s.tenant_id != st.tenant_id);
       `);
 
       await prisma.$executeRawUnsafe(`
         UPDATE products p
         SET tenant_id = st.tenant_id
         FROM stores st
-        WHERE p.store_id = st.id AND (p.tenant_id IS NULL OR p.tenant_id != st.tenant_id);
+        WHERE p.store_id = st.id 
+          AND st.id != '00000000-0000-4000-8000-000000000001'
+          AND (p.tenant_id IS NULL OR p.tenant_id != st.tenant_id);
       `);
 
       await prisma.$executeRawUnsafe(`
         UPDATE customers c
         SET tenant_id = st.tenant_id
         FROM stores st
-        WHERE c.store_id = st.id AND (c.tenant_id IS NULL OR c.tenant_id != st.tenant_id);
+        WHERE c.store_id = st.id 
+          AND st.id != '00000000-0000-4000-8000-000000000001'
+          AND (c.tenant_id IS NULL OR c.tenant_id != st.tenant_id);
       `);
     } catch (reconcileErr) {
       console.warn("[Admin Tenants Reconcile Warning]:", reconcileErr);

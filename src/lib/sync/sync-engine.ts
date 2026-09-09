@@ -42,7 +42,7 @@ export class SyncEngine {
     this.activeStoreId = storeId;
   }
 
-  public triggerDebouncedSync(storeId: string = this.activeStoreId, delayMs = 300) {
+  public triggerDebouncedSync(storeId: string = this.activeStoreId, delayMs = 150) {
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => {
       this.triggerSync(storeId);
@@ -54,19 +54,7 @@ export class SyncEngine {
    */
   public checkAndTriggerIdleSync(storeId: string = this.activeStoreId) {
     if (typeof window === "undefined" || !navigator.onLine || this.isSyncing) return;
-
-    const lastSyncedTimeStr = localStorage.getItem("micro_erp_last_synced_time");
-    if (!lastSyncedTimeStr) {
-      this.triggerSync(storeId);
-      return;
-    }
-
-    const lastSyncedTime = new Date(lastSyncedTimeStr).getTime();
-    const elapsed = Date.now() - lastSyncedTime;
-
-    if (elapsed >= MAX_IDLE_SYNC_MS) {
-      this.triggerSync(storeId);
-    }
+    this.triggerSync(storeId);
   }
 
   public subscribe(listener: () => void) {
@@ -80,18 +68,13 @@ export class SyncEngine {
     this.listeners.forEach((l) => l());
   }
 
-  public startPeriodicSync(intervalMs = 5000) {
+  public startPeriodicSync(intervalMs = 4000) {
     if (this.syncTimer) clearInterval(this.syncTimer);
     if (typeof window !== "undefined") {
-      // Periodic background sync loop (default 5s for fast multi-device updates):
+      // Periodic background sync loop (default 4s for rapid multi-device updates):
       this.syncTimer = setInterval(async () => {
         if (navigator.onLine && !this.isSyncing) {
-          const pending = await getPendingSyncItems(this.activeStoreId, 1);
-          if (pending.length > 0) {
-            this.triggerSync(this.activeStoreId);
-          } else {
-            this.checkAndTriggerIdleSync(this.activeStoreId);
-          }
+          this.triggerSync(this.activeStoreId);
         }
       }, intervalMs);
     }

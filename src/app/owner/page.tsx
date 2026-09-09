@@ -145,23 +145,23 @@ export default function OwnerSupervisionPage() {
       return await db.sales.filter((s) => s.tenantId === currentTenantId).toArray();
     }, [currentTenantId]) || [];
 
-  // Scoped strictly to active store
+  // Scoped to active store and tenant
   const sales = useLiveQuery(async () => {
-    if (!currentStoreId) return [];
+    if (!currentStoreId && !currentTenantId) return [];
     return await db.sales
-      .filter((s) => s.storeId === currentStoreId)
+      .filter((s) => (Boolean(currentStoreId) && s.storeId === currentStoreId) || (Boolean(currentTenantId) && s.tenantId === currentTenantId))
       .reverse()
       .sortBy("createdAt");
-  }, [currentStoreId]) || [];
+  }, [currentStoreId, currentTenantId]) || [];
 
   const saleItems = useLiveQuery(() => db.saleItems.toArray()) || [];
 
   const customers = useLiveQuery(async () => {
-    if (!currentStoreId) return [];
+    if (!currentStoreId && !currentTenantId) return [];
     return await db.customers
-      .filter((c) => c.storeId === currentStoreId)
+      .filter((c) => (Boolean(currentStoreId) && c.storeId === currentStoreId) || (Boolean(currentTenantId) && c.tenantId === currentTenantId))
       .toArray();
-  }, [currentStoreId]) || [];
+  }, [currentStoreId, currentTenantId]) || [];
 
   if (isLoading) {
     return (

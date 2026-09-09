@@ -68,12 +68,12 @@ export default function ExpensesPage() {
 
   // Live Query expenses for active store
   const expenses = useLiveQuery(async () => {
-    if (!currentStoreId) return [];
+    if (!currentStoreId && !currentTenantId) return [];
     return await db.expenses
-      .filter((e) => e.storeId === currentStoreId)
+      .filter((e) => (Boolean(currentStoreId) && e.storeId === currentStoreId) || (Boolean(currentTenantId) && e.tenantId === currentTenantId))
       .reverse()
       .sortBy("createdAt");
-  }, [currentStoreId]) || [];
+  }, [currentStoreId, currentTenantId]) || [];
 
   if (isLoading) {
     return (

@@ -43,12 +43,13 @@ export default function InventoryPage() {
   const { formatMoney, currency } = useSync();
 
   const currentStoreId = authStore?.id || DEFAULT_STORE_ID;
+  const currentTenantId = tenant?.id;
   const products = useLiveQuery(async () => {
-    if (!currentStoreId) return [];
+    if (!currentStoreId && !currentTenantId) return [];
     return await db.products
-      .filter((p) => p.storeId === currentStoreId)
+      .filter((p) => (Boolean(currentStoreId) && p.storeId === currentStoreId) || (Boolean(currentTenantId) && p.tenantId === currentTenantId))
       .toArray();
-  }, [currentStoreId]) || [];
+  }, [currentStoreId, currentTenantId]) || [];
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tous");
