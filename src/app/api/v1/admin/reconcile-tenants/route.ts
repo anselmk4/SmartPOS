@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   try {
-    const result = await reconcileTenantsData(prisma);
+    const result = await reconcileTenantsData(prisma, true);
     return NextResponse.json({
       success: true,
       message: "Réconciliation des données effectuée avec succès.",
@@ -34,11 +34,19 @@ export async function GET() {
   }
 }
 
+let lastReconcileTime = 0;
+
 /**
  * Air-tight multi-tenant data restitution & isolation engine.
  * Restores every commerce's legitimate products, currency, store records, and users.
  */
-export async function reconcileTenantsData(prismaClient: typeof prisma) {
+export async function reconcileTenantsData(prismaClient: typeof prisma, force = false) {
+  const nowTime = Date.now();
+  if (!force && nowTime - lastReconcileTime < 10 * 60 * 1000) {
+    return { skipped: true, lastReconcileTime };
+  }
+  lastReconcileTime = nowTime;
+
   const now = new Date();
 
   // 1. Fetch all tenants with their stores and users
