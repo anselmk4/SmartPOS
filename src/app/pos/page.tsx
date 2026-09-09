@@ -100,10 +100,12 @@ function POSPageContent() {
   const products =
     useLiveQuery(async () => {
       try {
-        if (typeof window === "undefined" || (!currentStoreId && !currentTenantId)) return [];
-        return await db.products
-          .filter((p) => (Boolean(currentStoreId) && p.storeId === currentStoreId) || (Boolean(currentTenantId) && p.tenantId === currentTenantId))
-          .toArray();
+        if (currentTenantId) {
+          return await db.products
+            .filter((p) => p.tenantId === currentTenantId || (!p.tenantId && p.storeId === currentStoreId))
+            .toArray();
+        }
+        return await db.products.filter((p) => p.storeId === currentStoreId).toArray();
       } catch {
         return [];
       }
@@ -113,9 +115,12 @@ function POSPageContent() {
     useLiveQuery(async () => {
       try {
         if (typeof window === "undefined" || (!currentStoreId && !currentTenantId)) return [];
-        return await db.customers
-          .filter((c) => (Boolean(currentStoreId) && c.storeId === currentStoreId) || (Boolean(currentTenantId) && c.tenantId === currentTenantId))
-          .toArray();
+        if (currentTenantId) {
+          return await db.customers
+            .filter((c) => c.tenantId === currentTenantId || (!c.tenantId && c.storeId === currentStoreId))
+            .toArray();
+        }
+        return await db.customers.filter((c) => c.storeId === currentStoreId).toArray();
       } catch {
         return [];
       }

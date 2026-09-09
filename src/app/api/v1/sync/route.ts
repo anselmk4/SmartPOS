@@ -10,21 +10,17 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
+import { reconcileTenantsData } from "@/app/api/v1/admin/reconcile-tenants/route";
+
 function sanitizeSyncPrice(val: any): number {
   if (val === null || val === undefined || isNaN(Number(val))) return 0;
-  let clean = Number(val);
-  while (clean > 250000) {
-    clean = Math.round(clean / 2850);
-  }
+  const clean = Number(val);
   return Math.max(0, clean);
 }
 
 function sanitizeSyncDebt(val: any): number {
   if (val === null || val === undefined || isNaN(Number(val))) return 0;
-  let clean = Number(val);
-  while (clean > 250000) {
-    clean = Math.round(clean / 2850);
-  }
+  const clean = Number(val);
   return Math.max(0, clean);
 }
 
@@ -587,6 +583,7 @@ export async function POST(req: NextRequest) {
     let updates: any = {};
     if (isDbConnected && tenantId && tenantId !== "00000000-0000-4000-8000-000000000000") {
       try {
+        await reconcileTenantsData(prisma).catch(() => {});
         const pullSince = lastPulledAt ? new Date(new Date(lastPulledAt).getTime() - 10000) : new Date(0);
         const [updatedProducts, updatedCustomers, updatedSales, updatedPayments, updatedTenant, updatedStores, updatedUsers] =
           await Promise.all([

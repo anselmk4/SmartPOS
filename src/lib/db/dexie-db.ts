@@ -927,61 +927,8 @@ export const ORIGINAL_SAMPLE_PRICE_MAP: Record<string, { unitPrice: number; cost
  * Automatically repairs and resets all over-inflated product prices to sensible retail values.
  */
 export async function repairAndRestoreStandardProductPrices(): Promise<number> {
-  let repairedCount = 0;
-  const products = await db.products.toArray();
-  const now = new Date().toISOString();
-
-  for (const prod of products) {
-    let correctedUnitPrice = prod.unitPrice;
-    let correctedCostPrice = prod.costPrice;
-    let needsFix = false;
-
-    // Check if name matches any known catalog item
-    const matchedKnown = Object.entries(ORIGINAL_SAMPLE_PRICE_MAP).find(
-      ([key]) =>
-        prod.name.toLowerCase().includes(key.toLowerCase().slice(0, 10)) ||
-        key.toLowerCase().includes(prod.name.toLowerCase().slice(0, 10))
-    );
-
-    if (matchedKnown && (prod.unitPrice > 100000 || prod.unitPrice < 500 || prod.unitPrice > matchedKnown[1].unitPrice * 2)) {
-      correctedUnitPrice = matchedKnown[1].unitPrice;
-      correctedCostPrice = matchedKnown[1].costPrice;
-      needsFix = true;
-    } else if (prod.unitPrice > 300000) {
-      // Over-inflated by conversion multiplier -> reduce by factor 2850
-      while (correctedUnitPrice > 150000) {
-        correctedUnitPrice = Math.round(correctedUnitPrice / 2850);
-        if (correctedCostPrice) correctedCostPrice = Math.round(correctedCostPrice / 2850);
-      }
-      needsFix = true;
-    }
-
-    if (needsFix && (correctedUnitPrice !== prod.unitPrice || correctedCostPrice !== prod.costPrice)) {
-      await db.products.update(prod.id, {
-        unitPrice: correctedUnitPrice,
-        costPrice: correctedCostPrice,
-        updatedAt: now,
-      });
-      repairedCount++;
-    }
-  }
-
-  // Sanitize debts if over-inflated
-  const customers = await db.customers.toArray();
-  for (const cust of customers) {
-    if (cust.currentDebtBalance > 500000) {
-      let balance = cust.currentDebtBalance;
-      while (balance > 100000) {
-        balance = Math.round(balance / 2850);
-      }
-      await db.customers.update(cust.id, {
-        currentDebtBalance: balance,
-        updatedAt: now,
-      });
-    }
-  }
-
-  return repairedCount;
+  // Non-destructive: Preserve merchant customized and USD/EUR currency prices
+  return 0;
 }
 
 /**

@@ -348,6 +348,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const bootstrapCloudDataIntoDexie = async (cloudData: any) => {
     try {
       const savedBt = (typeof window !== "undefined" ? localStorage.getItem("pos_store_business_type") : null) || undefined;
+      
+      if (cloudData.tenant?.id) {
+        const targetTenantId = cloudData.tenant.id;
+        // Purge local products and records belonging to other tenants or stale demo data to prevent cross-tenant bleeding
+        await db.products.filter(p => Boolean(p.tenantId) && p.tenantId !== targetTenantId).delete().catch(() => {});
+        await db.customers.filter(c => Boolean(c.tenantId) && c.tenantId !== targetTenantId).delete().catch(() => {});
+        await db.sales.filter(s => Boolean(s.tenantId) && s.tenantId !== targetTenantId).delete().catch(() => {});
+      }
+
       if (cloudData.tenant) {
         const existingT = await db.tenants.get(cloudData.tenant.id);
         await db.tenants.put({
@@ -425,7 +434,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem(AUTH_USER_KEY);
       localStorage.removeItem(AUTH_TENANT_KEY);
       localStorage.removeItem(AUTH_STORE_KEY);
+      localStorage.removeItem("kuettu_session_token");
+      localStorage.removeItem("pos_store_business_type");
     }
+
+    // Clean local Dexie tables to avoid multi-account contamination on the shared device
+    await db.products.clear().catch(() => {});
+    await db.customers.clear().catch(() => {});
+    await db.sales.clear().catch(() => {});
+    await db.saleItems.clear().catch(() => {});
+    await db.heldOrders.clear().catch(() => {});
+    await db.debtPayments.clear().catch(() => {});
+    await db.expenses.clear().catch(() => {});
+    await db.syncQueue.clear().catch(() => {});
+
     setUser(null);
     setTenant(null);
     setTerminalTenant(null);
