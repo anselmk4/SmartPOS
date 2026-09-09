@@ -581,7 +581,7 @@ export async function POST(req: NextRequest) {
     if (isDbConnected && lastPulledAt) {
       try {
         const pullSince = new Date(lastPulledAt);
-        const [updatedProducts, updatedCustomers, updatedSales, updatedPayments, updatedTenant, updatedStores] =
+        const [updatedProducts, updatedCustomers, updatedSales, updatedPayments, updatedTenant, updatedStores, updatedUsers] =
           await Promise.all([
             prisma.product.findMany({
               where: { tenantId, storeId, updatedAt: { gt: pullSince } },
@@ -608,6 +608,21 @@ export async function POST(req: NextRequest) {
             prisma.store.findMany({
               where: { tenantId },
             }),
+            prisma.user.findMany({
+              where: { tenantId, updatedAt: { gt: pullSince } },
+              select: {
+                id: true,
+                tenantId: true,
+                storeId: true,
+                name: true,
+                phone: true,
+                email: true,
+                role: true,
+                isActive: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+            }),
           ]);
 
         updates = {
@@ -621,6 +636,11 @@ export async function POST(req: NextRequest) {
             ...s,
             createdAt: s.createdAt.toISOString(),
             updatedAt: s.updatedAt.toISOString(),
+          })) : undefined,
+          users: updatedUsers ? updatedUsers.map((u) => ({
+            ...u,
+            createdAt: u.createdAt.toISOString(),
+            updatedAt: u.updatedAt.toISOString(),
           })) : undefined,
           products: updatedProducts.map((p) => ({
             ...p,

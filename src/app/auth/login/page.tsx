@@ -30,6 +30,7 @@ export default function LoginPage() {
   const {
     login,
     loginStaffWithPin,
+    refreshTerminalUsers,
     terminalTenant,
     terminalUsers,
     unlinkTerminal,
@@ -42,6 +43,8 @@ export default function LoginPage() {
 
   const [mode, setMode] = useState<"pin" | "phone">(isTerminalLinked ? "pin" : "phone");
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
+  const [isManuallySelecting, setIsManuallySelecting] = useState<boolean>(false);
+  const [isRefreshingStaff, setIsRefreshingStaff] = useState<boolean>(false);
   const [pinCode, setPinCode] = useState("");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -49,20 +52,59 @@ export default function LoginPage() {
   const [unverifiedTarget, setUnverifiedTarget] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Auto-switch mode based on terminal association
+  // Auto-switch mode based on terminal association and sync fresh users
   useEffect(() => {
     if (!isTerminalLinked) {
       setMode("phone");
     } else {
       setMode("pin");
-      if (terminalUsers.length > 0 && !selectedStaffId) {
-        // Preselect if only one staff
-        if (terminalUsers.length === 1) {
-          setSelectedStaffId(terminalUsers[0].id);
-        }
+      // Preselect if only one staff and user hasn't explicitly clicked "Changer"
+      if (terminalUsers.length === 1 && !selectedStaffId && !isManuallySelecting) {
+        setSelectedStaffId(terminalUsers[0].id);
       }
     }
-  }, [isTerminalLinked, terminalUsers, selectedStaffId]);
+  }, [isTerminalLinked, terminalUsers, selectedStaffId, isManuallySelecting]);
+
+  // Background refresh of staff profiles from server when terminal is linked
+  useEffect(() => {
+    if (activeTenant?.id && typeof navigator !== "undefined" && navigator.onLine) {
+      refreshTerminalUsers(activeTenant.id).catch(() => {});
+    }
+  }, [activeTenant?.id, refreshTerminalUsers]);
+
+  const handleRefreshStaff = async () => {
+    if (!activeTenant?.id) return;
+    setIsRefreshingStaff(true);
+    setErrorMsg(null);
+    try {
+      const res = await refreshTerminalUsers(activeTenant.id);
+      if (res.success && res.users) {
+        if (res.users.length === 0) {
+          setErrorMsg("Aucun membre trouvé pour cette boutique.");
+        }
+      } else if (res.error) {
+        setErrorMsg(res.error);
+      }
+    } catch {
+      setErrorMsg("Impossible d'actualiser la liste des membres.");
+    } finally {
+      setIsRefreshingStaff(false);
+    }
+  };
+
+  const handleChangeStaff = () => {
+    setSelectedStaffId(null);
+    setIsManuallySelecting(true);
+    setPinCode("");
+    setErrorMsg(null);
+  };
+
+  const handleSelectStaff = (userId: string) => {
+    setSelectedStaffId(userId);
+    setIsManuallySelecting(false);
+    setPinCode("");
+    setErrorMsg(null);
+  };
 
   const selectedStaff = terminalUsers.find((u) => u.id === selectedStaffId);
 
@@ -121,6 +163,7 @@ export default function LoginPage() {
     if (confirm("Voulez-vous dissocier ce terminal de la boutique actuelle ?")) {
       await unlinkTerminal();
       setSelectedStaffId(null);
+      setIsManuallySelecting(false);
       setPinCode("");
       setMode("phone");
       setErrorMsg(null);
@@ -255,11 +298,22 @@ export default function LoginPage() {
                     <Users className="w-4 h-4 text-blue-600" />
                     <span>Sélectionnez votre profil :</span>
                   </div>
-                  {terminalUsers.length > 0 && (
-                    <span className="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded-full border border-blue-200">
-                      {terminalUsers.length} profil{terminalUsers.length > 1 ? "s" : ""}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {terminalUsers.length > 0 && (
+                      <span className="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded-full border border-blue-200">
+                        {terminalUsers.length} profil{terminalUsers.length > 1 ? "s" : ""}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleRefreshStaff}
+                      disabled={isRefreshingStaff}
+                      className="p-1 text-slate-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-slate-100 disabled:opacity-50"
+                      title="Actualiser la liste depuis le serveur"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingStaff ? "animate-spin text-blue-600" : ""}`} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-2 max-h-[55vh] sm:max-h-[360px] overflow-y-auto overscroll-contain pr-1 touch-pan-y scrollbar-thin scrollbar-thumb-slate-300">
@@ -268,11 +322,7 @@ export default function LoginPage() {
                       <button
                         key={u.id}
                         type="button"
-                        onClick={() => {
-                          setSelectedStaffId(u.id);
-                          setPinCode("");
-                          setErrorMsg(null);
-                        }}
+                        onClick={() => handleSelectStaff(u.id)}
                         className="w-full p-2.5 sm:p-3 rounded-2xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 bg-white transition-all text-left flex items-center justify-between group touch-press shadow-xs active:scale-[0.99]"
                       >
                         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -292,39 +342,65 @@ export default function LoginPage() {
                       </button>
                     ))
                   ) : (
-                    <div className="text-center py-6 text-slate-400 text-xs bg-slate-50 rounded-2xl border border-slate-100">
-                      Aucun caissier configuré sur cette boutique.
+                    <div className="text-center py-6 px-4 text-slate-500 text-xs bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+                      <p>Aucun membre configuré localement sur ce terminal.</p>
+                      <button
+                        type="button"
+                        onClick={handleRefreshStaff}
+                        disabled={isRefreshingStaff}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded-xl text-xs transition-colors"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingStaff ? "animate-spin" : ""}`} />
+                        <span>Actualiser depuis le serveur</span>
+                      </button>
                     </div>
                   )}
                 </div>
 
-                {terminalUsers.length > 3 && (
-                  <div className="text-center text-[10px] text-slate-400 font-medium pt-1">
-                    ↓ Faites défiler pour voir tous les utilisateurs ({terminalUsers.length})
-                  </div>
-                )}
+                <div className="pt-2 flex flex-col gap-1.5 text-center">
+                  {terminalUsers.length > 3 && (
+                    <div className="text-[10px] text-slate-400 font-medium pb-1">
+                      ↓ Faites défiler pour voir tous les membres ({terminalUsers.length})
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleRefreshStaff}
+                    disabled={isRefreshingStaff}
+                    className="text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline flex items-center justify-center gap-1 py-1"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isRefreshingStaff ? "animate-spin" : ""}`} />
+                    <span>{isRefreshingStaff ? "Synchronisation des profils..." : "Actualiser la liste des membres"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("phone");
+                      setErrorMsg(null);
+                    }}
+                    className="text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-colors py-1"
+                  >
+                    Se connecter avec un identifiant Gérant (Téléphone / Email) →
+                  </button>
+                </div>
               </div>
             ) : (
               /* Selected Staff Keypad */
               <div>
                 <div className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 border border-slate-200 mb-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
                       {selectedStaff?.name.slice(0, 2).toUpperCase()}
                     </div>
-                    <div>
-                      <div className="font-bold text-xs text-slate-900">{selectedStaff?.name}</div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-xs text-slate-900 truncate">{selectedStaff?.name}</div>
                       <div className="text-[10px] text-slate-500">{selectedStaff && getRoleBadge(selectedStaff.role)}</div>
                     </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      setSelectedStaffId(null);
-                      setPinCode("");
-                      setErrorMsg(null);
-                    }}
-                    className="text-xs font-bold text-blue-600 hover:underline px-2 py-1"
+                    onClick={handleChangeStaff}
+                    className="text-xs font-bold text-blue-600 hover:underline px-2.5 py-1.5 rounded-lg hover:bg-blue-50 transition-colors shrink-0 ml-2"
                   >
                     Changer
                   </button>

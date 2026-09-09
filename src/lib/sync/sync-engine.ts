@@ -311,7 +311,7 @@ export class SyncEngine {
 
       // 5. Apply server updates (Pull) to local IndexedDB
       if (syncResult.updates) {
-        const { products, customers, sales, debtPayments, tenant: cloudTenant, stores: cloudStores } = syncResult.updates;
+        const { products, customers, sales, debtPayments, tenant: cloudTenant, stores: cloudStores, users: cloudUsers } = syncResult.updates as any;
 
         if (cloudTenant) {
           const existingT = await db.tenants.get(cloudTenant.id);
@@ -329,6 +329,17 @@ export class SyncEngine {
               ...existingS,
               ...s,
               businessType: s.businessType || existingS?.businessType,
+            });
+          }
+        }
+
+        if (cloudUsers && cloudUsers.length > 0) {
+          for (const u of cloudUsers) {
+            const existingU = await db.users.get(u.id);
+            await db.users.put({
+              ...existingU,
+              ...u,
+              pinCode: existingU?.pinCode || u.pinCode,
             });
           }
         }

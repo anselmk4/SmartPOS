@@ -85,6 +85,7 @@ interface AuthContextType {
   }>;
   loginWithPin: (pinCode: string) => Promise<{ success: boolean; message: string }>;
   loginStaffWithPin: (userId: string, pinCode: string) => Promise<{ success: boolean; message: string }>;
+  refreshTerminalUsers: (tenantId?: string) => Promise<{ success: boolean; users?: User[]; error?: string }>;
   unlinkTerminal: () => Promise<void>;
   registerMerchant: (data: {
     storeName: string;
@@ -142,6 +143,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => ({ success: false, message: "" }),
   loginWithPin: async () => ({ success: false, message: "" }),
   loginStaffWithPin: async () => ({ success: false, message: "" }),
+  refreshTerminalUsers: async () => ({ success: false }),
   unlinkTerminal: async () => {},
   registerMerchant: async () => ({ success: false, message: "" }),
   logout: () => {},
@@ -174,27 +176,105 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const loadTerminalState = useCallback(async (tenantId?: string) => {
-    try {
-      const tid = tenantId || (typeof window !== "undefined" ? localStorage.getItem(AUTH_TENANT_KEY) : null);
-      if (!tid) {
-        setTerminalTenant(null);
-        setTerminalUsers([]);
-        return;
+  const refreshTerminalUsers = useCallback(
+    async (tenantId?: string): Promise<{ success: boolean; users?: User[]; error?: string }> => {
+      try {
+        const tid = tenantId || (typeof window !== "undefined" ? localStorage.getItem(AUTH_TENANT_KEY) : null);
+        if (!tid) return { success: false, error: "Aucun terminal associé" };
+
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          try {
+            const apiUrl = getApiEndpoint(`/api/v1/auth/terminal-users?tenantId=${encodeURIComponent(tid)}`);
+            const res = await fetch(apiUrl);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.success && Array.isArray(data.users)) {
+                for (const u of data.users) {
+                  const existing = await db.users.get(u.id);
+                  await db.users.put({
+                    ...existing,
+                    ...u,
+                    pinCode: existing?.pinCode || u.pinCode,
+                  });
+                }
+                if (data.tenant) {
+                  const existingT = await db.tenants.get(data.tenant.id);
+                  await db.tenants.put({ ...existingT, ...data.tenant });
+                  setTerminalTenant((prev) => (prev ? { ...prev, ...data.tenant } : data.tenant));
+                }
+              }
+            }
+          } catch (netErr) {
+            console.warn("[Auth] Cloud terminal users sync notice:", netErr);
+          }
+        }
+
+        const t = await db.tenants.get(tid);
+        if (t) {
+          setTerminalTenant(t);
+          const users = await db.users.where("tenantId").equals(t.id).filter((u) => u.isActive).toArray();
+          setTerminalUsers(users);
+          return { success: true, users };
+        }
+        return { success: false, error: "Boutique non trouvée" };
+      } catch (e: any) {
+        console.warn("[Auth] refreshTerminalUsers error:", e);
+        return { success: false, error: e.message || "Erreur" };
       }
-      const t = await db.tenants.get(tid);
-      if (t) {
-        setTerminalTenant(t);
-        const users = await db.users.where("tenantId").equals(t.id).filter((u) => u.isActive).toArray();
-        setTerminalUsers(users);
-      } else {
-        setTerminalTenant(null);
-        setTerminalUsers([]);
+    },
+    []
+  );
+
+  const loadTerminalState = useCallback(
+    async (tenantId?: string) => {
+      try {
+        const tid = tenantId || (typeof window !== "undefined" ? localStorage.getItem(AUTH_TENANT_KEY) : null);
+        if (!tid) {
+          setTerminalTenant(null);
+          setTerminalUsers([]);
+          return;
+        }
+        const t = await db.tenants.get(tid);
+        if (t) {
+          setTerminalTenant(t);
+          const users = await db.users.where("tenantId").equals(t.id).filter((u) => u.isActive).toArray();
+          setTerminalUsers(users);
+
+          // Non-blocking background sync of terminal team members if online
+          if (typeof navigator !== "undefined" && navigator.onLine) {
+            try {
+              const apiUrl = getApiEndpoint(`/api/v1/auth/terminal-users?tenantId=${encodeURIComponent(t.id)}`);
+              fetch(apiUrl)
+                .then(async (res) => {
+                  if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && Array.isArray(data.users)) {
+                      for (const u of data.users) {
+                        const existing = await db.users.get(u.id);
+                        await db.users.put({
+                          ...existing,
+                          ...u,
+                          pinCode: existing?.pinCode || u.pinCode,
+                        });
+                      }
+                      const freshUsers = await db.users.where("tenantId").equals(t.id).filter((u) => u.isActive).toArray();
+                      setTerminalUsers(freshUsers);
+                    }
+                  }
+                })
+                .catch(() => {});
+            } catch {}
+          }
+        } else {
+          setTerminalTenant(null);
+          setTerminalUsers([]);
+        }
+      } catch (e) {
+        console.warn("[Auth] Failed to load terminal state:", e);
       }
-    } catch (e) {
-      console.warn("[Auth] Failed to load terminal state:", e);
-    }
-  }, []);
+    },
+    []
+  );
 
   // Initialize session on mount - checks if a user session was explicitly saved
   useEffect(() => {
@@ -1131,6 +1211,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         loginWithPin,
         loginStaffWithPin,
+        refreshTerminalUsers,
         unlinkTerminal,
         registerMerchant,
         logout,
