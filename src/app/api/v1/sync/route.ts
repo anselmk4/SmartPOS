@@ -131,9 +131,7 @@ export async function POST(req: NextRequest) {
         if (storeId && storeId !== "00000000-0000-4000-8000-000000000001") {
           await prisma.store.upsert({
             where: { id: storeId },
-            update: {
-              tenantId,
-            },
+            update: {}, // Never hijack store tenantId
             create: {
               id: storeId,
               tenantId,
@@ -490,18 +488,6 @@ export async function POST(req: NextRequest) {
               },
             }).catch(() => {});
 
-            // Synchronize tenant display name & business type with its active store name
-            if (activeTenantId && data.name && activeTenantId !== "00000000-0000-4000-8000-000000000000") {
-              await prisma.tenant.update({
-                where: { id: activeTenantId },
-                data: {
-                  name: data.name.trim(),
-                  businessType: data.businessType ? String(data.businessType).trim() : undefined,
-                  phone: data.phone ? String(data.phone).trim() : undefined,
-                  updatedAt: now,
-                },
-              }).catch(() => {});
-            }
             syncedIds.push(id);
           } else if (entity === "user" && (action === "CREATE" || action === "UPDATE")) {
             const activeTenantId = (session && session.tenantId !== "global-platform-admin" ? session.tenantId : null) || tenantId || data.tenantId;

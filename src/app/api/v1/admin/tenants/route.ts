@@ -4,6 +4,7 @@ import { verifySuperAdmin, unauthorizedAdminResponse, validateAdminPassword } fr
 import { sendManualActivationSms } from "@/lib/services/sms-service";
 import { sendManualActivationEmail } from "@/lib/services/email-service";
 import crypto from "crypto";
+import { reconcileTenantsData } from "@/app/api/v1/admin/reconcile-tenants/route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -41,47 +42,9 @@ export async function GET(req: NextRequest) {
       whereClause.isActive = false;
     }
 
-    // 1. Auto-reconcile tenant names, sales, products, and customers whose storeId belongs to a specific tenant
+    // 1. Safe multi-tenant restitution & validation
     try {
-      await prisma.$executeRawUnsafe(`
-        UPDATE tenants t
-        SET name = st.name,
-            business_type = COALESCE(st.business_type, t.business_type),
-            phone = COALESCE(st.phone, t.phone)
-        FROM stores st
-        WHERE st.tenant_id = t.id 
-          AND st.id != '00000000-0000-4000-8000-000000000001'
-          AND st.name IS NOT NULL 
-          AND st.name != ''
-          AND t.name != st.name;
-      `);
-
-      await prisma.$executeRawUnsafe(`
-        UPDATE sales s
-        SET tenant_id = st.tenant_id
-        FROM stores st
-        WHERE s.store_id = st.id 
-          AND st.id != '00000000-0000-4000-8000-000000000001'
-          AND (s.tenant_id IS NULL OR s.tenant_id != st.tenant_id);
-      `);
-
-      await prisma.$executeRawUnsafe(`
-        UPDATE products p
-        SET tenant_id = st.tenant_id
-        FROM stores st
-        WHERE p.store_id = st.id 
-          AND st.id != '00000000-0000-4000-8000-000000000001'
-          AND (p.tenant_id IS NULL OR p.tenant_id != st.tenant_id);
-      `);
-
-      await prisma.$executeRawUnsafe(`
-        UPDATE customers c
-        SET tenant_id = st.tenant_id
-        FROM stores st
-        WHERE c.store_id = st.id 
-          AND st.id != '00000000-0000-4000-8000-000000000001'
-          AND (c.tenant_id IS NULL OR c.tenant_id != st.tenant_id);
-      `);
+      await reconcileTenantsData(prisma);
     } catch (reconcileErr) {
       console.warn("[Admin Tenants Reconcile Warning]:", reconcileErr);
     }
