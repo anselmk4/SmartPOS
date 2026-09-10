@@ -6,6 +6,104 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
+ * Safely upserts a unique user per tenant without failing on unique constraints @@unique([tenantId, phone]) or @@unique([tenantId, email]).
+ */
+async function safeUpsertTenantUser(params: {
+  tenantId: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  role: any;
+  pinCode?: string;
+  searchNames?: string[];
+  searchPhones?: string[];
+}) {
+  const { tenantId, name, phone, email, role, pinCode, searchNames = [], searchPhones = [] } = params;
+
+  // 1. Build search criteria
+  const orConditions: any[] = [];
+  if (phone) {
+    orConditions.push({ phone });
+    const cleanDigits = phone.replace(/\D/g, "");
+    if (cleanDigits.length >= 6) {
+      orConditions.push({ phone: { contains: cleanDigits.slice(-6) } });
+    }
+  }
+  for (const p of searchPhones) {
+    orConditions.push({ phone: p });
+  }
+  if (name) {
+    orConditions.push({ name: { contains: name, mode: "insensitive" } });
+  }
+  for (const n of searchNames) {
+    orConditions.push({ name: { contains: n, mode: "insensitive" } });
+  }
+
+  // 2. Find all existing matching user records
+  const existingMatches = orConditions.length > 0
+    ? await prisma.user.findMany({ where: { OR: orConditions } })
+    : [];
+
+  const primaryUser = existingMatches[0];
+
+  // 3. Before updating or creating, delete any other user in the target tenant that has the same phone or email to prevent constraint collisions
+  if (phone) {
+    await prisma.user.deleteMany({
+      where: {
+        tenantId,
+        phone,
+        ...(primaryUser ? { id: { not: primaryUser.id } } : {}),
+      },
+    }).catch(() => {});
+  }
+  if (email) {
+    await prisma.user.deleteMany({
+      where: {
+        tenantId,
+        email,
+        ...(primaryUser ? { id: { not: primaryUser.id } } : {}),
+      },
+    }).catch(() => {});
+  }
+
+  // 4. Update or Create
+  if (primaryUser) {
+    await prisma.user.update({
+      where: { id: primaryUser.id },
+      data: {
+        tenantId,
+        name,
+        phone: phone || null,
+        email: email || null,
+        role,
+        isActive: true,
+        ...(pinCode ? { pinCode } : {}),
+      },
+    });
+
+    // Delete extra duplicate user records
+    for (const extra of existingMatches.slice(1)) {
+      if (extra.id !== primaryUser.id) {
+        await prisma.user.delete({ where: { id: extra.id } }).catch(() => {});
+      }
+    }
+    return primaryUser;
+  } else {
+    return await prisma.user.create({
+      data: {
+        tenantId,
+        name,
+        phone: phone || null,
+        email: email || null,
+        role,
+        pinCode: pinCode || "1234",
+        isActive: true,
+      },
+    });
+  }
+}
+
+/**
  * POST /api/v1/admin/tenants/repair-all
  * Master repair routine that reorganizes and secures all client accounts:
  * - Wake Up Restaurant (Patrick Mwisha, Plan PRO, 1 store, 143 products, 0 sales, 4 staff)
@@ -17,7 +115,7 @@ export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
   try {
     const auth = verifySuperAdmin(req);
-    // Allow either super admin or automatic maintenance invocation
+    // Allow either super admin or maintenance call
     const isMaintenanceCall = req.headers.get("x-maintenance-secret") === "globalpos-fix";
     if (!auth.authenticated && !isMaintenanceCall) {
       return unauthorizedAdminResponse(auth.error);
@@ -125,40 +223,16 @@ export async function POST(req: NextRequest) {
       where: { tenantId: wakeTargetTenant.id },
     }).catch(() => {});
 
-    // Ensure Patrick Mwisha is the OWNER of Wake Up Restaurant
-    let patrickUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { phone: "+243 970295579" },
-          { phone: "+243970295579" },
-          { name: { contains: "Patrick Mwisha", mode: "insensitive" } },
-        ],
-      },
+    // Ensure Patrick Mwisha is the OWNER of Wake Up Restaurant (safe upsert)
+    await safeUpsertTenantUser({
+      tenantId: wakeTargetTenant.id,
+      name: "Patrick Mwisha",
+      phone: "+243 970295579",
+      role: "OWNER",
+      pinCode: "1234",
+      searchNames: ["Patrick Mwisha", "Patrick"],
+      searchPhones: ["+243 970295579", "+243970295579", "0970295579"],
     });
-
-    if (patrickUser) {
-      await prisma.user.update({
-        where: { id: patrickUser.id },
-        data: {
-          tenantId: wakeTargetTenant.id,
-          name: "Patrick Mwisha",
-          phone: "+243 970295579",
-          role: "OWNER",
-          isActive: true,
-        },
-      });
-    } else {
-      patrickUser = await prisma.user.create({
-        data: {
-          tenantId: wakeTargetTenant.id,
-          name: "Patrick Mwisha",
-          phone: "+243 970295579",
-          role: "OWNER",
-          pinCode: "1234",
-          isActive: true,
-        },
-      });
-    }
 
     // Ensure 4 total staff members under Wake Up Restaurant
     const wakeStaffNames = ["Caisse 1", "Serveur 1", "Serveur 2"];
@@ -230,74 +304,27 @@ export async function POST(req: NextRequest) {
       logs.push("Mis à jour le tenant Genesis Shop.");
     }
 
-    // Ensure Ansel Makomo is the OWNER
-    let anselUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { phone: "+243992036994" },
-          { phone: "+243 992036994" },
-          { name: { contains: "Ansel makomo", mode: "insensitive" } },
-        ],
-      },
+    // Ensure Ansel Makomo is the OWNER (safe upsert)
+    await safeUpsertTenantUser({
+      tenantId: genesisTenant.id,
+      name: "Ansel makomo",
+      phone: "+243992036994",
+      role: "OWNER",
+      pinCode: "2201",
+      searchNames: ["Ansel makomo", "Ansel", "Makomo"],
+      searchPhones: ["+243992036994", "+243 992036994", "0992036994"],
     });
 
-    if (anselUser) {
-      anselUser = await prisma.user.update({
-        where: { id: anselUser.id },
-        data: {
-          tenantId: genesisTenant.id,
-          name: "Ansel makomo",
-          phone: "+243992036994",
-          role: "OWNER",
-          isActive: true,
-        },
-      });
-    } else {
-      anselUser = await prisma.user.create({
-        data: {
-          tenantId: genesisTenant.id,
-          name: "Ansel makomo",
-          phone: "+243992036994",
-          role: "OWNER",
-          pinCode: "2201",
-          isActive: true,
-        },
-      });
-    }
-
-    // Ensure Junior Makomo is the GÉRANT (MANAGER)
-    let juniorUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { name: { contains: "Junior makomo", mode: "insensitive" } },
-          { phone: "+243999999999" },
-        ],
-      },
+    // Ensure Junior Makomo is the GÉRANT (MANAGER, safe upsert)
+    await safeUpsertTenantUser({
+      tenantId: genesisTenant.id,
+      name: "Junior makomo",
+      phone: "+243999999999",
+      role: "MANAGER",
+      pinCode: "1234",
+      searchNames: ["Junior makomo", "Junior"],
+      searchPhones: ["+243999999999", "+243 999999999"],
     });
-
-    if (juniorUser) {
-      await prisma.user.update({
-        where: { id: juniorUser.id },
-        data: {
-          tenantId: genesisTenant.id,
-          name: "Junior makomo",
-          phone: "+243999999999",
-          role: "MANAGER",
-          isActive: true,
-        },
-      });
-    } else {
-      await prisma.user.create({
-        data: {
-          tenantId: genesisTenant.id,
-          name: "Junior makomo",
-          phone: "+243999999999",
-          role: "MANAGER",
-          pinCode: "1234",
-          isActive: true,
-        },
-      });
-    }
 
     // Ensure exactly 2 stores under Genesis Shop:
     // Store 1: Boutique Principale
@@ -408,22 +435,15 @@ export async function POST(req: NextRequest) {
       logs.push("Créé le compte tenant Catalina Cosmetics.");
     }
 
-    // Reassign Bienfait Matabaro to Catalina Cosmetics
-    await prisma.user.updateMany({
-      where: {
-        OR: [
-          { name: { contains: "Bienfait", mode: "insensitive" } },
-          { phone: "+243972563597" },
-          { phone: "+243 972563597" },
-        ],
-      },
-      data: {
-        tenantId: catalinaTenant.id,
-        name: "BIENFAIT MATABARO",
-        phone: "+243972563597",
-        role: "MANAGER",
-        isActive: true,
-      },
+    // Reassign Bienfait Matabaro to Catalina Cosmetics (safe upsert)
+    await safeUpsertTenantUser({
+      tenantId: catalinaTenant.id,
+      name: "BIENFAIT MATABARO",
+      phone: "+243972563597",
+      role: "MANAGER",
+      pinCode: "1234",
+      searchNames: ["Bienfait", "Matabaro", "Bienfait matabaro"],
+      searchPhones: ["+243972563597", "+243 972563597", "0972563597"],
     });
     logs.push("Rattaché Bienfait Matabaro à Catalina Cosmetics.");
 
@@ -450,15 +470,13 @@ export async function POST(req: NextRequest) {
       logs.push("Créé le compte tenant Happy Bora.");
     }
 
-    // Reassign Diane to Happy Bora with role WAITER (Serveur)
-    await prisma.user.updateMany({
-      where: { name: { contains: "Diane", mode: "insensitive" } },
-      data: {
-        tenantId: happyTenant.id,
-        name: "DIANE",
-        role: "WAITER",
-        isActive: true,
-      },
+    // Reassign Diane to Happy Bora with role WAITER (safe upsert)
+    await safeUpsertTenantUser({
+      tenantId: happyTenant.id,
+      name: "DIANE",
+      role: "WAITER",
+      pinCode: "1234",
+      searchNames: ["Diane", "Serveur Diane"],
     });
     logs.push("Rattaché Diane à Happy Bora avec le rôle WAITER (Serveur).");
 
