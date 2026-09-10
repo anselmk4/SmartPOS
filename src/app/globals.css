@@ -197,6 +197,14 @@ input, textarea, select {
 /* ========================================================================= */
 .admin-theme-dark {
   color-scheme: dark;
+  background-color: #020617;
+  color: #f8fafc;
+}
+
+.admin-theme-dark .bg-white:not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-amber"]):not([class*="bg-rose"]):not([class*="bg-purple"]):not([class*="bg-indigo"]) {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #1e293b !important;
 }
 
 /* ========================================================================= */

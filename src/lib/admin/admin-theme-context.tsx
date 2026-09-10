@@ -24,20 +24,35 @@ export function AdminThemeProvider({ children }: { children: React.ReactNode }) 
   const [theme, setThemeState] = useState<AdminThemeMode>("dark");
   const [isMounted, setIsMounted] = useState(false);
 
+  const applyThemeClasses = (t: AdminThemeMode) => {
+    if (typeof document !== "undefined") {
+      if (t === "dark") {
+        document.documentElement.classList.add("dark");
+        document.documentElement.classList.add("admin-theme-dark");
+        document.documentElement.classList.remove("admin-theme-light");
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.documentElement.classList.remove("admin-theme-dark");
+        document.documentElement.classList.add("admin-theme-light");
+      }
+    }
+  };
+
   useEffect(() => {
     setIsMounted(true);
     try {
       const saved = localStorage.getItem(THEME_STORAGE_KEY) as AdminThemeMode | null;
-      if (saved === "light" || saved === "dark") {
-        setThemeState(saved);
-      }
+      const initial = saved === "light" || saved === "dark" ? saved : "dark";
+      setThemeState(initial);
+      applyThemeClasses(initial);
     } catch {
-      // Ignored in SSR or restricted storage
+      applyThemeClasses("dark");
     }
   }, []);
 
   const setTheme = (newTheme: AdminThemeMode) => {
     setThemeState(newTheme);
+    applyThemeClasses(newTheme);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, newTheme);
     } catch {
@@ -54,7 +69,7 @@ export function AdminThemeProvider({ children }: { children: React.ReactNode }) 
 
   return (
     <AdminThemeContext.Provider value={{ theme, isDark, toggleTheme, setTheme }}>
-      <div className={isDark ? "admin-theme-dark" : "admin-theme-light"}>
+      <div className={`w-full min-h-screen ${isDark ? "admin-theme-dark dark" : "admin-theme-light"}`}>
         {children}
       </div>
     </AdminThemeContext.Provider>

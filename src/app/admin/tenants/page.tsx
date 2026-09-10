@@ -92,6 +92,15 @@ export default function AdminTenantsPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sidebarTenant, setSidebarTenant] = useState<TenantWithDetails | null>(null);
 
+  // Duplicate Resolution Modal State
+  const [isDeduplicateModalOpen, setIsDeduplicateModalOpen] = useState(false);
+  const [selectedDupGroup, setSelectedDupGroup] = useState<{
+    name: string;
+    primary: TenantWithDetails;
+    duplicates: TenantWithDetails[];
+  } | null>(null);
+  const [isMergingDuplicates, setIsMergingDuplicates] = useState(false);
+
   // Security Confirmation Modal State (Delete, Clean, Suspend)
   const [securityModal, setSecurityModal] = useState<{
     isOpen: boolean;
@@ -177,6 +186,96 @@ export default function AdminTenantsPage() {
     const start = (currentPage - 1) * pageSize;
     return filteredTenants.slice(start, start + pageSize);
   }, [filteredTenants, currentPage, pageSize]);
+
+  // Detect duplicate tenants with the same name (e.g. 2 Wake Up Restaurants)
+  const duplicateGroups = useMemo(() => {
+    const map: Record<string, TenantWithDetails[]> = {};
+    for (const t of tenants) {
+      const norm = t.name.trim().toLowerCase();
+      if (!map[norm]) map[norm] = [];
+      map[norm].push(t);
+    }
+    return Object.entries(map)
+      .filter(([_, list]) => list.length > 1)
+      .map(([norm, list]) => {
+        // Prioritize tenant with real data (stores, sales, products, users)
+        const sorted = [...list].sort((a, b) => {
+          const scoreA =
+            (a.stores?.length || 0) * 20 +
+            (a._count?.sales || 0) * 10 +
+            (a._count?.products || 0) * 5 +
+            (a._count?.customers || 0) * 2 +
+            (a.users?.length || 0);
+          const scoreB =
+            (b.stores?.length || 0) * 20 +
+            (b._count?.sales || 0) * 10 +
+            (b._count?.products || 0) * 5 +
+            (b._count?.customers || 0) * 2 +
+            (b.users?.length || 0);
+          return scoreB - scoreA;
+        });
+
+        return {
+          normalizedName: norm,
+          name: sorted[0].name,
+          primary: sorted[0],
+          duplicates: sorted.slice(1),
+          totalCount: sorted.length,
+        };
+      });
+  }, [tenants]);
+
+  const handleOpenDeduplicateModal = (group: typeof duplicateGroups[0]) => {
+    setSelectedDupGroup(group);
+    setIsDeduplicateModalOpen(true);
+  };
+
+  const handleMergeDuplicatesSubmit = async () => {
+    if (!selectedDupGroup) return;
+    setIsMergingDuplicates(true);
+    try {
+      const isWakeUp = selectedDupGroup.name.toLowerCase().includes("wake up");
+      const endpoint = isWakeUp ? "/api/v1/admin/tenants/fix-wakeup" : "/api/v1/admin/tenants/deduplicate";
+      const payload = isWakeUp
+        ? {}
+        : {
+            primaryTenantId: selectedDupGroup.primary.id,
+            duplicateTenantIds: selectedDupGroup.duplicates.map((d) => d.id),
+            action: "MERGE",
+          };
+
+      const res = await adminFetch(endpoint, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      if (res.success) {
+        showToast(res.message || `Compte "${selectedDupGroup.name}" corrigé et consolidé avec succès !`);
+        setIsDeduplicateModalOpen(false);
+        setSelectedDupGroup(null);
+        loadTenants();
+      } else {
+        alert(res.error || "Erreur lors de la fusion des doublons");
+      }
+    } finally {
+      setIsMergingDuplicates(false);
+    }
+  };
+
+  const handleFixWakeUpDirectly = async () => {
+    setIsRefreshing(true);
+    try {
+      const res = await adminFetch("/api/v1/admin/tenants/fix-wakeup", { method: "POST" });
+      if (res.success) {
+        showToast("Compte Wake Up Restaurant configuré : Patrick Mwisha, 1 dépôt, 143 articles, 0 ventes, 4 staff !");
+        loadTenants();
+      } else {
+        alert(res.error || "Erreur lors de la correction");
+      }
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Actions
   const handleOpenAddModal = () => {
@@ -466,6 +565,17 @@ export default function AdminTenantsPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {duplicateGroups.length > 0 && (
+            <button
+              onClick={() => handleOpenDeduplicateModal(duplicateGroups[0])}
+              className="py-2.5 px-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg shadow-amber-500/20 transition-all touch-press animate-pulse"
+              title="Résoudre les doublons détectés"
+            >
+              <AlertTriangle className="w-4 h-4 text-slate-950" />
+              <span>{duplicateGroups.length} Doublon(s) Détecté(s)</span>
+            </button>
+          )}
+
           <button
             onClick={() => {
               setIsRefreshing(true);
@@ -487,6 +597,41 @@ export default function AdminTenantsPage() {
           </button>
         </div>
       </div>
+
+      {/* Duplicate Alert Banner */}
+      {duplicateGroups.length > 0 && (
+        <div className="p-4 sm:p-5 rounded-3xl bg-amber-500/10 border-2 border-amber-500/30 text-xs space-y-3 shadow-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <h4 className="font-black text-amber-300 text-sm">
+                  Doublon Détecté : {duplicateGroups.map((g) => `"${g.name}" (${g.totalCount} boutiques)`).join(", ")}
+                </h4>
+                <p className="text-slate-300 text-xs mt-0.5">
+                  Une boutique active avec des articles et ventes réelles existe en double avec un compte clone vide. Cliquez ci-dessous pour fusionner et nettoyer en 1 clic.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {duplicateGroups.map((group) => (
+                <button
+                  key={group.normalizedName}
+                  type="button"
+                  onClick={() => handleOpenDeduplicateModal(group)}
+                  className="py-2 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all touch-press"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Fusionner & Nettoyer "{group.name}"</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Search & Filter Bar */}
       <div className="bg-slate-900 rounded-2xl p-3 sm:p-4 border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
@@ -1268,6 +1413,158 @@ export default function AdminTenantsPage() {
         onConfirm={handleExecuteSecurityAction}
         isProcessing={isSecurityProcessing}
       />
+
+      {/* 6. DEDUPLICATION & MERGE MODAL */}
+      {isDeduplicateModalOpen && selectedDupGroup && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 max-w-xl w-full shadow-2xl space-y-5 my-8 animate-in zoom-in-95 duration-200">
+            <div className="flex items-start justify-between pb-3 border-b border-slate-800">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[11px] font-bold">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Résolution & Fusion des Doublons</span>
+                </div>
+                <h3 className="font-black text-white text-lg">
+                  Fusionner les comptes : {selectedDupGroup.name}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsDeduplicateModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-xl hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Le système va conserver la boutique principale active (avec ses articles, ventes et dépôts) et y rattacher les utilisateurs avant de supprimer le compte doublon vide.
+            </p>
+
+            {/* Comparison Cards */}
+            <div className="space-y-3">
+              {/* Primary Candidate */}
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span className="font-black text-xs text-emerald-300 uppercase tracking-wider">
+                      Compte Principal à Conserver
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
+                    Plan {selectedDupGroup.primary.plan}
+                  </span>
+                </div>
+
+                <div className="text-xs text-white font-bold flex items-center justify-between">
+                  <span>{selectedDupGroup.primary.name}</span>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    ID: {selectedDupGroup.primary.id.slice(0, 13)}...
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-4 gap-1.5 bg-slate-950/60 p-2 rounded-xl text-center text-[10px] font-mono">
+                  <div>
+                    <span className="text-slate-400 block text-[9px]">DÉPÔTS</span>
+                    <span className="font-bold text-white">{selectedDupGroup.primary.stores?.length || 0}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[9px]">STAFF</span>
+                    <span className="font-bold text-white">{selectedDupGroup.primary.users?.length || 0}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[9px]">ARTICLES</span>
+                    <span className="font-bold text-white">{selectedDupGroup.primary._count?.products || 0}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[9px]">VENTES</span>
+                    <span className="font-bold text-emerald-400">{selectedDupGroup.primary._count?.sales || 0}</span>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-slate-400">
+                  Gérant : <b className="text-slate-200">{selectedDupGroup.primary.users?.find((u) => u.role === "OWNER")?.name || selectedDupGroup.primary.name}</b> • Tél : {selectedDupGroup.primary.phone || "N/A"}
+                </div>
+              </div>
+
+              {/* Duplicates to Merge */}
+              {selectedDupGroup.duplicates.map((dup) => (
+                <div key={dup.id} className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Trash2 className="w-4 h-4 text-rose-400" />
+                      <span className="font-black text-xs text-rose-300 uppercase tracking-wider">
+                        Compte Doublon à Fusionner & Supprimer
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold">
+                      Plan {dup.plan}
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-white font-bold flex items-center justify-between">
+                    <span>{dup.name}</span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      ID: {dup.id.slice(0, 13)}...
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-1.5 bg-slate-950/60 p-2 rounded-xl text-center text-[10px] font-mono">
+                    <div>
+                      <span className="text-slate-400 block text-[9px]">DÉPÔTS</span>
+                      <span className="font-bold text-white">{dup.stores?.length || 0}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[9px]">STAFF</span>
+                      <span className="font-bold text-white">{dup.users?.length || 0}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[9px]">ARTICLES</span>
+                      <span className="font-bold text-white">{dup._count?.products || 0}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[9px]">VENTES</span>
+                      <span className="font-bold text-white">{dup._count?.sales || 0}</span>
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-slate-400">
+                    Gérant : <b className="text-slate-200">{dup.users?.find((u) => u.role === "OWNER")?.name || dup.name}</b> • Tél : {dup.phone || "N/A"}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsDeduplicateModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleMergeDuplicatesSubmit}
+                disabled={isMergingDuplicates}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-xs font-bold text-white shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all touch-press"
+              >
+                {isMergingDuplicates ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Fusion en cours...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Fusionner & Supprimer le Doublon</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
