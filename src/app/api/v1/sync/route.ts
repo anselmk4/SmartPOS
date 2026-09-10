@@ -438,29 +438,35 @@ export async function POST(req: NextRequest) {
               session?.tenantId && session.tenantId !== "global-platform-admin"
                 ? session.tenantId
                 : (tenantId || data.id);
-            if (targetTenantId && (!data.id || data.id === targetTenantId)) {
-              await prisma.tenant.upsert({
-                where: { id: targetTenantId },
-                update: {
-                  name: data.name || undefined,
-                  phone: data.phone || undefined,
-                  businessType: data.businessType ?? undefined,
-                  updatedAt: now,
-                },
-                create: {
-                  id: targetTenantId,
-                  name: data.name || "Boutique",
-                  slug: `tenant-${targetTenantId.substring(0, 8)}`,
-                  phone: data.phone || undefined,
-                  businessType: data.businessType ?? undefined,
-                  createdAt: now,
-                  updatedAt: now,
-                },
-              }).catch(() => {});
+            if (targetTenantId && targetTenantId !== "00000000-0000-4000-8000-000000000000") {
+              const isTestName = data.name && (data.name.toLowerCase().includes("sidney") || data.name.toLowerCase().includes("apple"));
+              if (!isTestName) {
+                await prisma.tenant.upsert({
+                  where: { id: targetTenantId },
+                  update: {
+                    name: data.name || undefined,
+                    phone: data.phone || undefined,
+                    businessType: data.businessType ?? undefined,
+                    updatedAt: now,
+                  },
+                  create: {
+                    id: targetTenantId,
+                    name: data.name || "Boutique",
+                    slug: `tenant-${targetTenantId.substring(0, 8)}`,
+                    phone: data.phone || undefined,
+                    businessType: data.businessType ?? undefined,
+                    createdAt: now,
+                    updatedAt: now,
+                  },
+                }).catch(() => {});
+              }
             }
             syncedIds.push(id);
           } else if (entity === "store" && (action === "CREATE" || action === "UPDATE")) {
             const activeTenantId = (session && session.tenantId !== "global-platform-admin" ? session.tenantId : null) || tenantId;
+            const isTestOwner = data.ownerName && data.ownerName.toLowerCase().includes("sidney");
+            const cleanOwner = isTestOwner ? undefined : data.ownerName;
+
             await prisma.store.upsert({
               where: { id: data.id },
               update: {
@@ -469,18 +475,18 @@ export async function POST(req: NextRequest) {
                 currency: data.currency ?? "CDF",
                 phone: data.phone,
                 address: data.address,
-                ownerName: data.ownerName,
+                ownerName: cleanOwner,
                 updatedAt: now,
               },
               create: {
                 id: data.id,
                 tenantId: activeTenantId,
-                name: data.name,
+                name: data.name || "Boutique Principale",
                 businessType: data.businessType ?? undefined,
                 currency: data.currency || "CDF",
                 phone: data.phone,
                 address: data.address,
-                ownerName: data.ownerName,
+                ownerName: cleanOwner,
                 createdAt: new Date(data.createdAt || now),
                 updatedAt: now,
               },

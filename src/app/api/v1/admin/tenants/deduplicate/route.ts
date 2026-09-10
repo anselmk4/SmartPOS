@@ -46,8 +46,34 @@ export async function GET(req: NextRequest) {
     const duplicateGroups = Object.entries(groups)
       .filter(([_, list]) => list.length > 1)
       .map(([name, list]) => {
-        // Sort: highest data volume first (most sales + products + stores)
+        // Plan tier priority helper
+        const getPlanWeight = (p?: string) => {
+          switch (p) {
+            case "ENTERPRISE": return 1000;
+            case "PRO": return 500;
+            case "STARTER": return 200;
+            case "BASIC": return 100;
+            default: return 0;
+          }
+        };
+
+        // Sort: highest plan tier first, then real owners, then data volume
         const sorted = [...list].sort((a, b) => {
+          const planScoreA = getPlanWeight(a.plan);
+          const planScoreB = getPlanWeight(b.plan);
+          if (planScoreA !== planScoreB) {
+            return planScoreB - planScoreA;
+          }
+
+          // Penalize test names like "sidney mak"
+          const ownerA = a.users?.find((u) => u.role === "OWNER")?.name?.toLowerCase() || "";
+          const ownerB = b.users?.find((u) => u.role === "OWNER")?.name?.toLowerCase() || "";
+          const isTestA = ownerA.includes("sidney") || ownerA.includes("test") || ownerA.includes("apple");
+          const isTestB = ownerB.includes("sidney") || ownerB.includes("test") || ownerB.includes("apple");
+          if (isTestA !== isTestB) {
+            return isTestA ? 1 : -1;
+          }
+
           const scoreA =
             (a.stores?.length || 0) * 10 +
             (a._count?.sales || 0) * 5 +

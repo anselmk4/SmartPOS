@@ -1027,9 +1027,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem(AUTH_USER_KEY);
       localStorage.removeItem(AUTH_TENANT_KEY);
       localStorage.removeItem(AUTH_STORE_KEY);
+      localStorage.removeItem("kuettu_session_token");
       sessionStorage.removeItem("kuettu_is_simulating");
       sessionStorage.removeItem("kuettu_original_owner_id");
     }
+    // Clean sync queue and unpartitioned temporary tables on logout to prevent cross-account contamination
+    db.syncQueue.clear().catch(() => {});
+    db.heldOrders.clear().catch(() => {});
+
     setUser(null);
     setTenant(null);
     setStore(null);

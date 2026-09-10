@@ -204,11 +204,50 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 6. Delete other duplicate tenants
+    // 6. Delete other duplicate wake up tenants
     for (const ot of otherTenants) {
       await prisma.tenant.delete({
         where: { id: ot.id },
       }).catch((delErr) => console.warn("Delete duplicate tenant error:", delErr));
+    }
+
+    // 7. Verify & Safeguard Genesis Shop (Ansel Makomo, +243992036994)
+    try {
+      const genesisTenant = await prisma.tenant.findFirst({
+        where: {
+          OR: [
+            { name: { contains: "Genesis", mode: "insensitive" } },
+            { phone: { contains: "992036994" } },
+          ],
+        },
+        include: { users: true, stores: true },
+      });
+
+      if (genesisTenant) {
+        await prisma.tenant.update({
+          where: { id: genesisTenant.id },
+          data: {
+            name: "Genesis Shop",
+            phone: "+243992036994",
+          },
+        });
+
+        const anselUser = genesisTenant.users.find(
+          (u) => u.name.toLowerCase().includes("ansel") || (u.phone && u.phone.includes("992036994"))
+        );
+        if (anselUser) {
+          await prisma.user.update({
+            where: { id: anselUser.id },
+            data: {
+              name: "Ansel Makomo",
+              phone: "+243992036994",
+              role: "OWNER",
+            },
+          });
+        }
+      }
+    } catch (genesisErr) {
+      console.warn("[Genesis Shop Safeguard Warning]:", genesisErr);
     }
 
     // 7. Get final verified count
