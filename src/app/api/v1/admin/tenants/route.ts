@@ -88,8 +88,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Délai de connexion dépassé. Veuillez réessayer.",
-          details: queryErr?.message,
+          error: queryErr?.message || "Erreur de chargement des boutiques",
           data: [],
           total: 0,
         },
