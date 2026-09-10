@@ -490,7 +490,57 @@ export async function sendForgotPinEmail(
 }
 
 /**
- * 3. Template: Notifications de Paiement (Mobile Money & Abonnements)
+ * 3. Template: Suppression de Magasin / Boutique (OTP de confirmation propriétaire)
+ */
+export async function sendDeleteStoreOtpEmail(
+  toEmail: string,
+  otpCode: string,
+  storeName: string,
+  ownerName: string
+): Promise<SendEmailResult> {
+  const cleanEmail = toEmail.trim().toLowerCase();
+  const salutation = ownerName?.trim() ? `Bonjour ${ownerName},` : "Bonjour,";
+
+  const contentHtml = `
+    <p class="body-text">${salutation}</p>
+    <p class="body-text">
+      Une demande de <strong style="color: #dc2626;">suppression définitive</strong> de la boutique <strong>${storeName}</strong> a été initiée sur votre compte <strong>Kuettu Global POS</strong>.
+    </p>
+    <p class="body-text">
+      Voici votre code de sécurité pour confirmer cette suppression :
+    </p>
+
+    <div class="code-box-wrapper">
+      <div class="code-badge" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">${otpCode}</div>
+      <div class="expiry-text">Ce code est confidentiel et expire dans 10 minutes.</div>
+    </div>
+
+    <p class="body-text" style="font-size: 13px; color: #dc2626; font-weight: bold;">
+      ⚠️ Attention : La suppression d'un point de vente est irréversible.
+    </p>
+  `;
+
+  const html = renderBaseEmailTemplate({
+    title: "Confirmation de suppression de boutique",
+    contentHtml,
+    disclaimerText:
+      "Si vous n'êtes pas à l'origine de cette demande, NE COMMUNIQUEZ PAS ce code et modifiez immédiatement votre mot de passe.",
+  });
+
+  const res = await dispatchViaResend({
+    to: cleanEmail,
+    subject: `[Kuettu Global POS] Code de suppression boutique : ${otpCode}`,
+    html,
+  });
+
+  return {
+    ...res,
+    simulatedCode: res.isSimulated ? otpCode : undefined,
+  };
+}
+
+/**
+ * 4. Template: Notifications de Paiement (Mobile Money & Abonnements)
  * Envoie AUTOMATIQUEMENT à kuettusocial@gmail.com avec copie (CC) à info@kuettu.com
  */
 export async function sendPaymentNotificationEmail(

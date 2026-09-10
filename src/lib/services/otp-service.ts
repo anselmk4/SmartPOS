@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getSystemVerificationConfig, type VerificationMethod } from "./system-settings";
 import { sendVerificationSms, formatPhoneNumberE164 } from "./sms-service";
-import { sendVerificationEmail } from "./email-service";
+import { sendVerificationEmail, sendDeleteStoreOtpEmail } from "./email-service";
 import { createSessionToken } from "@/lib/security/jwt";
 
 /**
@@ -288,3 +288,114 @@ export async function verifyRegistrationOtp(
     stores,
   };
 }
+
+/**
+ * Triggers an email OTP specifically for store deletion verification
+ */
+export async function triggerDeleteStoreOtp(params: {
+  tenantId: string;
+  userId: string;
+  storeId: string;
+  storeName: string;
+  ownerEmail: string;
+  ownerName: string;
+}): Promise<{ success: boolean; identifier: string; simulatedCode?: string; error?: string }> {
+  try {
+    const rawCode = generateNumericOtp();
+    const codeHash = hashOtpCode(rawCode);
+    const cleanEmail = params.ownerEmail.trim().toLowerCase();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Invalidate existing pending OTPs for this identifier
+    await prisma.otpVerification.updateMany({
+      where: {
+        identifier: cleanEmail,
+        consumed: false,
+      },
+      data: { consumed: true },
+    });
+
+    // Create OTP record
+    await prisma.otpVerification.create({
+      data: {
+        identifier: cleanEmail,
+        codeHash,
+        userId: params.userId,
+        tenantId: params.tenantId,
+        expiresAt,
+        consumed: false,
+      },
+    });
+
+    // Send email
+    const emailResult = await sendDeleteStoreOtpEmail(
+      cleanEmail,
+      rawCode,
+      params.storeName,
+      params.ownerName
+    );
+
+    return {
+      success: emailResult.success,
+      identifier: cleanEmail,
+      simulatedCode: emailResult.simulatedCode,
+      error: emailResult.error,
+    };
+  } catch (err: any) {
+    console.error("[triggerDeleteStoreOtp Error]:", err);
+    return {
+      success: false,
+      identifier: params.ownerEmail,
+      error: err.message || "Erreur lors de l'envoi du code de confirmation par e-mail",
+    };
+  }
+}
+
+/**
+ * Validates a store deletion OTP
+ */
+export async function verifyDeleteStoreOtp(params: {
+  tenantId: string;
+  identifier: string;
+  otpCode: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const cleanIdentifier = params.identifier.trim().toLowerCase();
+    const hashedCode = hashOtpCode(params.otpCode);
+    const now = new Date();
+
+    const config = await getSystemVerificationConfig();
+    const isMasterCode = config.isSimulationMode && params.otpCode.trim() === "123456";
+
+    const record = await prisma.otpVerification.findFirst({
+      where: {
+        tenantId: params.tenantId,
+        identifier: cleanIdentifier,
+        consumed: false,
+        expiresAt: { gt: now },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!record) {
+      if (!isMasterCode) {
+        return { success: false, error: "Code OTP invalide ou expiré." };
+      }
+    } else {
+      const isMatch = record.codeHash === hashedCode;
+      if (!isMatch && !isMasterCode) {
+        return { success: false, error: "Code OTP incorrect." };
+      }
+
+      await prisma.otpVerification.update({
+        where: { id: record.id },
+        data: { consumed: true },
+      });
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erreur lors de la validation du code OTP" };
+  }
+}
+

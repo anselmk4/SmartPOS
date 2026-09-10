@@ -355,6 +355,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await db.products.filter(p => Boolean(p.tenantId) && p.tenantId !== targetTenantId).delete().catch(() => {});
         await db.customers.filter(c => Boolean(c.tenantId) && c.tenantId !== targetTenantId).delete().catch(() => {});
         await db.sales.filter(s => Boolean(s.tenantId) && s.tenantId !== targetTenantId).delete().catch(() => {});
+        // Also remove rogue / placeholder users
+        await db.users.filter(u => u.name.toLowerCase().includes("sidney") || u.name.toLowerCase().includes("caissier (principal)")).delete().catch(() => {});
       }
 
       if (cloudData.tenant) {
@@ -366,6 +368,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
       if (cloudData.stores && Array.isArray(cloudData.stores)) {
+        const validStoreIds = new Set(cloudData.stores.map((s: any) => s.id));
+        if (cloudData.tenant?.id) {
+          // Remove local stores that are no longer assigned to this tenant on the cloud
+          await db.stores.filter(s => s.tenantId === cloudData.tenant.id && !validStoreIds.has(s.id)).delete().catch(() => {});
+        }
         for (const s of cloudData.stores) {
           const existingS = await db.stores.get(s.id);
           await db.stores.put({
@@ -376,6 +383,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
       if (cloudData.users && Array.isArray(cloudData.users)) {
+        const validUserIds = new Set(cloudData.users.map((u: any) => u.id));
+        if (cloudData.tenant?.id) {
+          // Remove local users that are no longer assigned to this tenant on the cloud
+          await db.users.filter(u => u.tenantId === cloudData.tenant.id && !validUserIds.has(u.id)).delete().catch(() => {});
+        }
         for (const u of cloudData.users) {
           const existing = await db.users.get(u.id);
           await db.users.put({

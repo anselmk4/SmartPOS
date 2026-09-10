@@ -303,6 +303,23 @@ export default function AdminTenantsPage() {
     }
   };
 
+  const handleRepairAllDirectly = async () => {
+    if (!confirm("Voulez-vous lancer la remise en ordre automatique de tous les commerces (Genesis Shop, Wake Up Restaurant, Catalina, Happy Bora, et purge des comptes résiduels) ?")) return;
+    setIsRefreshing(true);
+    try {
+      const res = await adminFetch("/api/v1/admin/tenants/repair-all", { method: "POST" });
+      if (res.success) {
+        showToast("Tous les commerces et membres du personnel ont été remis en ordre avec succès !");
+        loadTenants();
+      } else {
+        alert(res.error || "Erreur lors de la réparation");
+      }
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+
   // Actions
   const handleOpenAddModal = () => {
     setFormName("");
@@ -601,6 +618,16 @@ export default function AdminTenantsPage() {
               <span>{duplicateGroups.length} Doublon(s) Détecté(s)</span>
             </button>
           )}
+
+          <button
+            onClick={handleRepairAllDirectly}
+            disabled={isRefreshing}
+            className="py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 transition-all touch-press"
+            title="Remettre en ordre tous les commerces (Genesis, Wake Up, Catalina, Happy Bora)"
+          >
+            <Sparkles className="w-4 h-4 text-emerald-200" />
+            <span>Remettre en Ordre</span>
+          </button>
 
           <button
             onClick={() => {

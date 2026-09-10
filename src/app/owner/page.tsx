@@ -118,6 +118,18 @@ export default function OwnerSupervisionPage() {
   const [leaveEndDate, setLeaveEndDate] = useState(new Date().toISOString().split("T")[0]);
   const [leaveReason, setLeaveReason] = useState("");
 
+  // Delete Store with Email OTP State
+  const [isDeleteStoreModalOpen, setIsDeleteStoreModalOpen] = useState(false);
+  const [storeToDelete, setStoreToDelete] = useState<Store | null>(null);
+  const [deleteStoreStep, setDeleteStoreStep] = useState<"SEND_OTP" | "ENTER_OTP">("SEND_OTP");
+  const [deleteStoreEmail, setDeleteStoreEmail] = useState("");
+  const [deleteStoreOtpCode, setDeleteStoreOtpCode] = useState("");
+  const [isSendingDeleteOtp, setIsSendingDeleteOtp] = useState(false);
+  const [isDeletingStore, setIsDeletingStore] = useState(false);
+  const [deleteStoreError, setDeleteStoreError] = useState<string | null>(null);
+  const [deleteStoreSuccessMsg, setDeleteStoreSuccessMsg] = useState<string | null>(null);
+
+
   const users = useLiveQuery(async () => {
     if (!currentTenantId) return [];
     return await db.users.filter((u) => u.tenantId === currentTenantId || !u.tenantId).toArray();
@@ -381,6 +393,86 @@ export default function OwnerSupervisionPage() {
       alert("Erreur attribution gérant : " + err.message);
     }
   };
+
+  const handleOpenDeleteStoreModal = (s: Store) => {
+    setStoreToDelete(s);
+    setDeleteStoreStep("SEND_OTP");
+    setDeleteStoreEmail(user?.email || "");
+    setDeleteStoreOtpCode("");
+    setDeleteStoreError(null);
+    setDeleteStoreSuccessMsg(null);
+    setIsDeleteStoreModalOpen(true);
+  };
+
+  const handleRequestDeleteStoreOtp = async () => {
+    if (!storeToDelete) return;
+    setIsSendingDeleteOtp(true);
+    setDeleteStoreError(null);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("kuettu_session_token") : "";
+      const res = await fetch("/api/v1/stores/delete-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ storeId: storeToDelete.id }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setDeleteStoreStep("ENTER_OTP");
+        setDeleteStoreEmail(data.email || deleteStoreEmail);
+        setDeleteStoreSuccessMsg(data.message || "Code de confirmation envoyé !");
+      } else {
+        setDeleteStoreError(data.error || "Impossible d'envoyer le code OTP.");
+      }
+    } catch (err: any) {
+      setDeleteStoreError(err.message || "Erreur réseau");
+    } finally {
+      setIsSendingDeleteOtp(false);
+    }
+  };
+
+  const handleConfirmDeleteStore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!storeToDelete || !deleteStoreOtpCode.trim()) return;
+    setIsDeletingStore(true);
+    setDeleteStoreError(null);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("kuettu_session_token") : "";
+      const res = await fetch("/api/v1/stores/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          storeId: storeToDelete.id,
+          otpCode: deleteStoreOtpCode.trim(),
+          email: deleteStoreEmail,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        // Delete locally in Dexie
+        await db.stores.delete(storeToDelete.id).catch(() => {});
+        if (data.fallbackStoreId) {
+          await db.products.where("storeId").equals(storeToDelete.id).modify({ storeId: data.fallbackStoreId }).catch(() => {});
+          await selectStore(data.fallbackStoreId);
+        }
+        setIsDeleteStoreModalOpen(false);
+        setStoreToDelete(null);
+        alert(data.message || "Boutique supprimée avec succès.");
+      } else {
+        setDeleteStoreError(data.error || "Échec de la suppression.");
+      }
+    } catch (err: any) {
+      setDeleteStoreError(err.message || "Erreur réseau");
+    } finally {
+      setIsDeletingStore(false);
+    }
+  };
+
 
   const handleCreatePayrollRecord = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -785,6 +877,17 @@ export default function OwnerSupervisionPage() {
                   >
                     👤 {s.managerName ? "Changer Gérant" : "Choisir Gérant"}
                   </button>
+
+                  {!isActive && stores.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenDeleteStoreModal(s)}
+                      className="p-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors"
+                      title="Supprimer cette boutique (Validation par OTP e-mail)"
+                    >
+                      <Trash2 className="w-4 h-4 text-rose-600" />
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -1944,6 +2047,155 @@ export default function OwnerSupervisionPage() {
           "Support prioritaire WhatsApp dédié",
         ]}
       />
+
+      {/* MODAL: DELETE STORE WITH EMAIL OTP */}
+      {isDeleteStoreModalOpen && storeToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150">
+            <div className="flex items-start justify-between pb-3 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-rose-100 text-rose-600">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">Supprimer la Boutique</h3>
+                  <p className="text-[11px] text-slate-500 font-medium">Boutique : {storeToDelete.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsDeleteStoreModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100"
+              >
+                ✕
+              </button>
+            </div>
+
+            {deleteStoreError && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <span>{deleteStoreError}</span>
+              </div>
+            )}
+
+            {deleteStoreSuccessMsg && (
+              <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                <span>{deleteStoreSuccessMsg}</span>
+              </div>
+            )}
+
+            {deleteStoreStep === "SEND_OTP" ? (
+              <div className="space-y-4 text-xs">
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 leading-relaxed font-medium">
+                  ⚠️ <strong>Avertissement de sécurité</strong> : Pour protéger vos données, la suppression d'un point de vente requiert un code de confirmation <strong>OTP à 6 chiffres</strong> envoyé à l'adresse e-mail du propriétaire du compte.
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    Adresse e-mail du Propriétaire
+                  </label>
+                  <input
+                    type="email"
+                    value={deleteStoreEmail}
+                    onChange={(e) => setDeleteStoreEmail(e.target.value)}
+                    placeholder="exemple@domaine.com"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800"
+                    required
+                  />
+                  <span className="text-[11px] text-slate-400 mt-1 block">
+                    Le code de validation y sera expédié instantanément.
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsDeleteStoreModalOpen(false)}
+                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRequestDeleteStoreOtp}
+                    disabled={isSendingDeleteOtp || !deleteStoreEmail.trim()}
+                    className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-600/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isSendingDeleteOtp ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Envoi du code...</span>
+                      </>
+                    ) : (
+                      <span>Recevoir le code OTP</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleConfirmDeleteStore} className="space-y-4 text-xs">
+                <div className="text-slate-600 leading-relaxed">
+                  Un code de confirmation a été envoyé à <strong>{deleteStoreEmail}</strong>. Veuillez saisir les 6 chiffres pour valider la suppression définitive de <strong>{storeToDelete.name}</strong>.
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    Code OTP (6 chiffres) *
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={deleteStoreOtpCode}
+                    onChange={(e) => setDeleteStoreOtpCode(e.target.value.replace(/\D/g, ""))}
+                    placeholder="123456"
+                    className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-mono text-center text-lg tracking-widest font-bold text-slate-900 focus:ring-2 focus:ring-rose-500"
+                    autoFocus
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-[11px]">
+                  <button
+                    type="button"
+                    onClick={handleRequestDeleteStoreOtp}
+                    disabled={isSendingDeleteOtp}
+                    className="text-indigo-600 font-bold hover:underline"
+                  >
+                    Renvoyer un nouveau code
+                  </button>
+                  <span className="text-slate-400">Expire dans 10 min</span>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteStoreStep("SEND_OTP")}
+                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                  >
+                    Retour
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isDeletingStore || deleteStoreOtpCode.length < 6}
+                    className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-600/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isDeletingStore ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Suppression...</span>
+                      </>
+                    ) : (
+                      <span>Confirmer la suppression</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
