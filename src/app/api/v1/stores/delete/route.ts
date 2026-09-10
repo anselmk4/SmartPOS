@@ -124,12 +124,6 @@ export async function POST(req: NextRequest) {
         data: { storeId: fallbackStoreId },
       });
 
-      // Unassign manager or reset users storeId
-      await tx.user.updateMany({
-        where: { storeId: store.id },
-        data: { storeId: fallbackStoreId },
-      });
-
       // Delete the store
       await tx.store.delete({
         where: { id: store.id },

@@ -141,7 +141,6 @@ export async function POST(req: NextRequest) {
         where: { id: patrickUser.id },
         data: {
           tenantId: wakeTargetTenant.id,
-          storeId: wakeStore.id,
           name: "Patrick Mwisha",
           phone: "+243 970295579",
           role: "OWNER",
@@ -152,7 +151,6 @@ export async function POST(req: NextRequest) {
       patrickUser = await prisma.user.create({
         data: {
           tenantId: wakeTargetTenant.id,
-          storeId: wakeStore.id,
           name: "Patrick Mwisha",
           phone: "+243 970295579",
           role: "OWNER",
@@ -170,7 +168,6 @@ export async function POST(req: NextRequest) {
       await prisma.user.create({
         data: {
           tenantId: wakeTargetTenant.id,
-          storeId: wakeStore.id,
           name: wakeStaffNames[i] || `Serveur ${i + 1}`,
           role: "WAITER",
           pinCode: "0000",
