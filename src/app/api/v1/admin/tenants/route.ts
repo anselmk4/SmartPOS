@@ -41,27 +41,22 @@ export async function GET(req: NextRequest) {
       whereClause.isActive = false;
     }
 
-    let tenants;
+    let tenants = [];
     try {
       tenants = await prisma.tenant.findMany({
         where: whereClause,
         orderBy: { createdAt: "desc" },
         include: {
-          stores: true,
-          products: {
+          stores: {
             select: {
               id: true,
               name: true,
-              category: true,
-              unitPrice: true,
-              costPrice: true,
-              stockQuantity: true,
-              minStockAlert: true,
-              imageUrl: true,
-              barcode: true,
+              address: true,
+              ownerName: true,
+              phone: true,
+              currency: true,
+              businessType: true,
             },
-            take: 5,
-            orderBy: { createdAt: "desc" },
           },
           users: {
             select: {
@@ -76,7 +71,7 @@ export async function GET(req: NextRequest) {
           },
           subscriptions: {
             orderBy: { createdAt: "desc" },
-            take: 3,
+            take: 2,
           },
           _count: {
             select: {
@@ -89,31 +84,17 @@ export async function GET(req: NextRequest) {
         },
       });
     } catch (queryErr: any) {
-      console.warn("[Admin Tenants GET Retry Triggered]:", queryErr?.message);
-      // Lightweight fallback if connection pool was saturated
-      tenants = await prisma.tenant.findMany({
-        where: whereClause,
-        orderBy: { createdAt: "desc" },
-        include: {
-          stores: true,
-          users: {
-            select: {
-              id: true,
-              name: true,
-              phone: true,
-              role: true,
-              isActive: true,
-            },
-          },
-          _count: {
-            select: {
-              products: true,
-              sales: true,
-              customers: true,
-            },
-          },
+      console.error("[Admin Tenants GET Error]:", queryErr?.message);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Délai de connexion dépassé. Veuillez réessayer.",
+          details: queryErr?.message,
+          data: [],
+          total: 0,
         },
-      });
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
