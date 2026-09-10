@@ -41,51 +41,80 @@ export async function GET(req: NextRequest) {
       whereClause.isActive = false;
     }
 
-    const tenants = await prisma.tenant.findMany({
-      where: whereClause,
-      orderBy: { createdAt: "desc" },
-      include: {
-        stores: true,
-        products: {
-          select: {
-            id: true,
-            name: true,
-            category: true,
-            unitPrice: true,
-            costPrice: true,
-            stockQuantity: true,
-            minStockAlert: true,
-            imageUrl: true,
-            barcode: true,
+    let tenants;
+    try {
+      tenants = await prisma.tenant.findMany({
+        where: whereClause,
+        orderBy: { createdAt: "desc" },
+        include: {
+          stores: true,
+          products: {
+            select: {
+              id: true,
+              name: true,
+              category: true,
+              unitPrice: true,
+              costPrice: true,
+              stockQuantity: true,
+              minStockAlert: true,
+              imageUrl: true,
+              barcode: true,
+            },
+            take: 5,
+            orderBy: { createdAt: "desc" },
           },
-          take: 60,
-          orderBy: { createdAt: "desc" },
-        },
-        users: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-            email: true,
-            role: true,
-            isActive: true,
-            lastLoginAt: true,
+          users: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              email: true,
+              role: true,
+              isActive: true,
+              lastLoginAt: true,
+            },
+          },
+          subscriptions: {
+            orderBy: { createdAt: "desc" },
+            take: 3,
+          },
+          _count: {
+            select: {
+              products: true,
+              sales: true,
+              customers: true,
+              subscriptions: true,
+            },
           },
         },
-        subscriptions: {
-          orderBy: { createdAt: "desc" },
-          take: 10,
-        },
-        _count: {
-          select: {
-            products: true,
-            sales: true,
-            customers: true,
-            subscriptions: true,
+      });
+    } catch (queryErr: any) {
+      console.warn("[Admin Tenants GET Retry Triggered]:", queryErr?.message);
+      // Lightweight fallback if connection pool was saturated
+      tenants = await prisma.tenant.findMany({
+        where: whereClause,
+        orderBy: { createdAt: "desc" },
+        include: {
+          stores: true,
+          users: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              role: true,
+              isActive: true,
+            },
+          },
+          _count: {
+            select: {
+              products: true,
+              sales: true,
+              customers: true,
+            },
           },
         },
-      },
-    });
+      });
+    }
 
     return NextResponse.json({
       success: true,
