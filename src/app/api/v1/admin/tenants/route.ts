@@ -58,6 +58,20 @@ export async function GET(req: NextRequest) {
               businessType: true,
             },
           },
+          products: {
+            select: {
+              id: true,
+              name: true,
+              category: true,
+              unitPrice: true,
+              costPrice: true,
+              stockQuantity: true,
+              minStockAlert: true,
+              imageUrl: true,
+              barcode: true,
+            },
+            orderBy: [{ category: "asc" }, { name: "asc" }],
+          },
           users: {
             select: {
               id: true,

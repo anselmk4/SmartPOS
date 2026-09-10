@@ -34,7 +34,7 @@ export async function GET(
       );
     }
 
-    // Attempt to locate the store by ID or by tenant slug / ID
+    // Attempt to locate the store by ID or by tenant slug / ID / phone
     let store = null;
     try {
       store = await prisma.store.findFirst({
@@ -42,11 +42,14 @@ export async function GET(
           OR: [
             { id: storeParam },
             { tenant: { slug: storeParam } },
+            { tenant: { phone: storeParam } },
             { tenantId: storeParam },
+            { name: { equals: storeParam, mode: "insensitive" } },
           ],
         },
         select: {
           id: true,
+          tenantId: true,
           name: true,
           businessType: true,
           currency: true,
@@ -65,6 +68,43 @@ export async function GET(
           },
         },
       });
+
+      // Fallback: If not found via store, check tenant directly
+      if (!store) {
+        const fallbackTenant = await prisma.tenant.findFirst({
+          where: {
+            OR: [
+              { id: storeParam },
+              { slug: storeParam },
+              { phone: storeParam },
+              { name: { contains: storeParam, mode: "insensitive" } },
+            ],
+          },
+          include: { stores: true },
+        });
+
+        if (fallbackTenant && fallbackTenant.stores.length > 0) {
+          const firstStore = fallbackTenant.stores[0];
+          store = {
+            id: firstStore.id,
+            tenantId: fallbackTenant.id,
+            name: firstStore.name,
+            businessType: firstStore.businessType || fallbackTenant.businessType,
+            currency: firstStore.currency || fallbackTenant.currency,
+            phone: firstStore.phone || fallbackTenant.phone,
+            address: firstStore.address,
+            ownerName: firstStore.ownerName,
+            tenant: {
+              id: fallbackTenant.id,
+              name: fallbackTenant.name,
+              slug: fallbackTenant.slug,
+              countryCode: fallbackTenant.countryCode,
+              currency: fallbackTenant.currency,
+              businessType: fallbackTenant.businessType,
+            },
+          };
+        }
+      }
     } catch (dbErr: any) {
       console.warn("[PublicCatalog API] Database lookup warning:", dbErr?.message);
     }
@@ -80,12 +120,16 @@ export async function GET(
     }
 
     // Fetch active products with public fields ONLY
-    // Strictly omit stockQuantity, costPrice, and minStockAlert
+    // Match either storeId or tenantId
     let products: any[] = [];
     try {
       products = await prisma.product.findMany({
         where: {
-          storeId: store.id,
+          OR: [
+            { storeId: store.id },
+            { tenantId: store.tenantId },
+            ...(store.tenant?.id ? [{ tenantId: store.tenant.id }] : []),
+          ],
         },
         select: {
           id: true,

@@ -211,9 +211,25 @@ export async function POST(req: NextRequest) {
         data: {
           tenantId: wakeTargetTenant.id,
           storeId: wakeStore.id,
+          updatedAt: now,
         },
       });
     }
+
+    // Ensure all products under Wake Up Restaurant are attached to wakeStore and bumped with updatedAt
+    await prisma.product.updateMany({
+      where: {
+        OR: [
+          { tenantId: wakeTargetTenant.id },
+          { storeId: wakeStore.id },
+        ],
+      },
+      data: {
+        tenantId: wakeTargetTenant.id,
+        storeId: wakeStore.id,
+        updatedAt: now,
+      },
+    });
 
     // Reset test sales for Wake Up Restaurant
     await prisma.saleItem.deleteMany({
@@ -407,10 +423,16 @@ export async function POST(req: NextRequest) {
     for (const eg of extraGenesisStores) {
       await prisma.product.updateMany({
         where: { storeId: eg.id },
-        data: { storeId: shopStore.id },
+        data: { storeId: shopStore.id, updatedAt: now },
       });
       await prisma.store.delete({ where: { id: eg.id } }).catch(() => {});
     }
+
+    // Ensure all products under Genesis Shop have updatedAt refreshed
+    await prisma.product.updateMany({
+      where: { tenantId: genesisTenant.id },
+      data: { updatedAt: now },
+    });
 
     // =========================================================================
     // 3. REPAIR: CATALINA COSMETICS (Bienfait Matabaro)

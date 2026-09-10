@@ -233,10 +233,19 @@ export class SyncEngine {
         tenantId = localStorage.getItem("micro_erp_auth_tenant_id") || undefined;
       }
 
+      // If local products table is empty for this tenant, force full sync pull
+      let effectiveLastPulledAt = lastPulledAt;
+      if (tenantId) {
+        const localProductCount = await db.products.filter(p => !p.tenantId || p.tenantId === tenantId).count().catch(() => 0);
+        if (localProductCount === 0) {
+          effectiveLastPulledAt = undefined;
+        }
+      }
+
       const syncRequest: SyncPushRequest = {
         tenantId,
         storeId,
-        lastPulledAt,
+        lastPulledAt: effectiveLastPulledAt,
         mutations,
       };
 
