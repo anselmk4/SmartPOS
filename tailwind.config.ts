@@ -36,7 +36,8 @@ const config: Config = {
         }
       },
       fontFamily: {
-        sans: ["'Plus Jakarta Sans'", "var(--font-jakarta)", "Inter", "system-ui", "sans-serif"],
+        sans: ["'SF Pro Display'", "'SF Pro Text'", "'SF Pro'", "-apple-system", "BlinkMacSystemFont", "'Plus Jakarta Sans'", "Inter", "system-ui", "sans-serif"],
+        display: ["'SF Pro Display'", "'SF Pro'", "-apple-system", "BlinkMacSystemFont", "'Plus Jakarta Sans'", "sans-serif"],
       },
       boxShadow: {
         soft: "0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)",

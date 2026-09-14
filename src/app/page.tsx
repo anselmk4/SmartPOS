@@ -187,7 +187,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="flex-1 bg-white text-slate-900 overflow-x-hidden scroll-smooth">
+    <div className="flex-1 bg-white text-slate-900 overflow-x-hidden scroll-smooth landing-sf-pro font-sans antialiased tracking-tight">
       {/* ========================================================= */}
       {/* 1. HERO SECTION (ADAPTED CLAPOS DESIGN - BLUE THEME)      */}
       {/* ========================================================= */}

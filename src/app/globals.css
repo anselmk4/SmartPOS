@@ -1,10 +1,31 @@
+@import url('https://fonts.cdnfonts.com/css/sf-pro-display');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --font-jakarta: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-inter: var(--font-jakarta);
+  --font-sf-pro: "SF Pro Display", "SF Pro Text", "SF Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-jakarta: var(--font-sf-pro);
+  --font-inter: var(--font-sf-pro);
+}
+
+/* SF Pro Display & Text styling for Landing Page */
+.landing-sf-pro,
+.landing-sf-pro h1,
+.landing-sf-pro h2,
+.landing-sf-pro h3,
+.landing-sf-pro h4,
+.landing-sf-pro h5,
+.landing-sf-pro h6,
+.landing-sf-pro p,
+.landing-sf-pro span,
+.landing-sf-pro button,
+.landing-sf-pro a,
+.landing-sf-pro input,
+.landing-sf-pro li {
+  font-family: "SF Pro Display", "SF Pro Text", "SF Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  letter-spacing: -0.015em;
 }
 
 body {
