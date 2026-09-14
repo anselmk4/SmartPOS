@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { MessageCircle, Send, CheckCheck } from "lucide-react";
+import { MessageCircle, Send, CheckCheck, Sparkles, Smartphone } from "lucide-react";
 import { useLandingTheme } from "./landing-theme-context";
 
 interface CustomerDebt {
@@ -82,12 +82,12 @@ export default function WhatsappSimulator() {
         }`}
       >
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-500">
             <MessageCircle className="w-4 h-4" />
           </div>
           <div>
             <h4 className="text-xs font-bold">Relance WhatsApp 1-Clic</h4>
-            <p className="text-[10px] text-slate-500">Testez la génération de message</p>
+            <p className="text-[10px] text-slate-400">Génération de message pré-rempli</p>
           </div>
         </div>
         <span
@@ -104,7 +104,7 @@ export default function WhatsappSimulator() {
       {/* Customer Selector */}
       <div className="space-y-3 text-xs">
         <div>
-          <label className="text-[11px] font-semibold text-slate-500 block mb-1">
+          <label className="text-[11px] font-semibold text-slate-400 block mb-1">
             Sélectionner un Client Endetté :
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
@@ -171,11 +171,11 @@ export default function WhatsappSimulator() {
             </button>
           </div>
 
-          <div className="flex items-center gap-1 text-[10px] text-slate-500">
+          <div className="flex items-center gap-1 text-[10px] text-slate-400">
             <span>Devise :</span>
             <button
               onClick={() => setCurrency(currency === "CDF" ? "USD" : "CDF")}
-              className="font-bold text-emerald-600 dark:text-emerald-400 underline hover:opacity-80"
+              className="font-bold text-emerald-500 underline hover:opacity-80"
             >
               {currency} (Basculer)
             </button>
@@ -185,11 +185,11 @@ export default function WhatsappSimulator() {
         {/* Realistic WhatsApp Chat Bubble */}
         <div className="mt-2 p-3.5 rounded-2xl bg-[#0b141a] border border-[#222e35] shadow-inner relative text-white">
           <div className="flex items-center justify-between text-[10px] text-[#8696a0] pb-2 mb-2 border-b border-[#222e35]">
-            <span className="font-semibold text-emerald-400 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span className="font-semibold text-emerald-400 flex items-center gap-1 truncate">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               {selectedCustomer.name} ({selectedCustomer.phone})
             </span>
-            <span>Aujourd'hui</span>
+            <span className="shrink-0">Aujourd'hui</span>
           </div>
 
           <div className="bg-[#005c4b] text-[#e9edef] p-3 rounded-2xl rounded-tr-sm text-[11px] leading-relaxed shadow-sm relative">
@@ -203,14 +203,14 @@ export default function WhatsappSimulator() {
           {/* Action Trigger */}
           <div className="mt-3 flex items-center justify-between gap-2">
             <span className="text-[10px] text-slate-400 italic">
-              * Ouvre directement WhatsApp
+              * Ouvre l'application WhatsApp
             </span>
             <button
               onClick={handleSimulatedSend}
-              className="py-1.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold text-[11px] flex items-center gap-1.5 shadow-md shadow-emerald-950 transition-all"
+              className="py-1.5 px-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold text-[11px] flex items-center gap-1.5 shadow-md shadow-emerald-950 transition-all"
             >
               <Send className="w-3 h-3" />
-              <span>{isSent ? "Message Envoyé !" : "Relancer le Client"}</span>
+              <span>{isSent ? "Message Transmis !" : "Relancer le Client"}</span>
             </button>
           </div>
         </div>

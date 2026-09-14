@@ -15,49 +15,49 @@ const FAQS: FAQItem[] = [
     category: "offline",
     question: "Est-ce que l'application fonctionne vraiment sans connexion Internet ?",
     answer:
-      "Oui, à 100% ! Kuettu Global POS est conçu selon le paradigme Offline-First avec base de données embarquée. Vous pouvez encaisser des ventes, enregistrer des nouveaux clients, ajouter des produits et tenir votre carnet de dettes toute la journée sans aucun réseau Internet ni électricité continue. Aucune coupure réseau ne bloque votre caisse.",
+      "Oui, à 100% ! Kuettu Global POS est conçu selon le paradigme Offline-First avec base de données DexieDB embarquée. Vous pouvez encaisser, imprimer vos tickets, enregistrer de nouveaux clients et tenir votre carnet de dettes toute la journée sans aucun réseau.",
   },
   {
     category: "offline",
     question: "Que se passe-t-il lorsque la connexion Internet revient ?",
     answer:
-      "Dès que votre téléphone, tablette ou ordinateur capte la 3G/4G ou le Wi-Fi, Kuettu Global POS synchronise automatiquement et de manière transparente toutes les transactions enregistrées vers nos serveurs Cloud sécurisés. Vos données sont sauvegardées et consultables à distance par le propriétaire sans aucune intervention manuelle.",
+      "Dès que votre appareil capte la 3G/4G ou le Wi-Fi, toutes les transactions locales sont synchronisées automatiquement vers nos serveurs Cloud sécurisés. Vos rapports sont sauvegardés sans aucune manipulation manuelle.",
   },
   {
     category: "debts",
     question: "Comment fonctionne la relance WhatsApp des clients endettés ?",
     answer:
-      "En un seul clic sur le profil d'un client dans le Carnet de Dettes, Kuettu génère un message WhatsApp pré-rempli avec le nom du client, le montant exact dû en Francs Congolais (CDF) ou Dollars ($), ainsi que la date de la dette. Vous pouvez choisir entre 3 modèles : Courtois, Rappel standard ou Urgent.",
+      "En un clic sur le profil d'un client dans le Carnet de Dettes, Kuettu génère un message WhatsApp pré-rempli avec le montant exact dû en Francs Congolais (CDF) ou Dollars ($). Vous choisissez le ton (Courtois, Standard ou Urgent) et le message s'ouvre directement.",
   },
   {
     category: "business",
-    question: "Mes données sont-elles protégées en cas de vol ou de casse de mon appareil ?",
+    question: "Mes données sont-elles protégées en cas de vol ou de casse d'appareil ?",
     answer:
-      "Oui. Dès qu'une synchronisation Cloud a eu lieu, toutes vos données (produits, ventes, dettes, historique) sont chiffrées et sauvegardées sur nos serveurs. En cas de perte d'appareil, il vous suffit de vous reconnecter sur un autre téléphone ou ordinateur avec votre compte pour tout récupérer instantanément.",
+      "Oui. Dès qu'une synchronisation Cloud a eu lieu, vos données sont chiffrées et sauvegardées. En cas de perte de téléphone ou tablette, reconnectez-vous sur un nouvel appareil pour tout retrouver instantanément.",
   },
   {
     category: "business",
-    question: "Puis-je créer des accès pour mes caissiers sans qu'ils voient mes marges d'achat ?",
+    question: "Puis-je créer des accès caissiers sans qu'ils voient mes marges d'achat ?",
     answer:
-      "Absolument. Vous pouvez créer autant de profils caissiers que nécessaire avec des codes PIN simplifiés à 4 chiffres. Les caissiers ont uniquement accès à l'écran de vente et d'encaissement, sans jamais pouvoir consulter vos prix d'achat, vos marges bénéficiaires ni vos rapports financiers de gérance.",
+      "Absolument. Vous pouvez créer des profils caissiers avec codes PIN à 4 chiffres. Ils ont uniquement accès à l'écran de vente sans jamais voir vos coûts d'achat, vos marges bénéficiaires ni vos rapports financiers de gérance.",
   },
   {
     category: "business",
     question: "Comment fonctionne le mode Multi-Magasins (Plan Business) ?",
     answer:
-      "Le forfait Business vous permet de créer et piloter jusqu'à 10 boutiques ou dépôts indépendants sous le même compte. Chaque magasin dispose de son stock isolé, de ses propres ventes et de son propre Gérant assigné avec son numéro de téléphone et code PIN. Vous pouvez également effectuer des transferts de stock entre vos dépôts.",
+      "Le forfait Business permet de superviser jusqu'à 10 boutiques ou dépôts distincts avec stocks isolés, gérants dédiés (PIN) et transferts de stock traçables sous un tableau de bord consolidé.",
   },
   {
     category: "hardware",
     question: "Quels moyens de paiement Mobile Money sont supportés ?",
     answer:
-      "Kuettu Global POS prend en charge tous les opérateurs majeurs de Mobile Money en RDC et Afrique : M-Pesa (Vodacom), Airtel Money, Orange Money et Afrimoney. Les encaissements en Francs Congolais (CDF) et en Dollars ($) sont comptabilisés séparément des espèces pour une réconciliation stricte du tiroir-caisse.",
+      "Kuettu supporte Vodacom M-Pesa, Orange Money, Airtel Money et Afrimoney. Les encaissements en CDF et USD sont isolés pour une réconciliation stricte du tiroir-caisse.",
   },
   {
     category: "hardware",
     question: "Quels matériels (imprimantes, lecteurs code-barre) sont compatibles ?",
     answer:
-      "L'application fonctionne sur n'importe quel smartphone Android / iPhone, tablette, PC ou Mac. Elle est compatible avec les douchettes et lecteurs de code-barres USB/Bluetooth standard, ainsi que les imprimantes thermiques de reçus 58mm et 80mm ESC/POS.",
+      "L'application fonctionne sur tout smartphone Android / iOS, tablette, PC ou Mac. Elle est compatible avec les douchettes code-barres USB/Bluetooth et les imprimantes thermiques 58mm/80mm standard ESC/POS.",
   },
 ];
 
@@ -82,7 +82,7 @@ export default function FaqAccordion() {
   return (
     <section
       id="faq"
-      className={`py-20 sm:py-28 px-4 sm:px-6 lg:px-8 relative border-b transition-colors duration-300 ${
+      className={`py-20 sm:py-24 px-4 sm:px-6 lg:px-8 relative border-b transition-colors duration-300 ${
         isDark ? "bg-slate-950 text-white border-slate-800/80" : "bg-white text-slate-900 border-slate-200"
       }`}
     >
@@ -90,10 +90,10 @@ export default function FaqAccordion() {
         {/* Section Header */}
         <div className="text-center space-y-4 mb-12">
           <div
-            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold shadow-md ${
+            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold shadow-sm ${
               isDark
                 ? "bg-slate-900 border border-emerald-500/30 text-emerald-400"
-                : "bg-emerald-50 border border-emerald-300 text-emerald-900"
+                : "bg-emerald-50 border border-emerald-300 text-emerald-900 shadow-slate-100"
             }`}
           >
             <HelpCircle className="w-3.5 h-3.5" />
@@ -102,7 +102,7 @@ export default function FaqAccordion() {
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight">
             Des réponses claires à vos{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-teal-500 to-amber-500 dark:from-emerald-400 dark:via-teal-300 dark:to-amber-300">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400">
               questions.
             </span>
           </h2>

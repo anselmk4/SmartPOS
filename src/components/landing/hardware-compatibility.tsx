@@ -11,6 +11,7 @@ import {
   Bluetooth,
   Usb,
   Wifi,
+  CheckCircle2,
 } from "lucide-react";
 import { useLandingTheme } from "./landing-theme-context";
 
@@ -24,7 +25,7 @@ export default function HardwareCompatibility() {
       icon: Smartphone,
       accentDark: "text-emerald-400 border-emerald-500/30 bg-emerald-950/40",
       accentLight: "text-emerald-800 border-emerald-300 bg-emerald-100",
-      tags: ["Android 8.0+", "iOS Safari PWA", "0 Go d'espace lourd"],
+      tags: ["Android 8.0+", "iOS Safari PWA", "Application légère"],
     },
     {
       title: "Tablettes Tactiles",
@@ -32,7 +33,7 @@ export default function HardwareCompatibility() {
       icon: Tablet,
       accentDark: "text-teal-400 border-teal-500/30 bg-teal-950/40",
       accentLight: "text-teal-800 border-teal-300 bg-teal-100",
-      tags: ["iPad", "Samsung Tab", "Tablettes POS dédiées"],
+      tags: ["iPad", "Samsung Galaxy Tab", "Tablettes POS dédiées"],
     },
     {
       title: "Ordinateurs PC & Mac",
@@ -48,7 +49,7 @@ export default function HardwareCompatibility() {
       icon: Printer,
       accentDark: "text-amber-400 border-amber-500/30 bg-amber-950/40",
       accentLight: "text-amber-800 border-amber-300 bg-amber-100",
-      tags: ["ESC/POS Standard", "Bluetooth & USB", "Rouleaux 58mm & 80mm"],
+      tags: ["ESC/POS Universel", "Bluetooth & USB Direct", "58mm & 80mm"],
     },
     {
       title: "Scanners & Lecteurs Code-Barres",
@@ -62,7 +63,8 @@ export default function HardwareCompatibility() {
 
   return (
     <section
-      className={`py-20 px-4 sm:px-6 lg:px-8 relative border-b transition-colors duration-300 ${
+      id="hardware"
+      className={`py-20 sm:py-24 px-4 sm:px-6 lg:px-8 relative border-b transition-colors duration-300 ${
         isDark ? "bg-slate-950 text-white border-slate-800/80" : "bg-slate-50/70 text-slate-900 border-slate-200"
       }`}
     >
@@ -70,10 +72,10 @@ export default function HardwareCompatibility() {
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-14">
           <div
-            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold shadow-md ${
+            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold shadow-sm ${
               isDark
                 ? "bg-slate-900 border border-teal-500/30 text-teal-400"
-                : "bg-teal-50 border border-teal-300 text-teal-900"
+                : "bg-teal-50 border border-teal-300 text-teal-900 shadow-slate-100"
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -82,7 +84,7 @@ export default function HardwareCompatibility() {
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight">
             Compatible avec votre matériel existant.{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 via-emerald-500 to-amber-500 dark:from-teal-400 dark:via-emerald-300 dark:to-amber-300">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-emerald-400 to-amber-400">
               Aucun achat forcé.
             </span>
           </h2>
@@ -101,7 +103,7 @@ export default function HardwareCompatibility() {
                 key={idx}
                 className={`p-6 rounded-3xl border flex flex-col justify-between transition-all duration-300 ${
                   isDark
-                    ? "bg-gradient-to-b from-slate-900/90 to-slate-950/90 border-slate-800 hover:border-slate-700 hover:shadow-xl"
+                    ? "bg-slate-900/60 border-slate-800/90 hover:border-slate-700 hover:shadow-xl hover:shadow-emerald-950/10"
                     : "bg-white border-slate-200 hover:border-slate-300 hover:shadow-lg shadow-slate-200"
                 }`}
               >
@@ -121,7 +123,7 @@ export default function HardwareCompatibility() {
                 </div>
 
                 <div
-                  className={`pt-6 mt-4 border-t flex flex-wrap gap-1.5 ${
+                  className={`pt-5 mt-4 border-t flex flex-wrap gap-1.5 ${
                     isDark ? "border-slate-800/80" : "border-slate-200"
                   }`}
                 >
@@ -151,7 +153,7 @@ export default function HardwareCompatibility() {
             }`}
           >
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-500">
                 <Sparkles className="w-4 h-4" />
                 <span>Protocoles Pris en Charge</span>
               </div>

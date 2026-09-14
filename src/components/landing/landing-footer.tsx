@@ -5,24 +5,14 @@ import Link from "next/link";
 import {
   Store,
   ShieldCheck,
-  Smartphone,
-  MessageCircle,
   CreditCard,
-  WifiOff,
-  Cloud,
-  Printer,
-  Barcode,
   HelpCircle,
   Lock,
   ArrowRight,
-  Sparkles,
-  ExternalLink,
   MapPin,
-  Phone,
-  Mail,
-  Heart,
   Globe,
   Layers,
+  MessageCircle,
 } from "lucide-react";
 
 export default function LandingFooter() {
@@ -244,7 +234,7 @@ export default function LandingFooter() {
                   href="/terms"
                   className="hover:text-purple-400 font-semibold text-slate-300 transition-colors flex items-center gap-1"
                 >
-                  <span>Conditions d&apos;Utilisation (CGU)</span>
+                  <span>Conditions d'Utilisation (CGU)</span>
                 </Link>
               </li>
               <li>
