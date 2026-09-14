@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
 import LoginPage from "./auth/login/page";
+import PosInteractiveMockup from "@/components/landing/pos-interactive-mockup";
 import LandingFooter from "@/components/landing/landing-footer";
 import {
   Store,
@@ -186,116 +187,85 @@ export default function LandingPage() {
   return (
     <div className="flex-1 bg-white text-slate-900 overflow-x-hidden scroll-smooth">
       {/* ========================================================= */}
-      {/* 1. HERO SECTION */}
+      {/* 1. HERO SECTION (ADAPTED CLAPOS DESIGN)                   */}
       {/* ========================================================= */}
       <section
         id="hero"
-        className="relative overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-blue-950 text-white pt-12 pb-20 px-4 sm:px-6 lg:px-8"
+        className="relative overflow-hidden bg-white text-slate-900 pt-16 pb-24 px-4 sm:px-6 lg:px-8 border-b border-slate-100"
       >
-        {/* Ambient background glow */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-blue-500/20 blur-[130px] rounded-full pointer-events-none" />
+        {/* Ambient background glow matching ClaPos screenshot */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[850px] h-[450px] bg-emerald-500/10 blur-[150px] rounded-full pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            {/* Left Col: Headline & CTAs */}
-            <div className="lg:col-span-7 text-left space-y-6">
-              {/* Top Pill Badge */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/15 border border-blue-400/30 text-blue-300 text-xs font-bold backdrop-blur shadow-sm">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>100% Hors-Ligne • Caisse Tactile & Carnet de Dettes WhatsApp</span>
-              </div>
+        <div className="max-w-7xl mx-auto relative z-10 text-center">
+          {/* Top Pill Badge matching ClaPos design */}
+          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-50 border border-slate-200/80 text-xs font-semibold shadow-xs mb-6">
+            <span className="px-2.5 py-0.5 rounded-full bg-[#10b981] text-white text-[10px] font-bold">100% Hors-Ligne</span>
+            <span className="text-slate-600">Caisse Tactile & Carnet de Dettes WhatsApp</span>
+          </div>
 
-              {/* Main Hero Headline */}
-              <h1 className="text-3xl sm:text-5xl lg:text-5xl font-black tracking-tight leading-tight">
-                Pilotez votre Caisse, vos Stocks et vos{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-300">
-                  Créances Clients
-                </span>{" "}
-                même sans Internet.
-              </h1>
+          {/* Main Hero Headline matching ClaPos typography & layout */}
+          <h1 className="text-4xl sm:text-6xl lg:text-[62px] font-extrabold tracking-tight text-slate-900 leading-[1.14] max-w-4xl mx-auto">
+            Pilotez votre Caisse, vos Stocks et vos{" "}
+            <span className="text-[#10b981]">Créances Clients</span>{" "}
+            même sans Internet.
+          </h1>
 
-              {/* Subtitle */}
-              <p className="text-slate-300 text-sm sm:text-base max-w-2xl leading-relaxed">
-                <b>Kuettu Global POS</b> est la solution tout-en-un conçue pour les commerces d'Afrique :
-                caisse tactile <b>0ms sans latence</b>, carnet de dettes avec <b>relance WhatsApp en 1 clic</b>,
-                supervision <b>multi-magasins</b> et encaissement direct <b>Mobile Money (Vodacom M-Pesa, Airtel Money, Orange Money, Afrimoney)</b>.
-              </p>
+          {/* Subtitle with exact original text */}
+          <p className="text-slate-500 text-sm sm:text-base lg:text-lg max-w-3xl mx-auto mt-6 leading-relaxed">
+            <b>Kuettu Global POS</b> est la solution tout-en-un conçue pour les commerces d'Afrique :
+            caisse tactile <b>0ms sans latence</b>, carnet de dettes avec <b>relance WhatsApp en 1 clic</b>,
+            supervision <b>multi-magasins</b> et encaissement direct <b>Mobile Money (Vodacom M-Pesa, Airtel Money, Orange Money, Afrimoney)</b>.
+          </p>
 
-              {/* CTAs */}
-              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-                <Link
-                  href="/auth/register"
-                  className="w-full sm:w-auto py-3.5 px-7 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm shadow-xl shadow-blue-600/30 flex items-center justify-center gap-2 transition-all touch-press"
-                >
-                  <span>Créer mon Commerce Gratuitement</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
+          {/* Centered CTAs matching ClaPos style */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-8">
+            <Link
+              href="/auth/register"
+              className="w-full sm:w-auto py-3.5 px-8 rounded-2xl bg-[#10b981] hover:bg-emerald-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all active:scale-95"
+            >
+              <span>Créer mon Commerce Gratuitement</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
 
-                <Link
-                  href="/pos"
-                  className="w-full sm:w-auto py-3.5 px-6 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/20 flex items-center justify-center gap-2 backdrop-blur transition-all touch-press"
-                >
-                  <PlayCircle className="w-4 h-4 text-sky-400" />
-                  <span>Tester la Caisse Démo</span>
-                </Link>
-              </div>
+            <Link
+              href="/pos"
+              className="w-full sm:w-auto py-3.5 px-7 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm border border-slate-200 shadow-xs flex items-center justify-center gap-2 transition-all active:scale-95"
+            >
+              <PlayCircle className="w-4 h-4 text-emerald-600" />
+              <span>Tester la Caisse Démo</span>
+            </Link>
+          </div>
 
-              {/* Key Metrics Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-white/10">
-                <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
-                  <div className="text-blue-400 font-black text-xl">0ms</div>
-                  <div className="text-xs text-slate-300 font-semibold">Mode Hors-Ligne</div>
-                  <div className="text-[10px] text-slate-400">Zéro coupure</div>
-                </div>
+          {/* Centered Interactive POS Mockup matching ClaPos screenshot */}
+          <div className="mt-14 relative z-10">
+            <div className="absolute inset-0 bg-emerald-500/15 blur-3xl -z-10 transform scale-95 rounded-3xl" />
+            <PosInteractiveMockup />
+          </div>
 
-                <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
-                  <div className="text-amber-400 font-black text-xl">1 Clic</div>
-                  <div className="text-xs text-slate-300 font-semibold">WhatsApp</div>
-                  <div className="text-[10px] text-slate-400">Relance dettes</div>
-                </div>
-
-                <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
-                  <div className="text-sky-400 font-black text-xl">M-Pesa</div>
-                  <div className="text-xs text-slate-300 font-semibold">Mobile Money</div>
-                  <div className="text-[10px] text-slate-400">CDF & USD</div>
-                </div>
-
-                <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
-                  <div className="text-indigo-400 font-black text-xl">Multi-Shop</div>
-                  <div className="text-xs text-slate-300 font-semibold">Supervision</div>
-                  <div className="text-[10px] text-slate-400">Gérant à distance</div>
-                </div>
-              </div>
+          {/* 4 Key Metrics Bar */}
+          <div className="max-w-4xl mx-auto mt-14 pt-8 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+              <div className="text-emerald-600 font-black text-xl font-mono">0ms</div>
+              <div className="text-xs text-slate-800 font-semibold mt-0.5">Mode Hors-Ligne</div>
+              <div className="text-[10px] text-slate-400">Zéro coupure</div>
             </div>
 
-            {/* Right Col: Realistic African Store Image Frame */}
-            <div className="lg:col-span-5 relative">
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl border-2 border-white/20 group">
-                <img
-                  src="/images/og-image.jpg"
-                  alt="Commerçante africaine utilisant le logiciel de caisse Kuettu Global POS avec son client"
-                  className="w-full h-[380px] sm:h-[450px] object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+              <div className="text-emerald-600 font-black text-xl font-mono">1 Clic</div>
+              <div className="text-xs text-slate-800 font-semibold mt-0.5">WhatsApp</div>
+              <div className="text-[10px] text-slate-400">Relance dettes</div>
+            </div>
 
-                {/* Floating Live Badge Top Left */}
-                <div className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-md text-white p-2.5 rounded-2xl border border-white/15 flex items-center gap-2 shadow-lg animate-fadeIn">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                  <div className="text-left">
-                    <div className="text-[11px] font-bold text-slate-200">Mode Hors-Ligne Actif</div>
-                    <div className="text-[9px] text-emerald-400 font-semibold">Ventes & Encaissements sans coupure</div>
-                  </div>
-                </div>
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+              <div className="text-emerald-600 font-black text-xl font-mono">M-Pesa</div>
+              <div className="text-xs text-slate-800 font-semibold mt-0.5">Mobile Money</div>
+              <div className="text-[10px] text-slate-400">CDF & USD</div>
+            </div>
 
-                {/* Floating Stat Badge Bottom Right */}
-                <div className="absolute bottom-4 right-4 bg-blue-900/90 backdrop-blur-md text-white p-3 rounded-2xl border border-blue-400/30 text-left shadow-xl">
-                  <div className="flex items-center gap-1.5 text-xs font-black text-blue-300">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    <span>+38% Recouvrement</span>
-                  </div>
-                  <div className="text-[10px] text-slate-300 mt-0.5">Grâce aux rappels WhatsApp automatiques</div>
-                </div>
-              </div>
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+              <div className="text-emerald-600 font-black text-xl font-mono">Multi-Shop</div>
+              <div className="text-xs text-slate-800 font-semibold mt-0.5">Supervision</div>
+              <div className="text-[10px] text-slate-400">Gérant à distance</div>
             </div>
           </div>
         </div>
