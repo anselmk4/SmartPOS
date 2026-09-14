@@ -110,7 +110,7 @@ export default function PosInteractiveMockup() {
 
   return (
     <div className="w-full max-w-5xl mx-auto rounded-3xl border border-slate-200/90 bg-white text-slate-900 shadow-2xl text-left font-sans overflow-hidden transition-all">
-      {/* Top Tablet Navigation Bar matching screenshot */}
+      {/* Top Tablet Navigation Bar */}
       <div className="px-4 sm:px-6 py-3 border-b border-slate-100 flex items-center justify-between gap-4 bg-white">
         <div className="flex items-center gap-3">
           {/* Hamburger icon */}
@@ -139,14 +139,14 @@ export default function PosInteractiveMockup() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search Product..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-full text-xs outline-none bg-slate-50 border border-slate-200 text-slate-800 focus:bg-white focus:border-emerald-500 transition-all"
+            className="w-full pl-9 pr-3 py-1.5 rounded-full text-xs outline-none bg-slate-50 border border-slate-200 text-slate-800 focus:bg-white focus:border-blue-500 transition-all"
           />
         </div>
 
         {/* Right Status & Currency */}
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-semibold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-semibold">
+            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
             <span>0.0ms Hors-Ligne</span>
           </div>
 
@@ -154,7 +154,7 @@ export default function PosInteractiveMockup() {
             <button
               onClick={() => setCurrency("USD")}
               className={`px-2 py-0.5 rounded transition-all ${
-                currency === "USD" ? "bg-white text-emerald-600 shadow-xs" : "text-slate-500"
+                currency === "USD" ? "bg-white text-blue-600 shadow-xs" : "text-slate-500"
               }`}
             >
               $ USD
@@ -162,7 +162,7 @@ export default function PosInteractiveMockup() {
             <button
               onClick={() => setCurrency("CDF")}
               className={`px-2 py-0.5 rounded transition-all ${
-                currency === "CDF" ? "bg-white text-emerald-600 shadow-xs" : "text-slate-500"
+                currency === "CDF" ? "bg-white text-blue-600 shadow-xs" : "text-slate-500"
               }`}
             >
               FC
@@ -171,18 +171,18 @@ export default function PosInteractiveMockup() {
         </div>
       </div>
 
-      {/* Main Grid matching screenshot: Categories Left + Products Center + Order Panel Right */}
+      {/* Main Grid: Categories Left + Products Center + Order Panel Right */}
       <div className="grid grid-cols-12 min-h-[460px]">
         {/* Left Side Category Bar */}
         <div className="col-span-2 sm:col-span-1 py-4 flex flex-col items-center gap-4 border-r border-slate-100 bg-slate-50/60">
           <button
             onClick={() => setActiveCategory("all")}
             className={`w-full flex flex-col items-center py-2 px-1 relative transition-all ${
-              activeCategory === "all" ? "text-emerald-600 font-bold" : "text-slate-500 hover:text-slate-800"
+              activeCategory === "all" ? "text-blue-600 font-bold" : "text-slate-500 hover:text-slate-800"
             }`}
           >
             {activeCategory === "all" && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#10b981] rounded-r" />
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r" />
             )}
             <Utensils className="w-5 h-5 mb-1" />
             <span className="text-[10px] text-center leading-tight">All Menu</span>
@@ -191,11 +191,11 @@ export default function PosInteractiveMockup() {
           <button
             onClick={() => setActiveCategory("burger")}
             className={`w-full flex flex-col items-center py-2 px-1 relative transition-all ${
-              activeCategory === "burger" ? "text-emerald-600 font-bold" : "text-slate-500 hover:text-slate-800"
+              activeCategory === "burger" ? "text-blue-600 font-bold" : "text-slate-500 hover:text-slate-800"
             }`}
           >
             {activeCategory === "burger" && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#10b981] rounded-r" />
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r" />
             )}
             <span className="text-xl mb-0.5">🍔</span>
             <span className="text-[10px] text-center leading-tight">Burger</span>
@@ -204,11 +204,11 @@ export default function PosInteractiveMockup() {
           <button
             onClick={() => setActiveCategory("chicken")}
             className={`w-full flex flex-col items-center py-2 px-1 relative transition-all ${
-              activeCategory === "chicken" ? "text-emerald-600 font-bold" : "text-slate-500 hover:text-slate-800"
+              activeCategory === "chicken" ? "text-blue-600 font-bold" : "text-slate-500 hover:text-slate-800"
             }`}
           >
             {activeCategory === "chicken" && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#10b981] rounded-r" />
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r" />
             )}
             <span className="text-xl mb-0.5">🍗</span>
             <span className="text-[10px] text-center leading-tight">Fried Chicken</span>
@@ -217,11 +217,11 @@ export default function PosInteractiveMockup() {
           <button
             onClick={() => setActiveCategory("drink")}
             className={`w-full flex flex-col items-center py-2 px-1 relative transition-all ${
-              activeCategory === "drink" ? "text-emerald-600 font-bold" : "text-slate-500 hover:text-slate-800"
+              activeCategory === "drink" ? "text-blue-600 font-bold" : "text-slate-500 hover:text-slate-800"
             }`}
           >
             {activeCategory === "drink" && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#10b981] rounded-r" />
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r" />
             )}
             <span className="text-xl mb-0.5">🥤</span>
             <span className="text-[10px] text-center leading-tight">Drink</span>
@@ -230,11 +230,11 @@ export default function PosInteractiveMockup() {
           <button
             onClick={() => setActiveCategory("coffee")}
             className={`w-full flex flex-col items-center py-2 px-1 relative transition-all ${
-              activeCategory === "coffee" ? "text-emerald-600 font-bold" : "text-slate-500 hover:text-slate-800"
+              activeCategory === "coffee" ? "text-blue-600 font-bold" : "text-slate-500 hover:text-slate-800"
             }`}
           >
             {activeCategory === "coffee" && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#10b981] rounded-r" />
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r" />
             )}
             <Coffee className="w-5 h-5 mb-1" />
             <span className="text-[10px] text-center leading-tight">Coffee</span>
@@ -250,13 +250,13 @@ export default function PosInteractiveMockup() {
                 <div
                   key={prod.id}
                   onClick={() => addToCart(prod)}
-                  className="p-2.5 rounded-2xl border border-slate-100 bg-white hover:border-emerald-400 hover:shadow-md hover:shadow-emerald-500/10 text-left cursor-pointer transition-all duration-200 relative group flex flex-col justify-between"
+                  className="p-2.5 rounded-2xl border border-slate-100 bg-white hover:border-blue-400 hover:shadow-md hover:shadow-blue-500/10 text-left cursor-pointer transition-all duration-200 relative group flex flex-col justify-between"
                 >
                   {/* Item Image area */}
                   <div className="w-full h-20 rounded-xl bg-slate-50 flex items-center justify-center text-4xl mb-2 relative overflow-hidden group-hover:scale-105 transition-transform">
                     <span>{prod.emoji}</span>
                     {cartEntry && (
-                      <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#10b981] text-white text-[10px] font-bold flex items-center justify-center shadow-xs">
+                      <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shadow-xs">
                         {cartEntry.quantity}
                       </span>
                     )}
@@ -272,7 +272,7 @@ export default function PosInteractiveMockup() {
                           : `${prod.priceCDF.toLocaleString()} FC`}
                       </span>
                       {cartEntry && (
-                        <span className="text-[10px] text-emerald-600 font-bold">
+                        <span className="text-[10px] text-blue-600 font-bold">
                           x {cartEntry.quantity}
                         </span>
                       )}
@@ -394,7 +394,7 @@ export default function PosInteractiveMockup() {
             )}
           </div>
 
-          {/* Subtotal / Tax / Total & Big Green Button */}
+          {/* Subtotal / Tax / Total & Big Blue Button */}
           <div className="pt-3 border-t border-slate-100 space-y-1.5 mt-2">
             <div className="flex justify-between text-[11px] text-slate-500">
               <span>Subtotal</span>
@@ -420,7 +420,7 @@ export default function PosInteractiveMockup() {
             </div>
 
             {processedAlert ? (
-              <div className="w-full py-2.5 px-3 rounded-xl bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-2 animate-fadeIn">
+              <div className="w-full py-2.5 px-3 rounded-xl bg-blue-600 text-white text-xs font-bold flex items-center justify-center gap-2 animate-fadeIn">
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Vente Encaissée (0.0ms Hors-Ligne)</span>
               </div>
@@ -428,7 +428,7 @@ export default function PosInteractiveMockup() {
               <button
                 onClick={handleProcessTransaction}
                 disabled={cart.length === 0}
-                className="w-full py-3 px-4 rounded-xl bg-[#10b981] hover:bg-emerald-600 disabled:opacity-50 text-white font-bold text-xs tracking-wide transition-all shadow-md shadow-emerald-500/20 active:scale-98"
+                className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs tracking-wide transition-all shadow-md shadow-blue-500/20 active:scale-98"
               >
                 Process Transaction
               </button>

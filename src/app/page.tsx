@@ -187,26 +187,26 @@ export default function LandingPage() {
   return (
     <div className="flex-1 bg-white text-slate-900 overflow-x-hidden scroll-smooth">
       {/* ========================================================= */}
-      {/* 1. HERO SECTION (ADAPTED CLAPOS DESIGN)                   */}
+      {/* 1. HERO SECTION (ADAPTED CLAPOS DESIGN - BLUE THEME)      */}
       {/* ========================================================= */}
       <section
         id="hero"
         className="relative overflow-hidden bg-white text-slate-900 pt-16 pb-24 px-4 sm:px-6 lg:px-8 border-b border-slate-100"
       >
-        {/* Ambient background glow matching ClaPos screenshot */}
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[850px] h-[450px] bg-emerald-500/10 blur-[150px] rounded-full pointer-events-none" />
+        {/* Ambient background glow in blue */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[850px] h-[450px] bg-blue-500/10 blur-[150px] rounded-full pointer-events-none" />
 
         <div className="max-w-7xl mx-auto relative z-10 text-center">
-          {/* Top Pill Badge matching ClaPos design */}
+          {/* Top Pill Badge in blue */}
           <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-50 border border-slate-200/80 text-xs font-semibold shadow-xs mb-6">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#10b981] text-white text-[10px] font-bold">100% Hors-Ligne</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-blue-600 text-white text-[10px] font-bold">100% Hors-Ligne</span>
             <span className="text-slate-600">Caisse Tactile & Carnet de Dettes WhatsApp</span>
           </div>
 
-          {/* Main Hero Headline matching ClaPos typography & layout */}
+          {/* Main Hero Headline with blue accent */}
           <h1 className="text-4xl sm:text-6xl lg:text-[62px] font-extrabold tracking-tight text-slate-900 leading-[1.14] max-w-4xl mx-auto">
             Pilotez votre Caisse, vos Stocks et vos{" "}
-            <span className="text-[#10b981]">Créances Clients</span>{" "}
+            <span className="text-blue-600">Créances Clients</span>{" "}
             même sans Internet.
           </h1>
 
@@ -217,11 +217,11 @@ export default function LandingPage() {
             supervision <b>multi-magasins</b> et encaissement direct <b>Mobile Money (Vodacom M-Pesa, Airtel Money, Orange Money, Afrimoney)</b>.
           </p>
 
-          {/* Centered CTAs matching ClaPos style */}
+          {/* Centered CTAs with blue primary button */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-8">
             <Link
               href="/auth/register"
-              className="w-full sm:w-auto py-3.5 px-8 rounded-2xl bg-[#10b981] hover:bg-emerald-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all active:scale-95"
+              className="w-full sm:w-auto py-3.5 px-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 transition-all active:scale-95"
             >
               <span>Créer mon Commerce Gratuitement</span>
               <ArrowRight className="w-4 h-4" />
@@ -231,39 +231,39 @@ export default function LandingPage() {
               href="/pos"
               className="w-full sm:w-auto py-3.5 px-7 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm border border-slate-200 shadow-xs flex items-center justify-center gap-2 transition-all active:scale-95"
             >
-              <PlayCircle className="w-4 h-4 text-emerald-600" />
+              <PlayCircle className="w-4 h-4 text-blue-600" />
               <span>Tester la Caisse Démo</span>
             </Link>
           </div>
 
-          {/* Centered Interactive POS Mockup matching ClaPos screenshot */}
+          {/* Centered Interactive POS Mockup with soft blue ambient glow */}
           <div className="mt-14 relative z-10">
-            <div className="absolute inset-0 bg-emerald-500/15 blur-3xl -z-10 transform scale-95 rounded-3xl" />
+            <div className="absolute inset-0 bg-blue-500/15 blur-3xl -z-10 transform scale-95 rounded-3xl" />
             <PosInteractiveMockup />
           </div>
 
-          {/* 4 Key Metrics Bar */}
+          {/* 4 Key Metrics Bar with blue accents */}
           <div className="max-w-4xl mx-auto mt-14 pt-8 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
-              <div className="text-emerald-600 font-black text-xl font-mono">0ms</div>
+              <div className="text-blue-600 font-black text-xl font-mono">0ms</div>
               <div className="text-xs text-slate-800 font-semibold mt-0.5">Mode Hors-Ligne</div>
               <div className="text-[10px] text-slate-400">Zéro coupure</div>
             </div>
 
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
-              <div className="text-emerald-600 font-black text-xl font-mono">1 Clic</div>
+              <div className="text-blue-600 font-black text-xl font-mono">1 Clic</div>
               <div className="text-xs text-slate-800 font-semibold mt-0.5">WhatsApp</div>
               <div className="text-[10px] text-slate-400">Relance dettes</div>
             </div>
 
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
-              <div className="text-emerald-600 font-black text-xl font-mono">M-Pesa</div>
+              <div className="text-blue-600 font-black text-xl font-mono">M-Pesa</div>
               <div className="text-xs text-slate-800 font-semibold mt-0.5">Mobile Money</div>
               <div className="text-[10px] text-slate-400">CDF & USD</div>
             </div>
 
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
-              <div className="text-emerald-600 font-black text-xl font-mono">Multi-Shop</div>
+              <div className="text-blue-600 font-black text-xl font-mono">Multi-Shop</div>
               <div className="text-xs text-slate-800 font-semibold mt-0.5">Supervision</div>
               <div className="text-[10px] text-slate-400">Gérant à distance</div>
             </div>
