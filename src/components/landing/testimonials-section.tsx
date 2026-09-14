@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Star, ShieldCheck, Sparkles, MapPin, Quote } from "lucide-react";
+import { Star, ShieldCheck, Sparkles, MapPin } from "lucide-react";
 import { useLandingTheme } from "./landing-theme-context";
 
 export default function TestimonialsSection() {
@@ -42,7 +42,7 @@ export default function TestimonialsSection() {
 
   return (
     <section
-      className={`py-20 sm:py-24 px-4 sm:px-6 lg:px-8 relative border-b transition-colors duration-300 ${
+      className={`py-20 sm:py-28 px-4 sm:px-6 lg:px-8 relative border-b transition-colors duration-300 ${
         isDark ? "bg-slate-950 text-white border-slate-800/80" : "bg-slate-50/70 text-slate-900 border-slate-200"
       }`}
     >
@@ -50,10 +50,10 @@ export default function TestimonialsSection() {
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-14">
           <div
-            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold shadow-sm ${
+            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold shadow-md ${
               isDark
                 ? "bg-slate-900 border border-emerald-500/30 text-emerald-400"
-                : "bg-emerald-50 border border-emerald-300 text-emerald-900 shadow-slate-100"
+                : "bg-emerald-50 border border-emerald-300 text-emerald-900"
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -62,7 +62,7 @@ export default function TestimonialsSection() {
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight">
             Adopté par les commerçants qui{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-teal-500 to-amber-500 dark:from-emerald-400 dark:via-teal-300 dark:to-amber-300">
               font tourner l'économie.
             </span>
           </h2>
@@ -79,7 +79,7 @@ export default function TestimonialsSection() {
               key={idx}
               className={`p-6 sm:p-7 rounded-3xl border flex flex-col justify-between relative transition-all duration-300 ${
                 isDark
-                  ? "bg-slate-900/60 border-slate-800/90 hover:border-slate-700 hover:shadow-xl hover:shadow-emerald-950/10"
+                  ? "bg-gradient-to-b from-slate-900/90 to-slate-950/90 border-slate-800 hover:border-slate-700 hover:shadow-xl"
                   : "bg-white border-slate-200 hover:border-slate-300 hover:shadow-lg shadow-slate-200"
               }`}
             >
@@ -110,7 +110,7 @@ export default function TestimonialsSection() {
 
               {/* Author Bio */}
               <div className={`pt-6 mt-6 border-t flex items-center gap-3 ${isDark ? "border-slate-800/80" : "border-slate-200"}`}>
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-xs shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-600 dark:text-emerald-300 font-bold text-xs shrink-0">
                   {t.avatarText}
                 </div>
                 <div className="truncate">

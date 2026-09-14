@@ -2,15 +2,18 @@
 
 import React, { useState } from "react";
 import {
+  WifiOff,
+  Sparkles,
   CheckCircle2,
   ShoppingCart,
   Plus,
   Minus,
   Trash2,
+  Zap,
   Smartphone,
   Banknote,
-  Receipt,
-  Sparkles,
+  Check,
+  RefreshCw,
 } from "lucide-react";
 import { useLandingTheme } from "./landing-theme-context";
 
@@ -149,15 +152,15 @@ export default function PosInteractiveMockup() {
 
   return (
     <div
-      className={`relative rounded-3xl p-1.5 transition-all duration-300 ${
+      className={`relative rounded-3xl p-1 transition-all duration-300 ${
         isDark
           ? "bg-gradient-to-b from-slate-700/60 via-slate-800/80 to-slate-950/90 shadow-2xl shadow-emerald-950/40 border border-slate-700/80 backdrop-blur-xl"
           : "bg-gradient-to-b from-slate-200 via-slate-100 to-white shadow-2xl shadow-slate-300/60 border border-slate-200 backdrop-blur-xl"
       }`}
     >
       {/* Glow highlight effects */}
-      <div className="absolute -top-6 -right-6 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-6 -left-6 w-40 h-40 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-6 -right-6 w-36 h-36 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
+      <div className="absolute -bottom-6 -left-6 w-36 h-36 bg-amber-500/15 rounded-full blur-2xl pointer-events-none" />
 
       {/* POS Device Frame */}
       <div
@@ -177,23 +180,25 @@ export default function PosInteractiveMockup() {
         >
           {/* Status Badge */}
           <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
             </span>
-            <span className="font-bold text-emerald-500 text-[11px] sm:text-xs">
+            <span className="font-bold text-emerald-600 dark:text-emerald-400 text-[11px] sm:text-xs">
               100% Hors-Ligne Actif
             </span>
             <span className="hidden sm:inline text-slate-400 dark:text-slate-500">•</span>
             <span className="hidden sm:inline text-slate-500 dark:text-slate-400 text-[11px]">
-              Latence : 0.0ms
+              Latence : 0ms
             </span>
           </div>
 
           {/* Controls: Currency switcher */}
           <div
-            className={`flex items-center gap-1 p-0.5 rounded-xl border ${
-              isDark ? "bg-slate-950/80 border-slate-800" : "bg-slate-100 border-slate-200"
+            className={`flex items-center gap-1.5 p-0.5 rounded-xl border ${
+              isDark
+                ? "bg-slate-950/80 border-slate-800"
+                : "bg-slate-100 border-slate-200"
             }`}
           >
             <button
@@ -241,7 +246,7 @@ export default function PosInteractiveMockup() {
               >
                 <span>Catalogue Caisse Rapide</span>
                 <span
-                  className={`text-[9px] px-1.5 py-0.5 rounded-md border ${
+                  className={`text-[10px] px-1.5 py-0.5 rounded-md border ${
                     isDark
                       ? "text-emerald-400 bg-emerald-950/60 border-emerald-800/60"
                       : "text-emerald-800 bg-emerald-100 border-emerald-300 font-semibold"
@@ -250,7 +255,7 @@ export default function PosInteractiveMockup() {
                   Toucher pour ajouter
                 </span>
               </div>
-              <span className="text-[10px] text-slate-400">6 articles</span>
+              <span className="text-[10px] text-slate-400">6 articles rapides</span>
             </div>
 
             {/* Grid of items */}
@@ -261,7 +266,7 @@ export default function PosInteractiveMockup() {
                   onClick={() => addToCart(prod)}
                   className={`p-2.5 rounded-2xl bg-gradient-to-b ${
                     isDark ? prod.colorDark : prod.colorLight
-                  } border hover:scale-[1.03] active:scale-[0.98] transition-all text-left flex flex-col justify-between h-[86px] relative group shadow-sm`}
+                  } border hover:scale-[1.03] active:scale-[0.98] transition-all text-left flex flex-col justify-between h-[88px] relative group shadow-sm`}
                 >
                   <div className="flex items-center justify-between w-full">
                     <span className="text-xl">{prod.emoji}</span>
@@ -283,7 +288,7 @@ export default function PosInteractiveMockup() {
                     >
                       {prod.name}
                     </p>
-                    <p className="text-[11px] font-black text-emerald-500 mt-0.5">
+                    <p className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
                       {currency === "CDF"
                         ? `${prod.priceCDF.toLocaleString()} FC`
                         : `$${prod.priceUSD.toFixed(2)}`}
@@ -295,17 +300,17 @@ export default function PosInteractiveMockup() {
 
             {/* Local Sync Wave indicator */}
             <div
-              className={`mt-3 p-2 rounded-xl border flex items-center justify-between text-[10px] ${
+              className={`mt-3.5 p-2.5 rounded-xl border flex items-center justify-between text-[10px] ${
                 isDark
                   ? "bg-slate-900/80 border-slate-800 text-slate-400"
                   : "bg-white border-slate-200 text-slate-600"
               }`}
             >
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-teal-500"></span>
                 <span>Base locale DexieDB / IndexedDB synchronisée</span>
               </div>
-              <span className="text-emerald-500 font-semibold font-mono">0.0ms</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold font-mono">0.0ms</span>
             </div>
           </div>
 
@@ -326,10 +331,10 @@ export default function PosInteractiveMockup() {
                     isDark ? "text-slate-200" : "text-slate-900"
                   }`}
                 >
-                  <ShoppingCart className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Panier</span>
+                  <ShoppingCart className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Panier en cours</span>
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                       isDark
                         ? "bg-slate-800 text-slate-300"
                         : "bg-slate-100 text-slate-700 border border-slate-200"
@@ -393,7 +398,7 @@ export default function PosInteractiveMockup() {
                         >
                           <Minus className="w-2.5 h-2.5" />
                         </button>
-                        <span className="text-xs font-bold text-emerald-500 font-mono min-w-[12px] text-center">
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono min-w-[12px] text-center">
                           {item.quantity}
                         </span>
                         <button
@@ -430,10 +435,9 @@ export default function PosInteractiveMockup() {
 
               {/* Payment Success Overlay */}
               {paymentSuccess ? (
-                <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-600 dark:text-emerald-300 text-xs font-bold text-center animate-fadeIn flex items-center justify-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <Receipt className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>Ticket Imprimé ({paymentSuccess}) • 0ms</span>
+                <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold text-center animate-fadeIn flex items-center justify-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>Ticket Imprimé via {paymentSuccess} ! (0ms)</span>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-1.5">
@@ -447,7 +451,7 @@ export default function PosInteractiveMockup() {
                   </button>
 
                   <button
-                    onClick={() => handleCheckout("Mobile Money")}
+                    onClick={() => handleCheckout("M-Pesa / Mobile Money")}
                     disabled={cart.length === 0}
                     className="py-2 px-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 disabled:opacity-40 text-slate-950 font-black text-[11px] flex items-center justify-center gap-1.5 transition-all shadow-md shadow-amber-950/20"
                   >

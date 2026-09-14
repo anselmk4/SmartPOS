@@ -43,8 +43,8 @@ const SECTORS: Sector[] = [
     desc: "Encaissez en moins de 3 secondes par client avec douchette code-barre, gestion des devises doubles (CDF / USD) et contrôle strict du tiroir-caisse.",
     features: [
       "Lecteur code-barre USB & Bluetooth sans pilote",
-      "Calcul automatique de la monnaie en Francs et Dollars",
-      "Alertes de stock minimum pour éviter les ruptures",
+      "Calcul automatique de la monnaie à rendre en Francs et Dollars",
+      "Alertes de stock minimum pour ne jamais tomber en rupture",
       "Clôture de caisse quotidienne (Ticket Z) avec contrôle des écarts",
     ],
     gradientDark: "from-emerald-500/20 via-teal-500/10 to-slate-950",
@@ -60,7 +60,7 @@ const SECTORS: Sector[] = [
     shortName: "Resto & Bars",
     icon: UtensilsCrossed,
     badge: "Spécial Tables",
-    tagline: "Additions proforma, tables en attente et encaissements fractionnés",
+    tagline: "Additions proforma, tables en attente (Hold) et encaissements fractionnés",
     desc: "Gérez les commandes en attente par table, imprimez des additions proforma avant règlement et encaissez en plusieurs modes (Cash + Mobile Money).",
     features: [
       "Mise en attente des commandes par numéro de table ou serveur",
@@ -84,9 +84,9 @@ const SECTORS: Sector[] = [
     tagline: "Carnet de dettes fournisseurs & suivi rigoureux des crédits chantiers",
     desc: "Suivez les livraisons de ciment, fers à béton, tôles et outillage. Envoyez des récapitulatifs de créances par WhatsApp aux entrepreneurs en 1 clic.",
     features: [
-      "Suivi des gros montants et acomptes échelonnés par client",
+      "Suivi des gros montants et des acomptes échelonnés par client",
       "Relance automatique WhatsApp avec solde restant exact",
-      "Gestion des unités de mesure (sacs, barres, mètres, pièces)",
+      "Gestion des unités de mesure multiples (sacs, barres, mètres, pièces)",
       "Bons de livraison imprimables et exportables en PDF",
     ],
     gradientDark: "from-blue-500/20 via-indigo-500/10 to-slate-950",
@@ -108,7 +108,7 @@ const SECTORS: Sector[] = [
       "Grille de caisse tactile visuelle avec photos d'articles",
       "Gestion des variantes de tailles (S, M, L, XL, 42, 44) et couleurs",
       "Historique d'achat par client fidèle pour offres personnalisées",
-      "Impression de tickets de caisse personnalisés avec votre logo",
+      "Impression de tickets de caisse personnalisés avec logo de votre boutique",
     ],
     gradientDark: "from-purple-500/20 via-pink-500/10 to-slate-950",
     gradientLight: "from-purple-50 via-pink-50 to-white",
@@ -127,9 +127,9 @@ const SECTORS: Sector[] = [
     desc: "Gérez vos casiers, cartons et fûts avec alertes de seuil critique, encaissements Mobile Money et consolidation multi-points de vente sous un seul compte.",
     features: [
       "Gestion des emballages consignés (casiers vides, bouteilles)",
-      "Transferts de stock sécurisés vers les succursales",
+      "Transferts de stock sécurisés d'un dépôt central vers les succursales",
       "Tarification en gros et demi-gros paramétrable",
-      "Export comptable Excel et rentabilité par camion/dépôt",
+      "Export comptable Excel et rapports de rentabilité par camion/dépôt",
     ],
     gradientDark: "from-cyan-500/20 via-sky-500/10 to-slate-950",
     gradientLight: "from-cyan-50 via-sky-50 to-white",
@@ -147,9 +147,9 @@ const SECTORS: Sector[] = [
     tagline: "Facturation de prestations, devis instantanés et photocopies",
     desc: "Générez des factures professionnelles pour tirages, impressions grand format, saisie et fournitures de bureau avec remises négociées.",
     features: [
-      "Facturation de prestations sans contrainte de stock physique",
+      "Facturation de prestations de services sans contrainte de stock",
       "Génération immédiate de devis et factures proforma en Francs ou $",
-      "Application de remises négociées en % ou montant fixe",
+      "Application de remises négociées au pourcentage ou montant fixe",
       "Suivi des clients professionnels en compte régulier",
     ],
     gradientDark: "from-indigo-500/20 via-teal-500/10 to-slate-950",
@@ -168,18 +168,18 @@ export default function SectorShowcase() {
   return (
     <section
       id="types"
-      className={`py-20 sm:py-24 px-4 sm:px-6 lg:px-8 relative border-b transition-colors duration-300 ${
+      className={`py-20 sm:py-28 px-4 sm:px-6 lg:px-8 relative border-b transition-colors duration-300 ${
         isDark ? "bg-slate-950 text-white border-slate-800/80" : "bg-white text-slate-900 border-slate-200"
       }`}
     >
       <div className="max-w-7xl mx-auto">
         {/* Section Title */}
-        <div className="text-center max-w-3xl mx-auto space-y-4 mb-12">
+        <div className="text-center max-w-3xl mx-auto space-y-4 mb-14">
           <div
-            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold shadow-sm ${
+            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold shadow-md ${
               isDark
                 ? "bg-slate-900 border border-amber-500/30 text-amber-400"
-                : "bg-amber-50 border border-amber-300 text-amber-900 shadow-slate-100"
+                : "bg-amber-50 border border-amber-300 text-amber-900"
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -188,7 +188,7 @@ export default function SectorShowcase() {
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight">
             Un Micro-ERP pensé pour votre{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-orange-400 to-emerald-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-500 dark:from-amber-400 dark:via-orange-300 dark:to-emerald-300">
               secteur d'activité.
             </span>
           </h2>
@@ -246,17 +246,17 @@ export default function SectorShowcase() {
                 >
                   {activeSector.badge}
                 </span>
-                <span className="text-xs text-slate-400 font-medium">Secteur Spécialisé</span>
+                <span className="text-xs text-slate-500 font-medium">Secteur Spécialisé</span>
               </div>
 
               <div>
                 <h3 className={`text-2xl sm:text-3xl font-black ${isDark ? "text-white" : "text-slate-900"}`}>
                   {activeSector.title}
                 </h3>
-                <p className="text-sm font-semibold text-emerald-500 mt-1">
+                <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
                   {activeSector.tagline}
                 </p>
-                <p className={`text-xs sm:text-sm leading-relaxed mt-3 ${isDark ? "text-slate-300" : "text-slate-600"}`}>
+                <p className={`text-sm leading-relaxed mt-3 ${isDark ? "text-slate-300" : "text-slate-600"}`}>
                   {activeSector.desc}
                 </p>
               </div>
@@ -270,7 +270,7 @@ export default function SectorShowcase() {
                       isDark ? "bg-slate-950/80 border-slate-800/80" : "bg-white border-slate-200 shadow-xs"
                     }`}
                   >
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                     <span className={`text-xs leading-snug ${isDark ? "text-slate-200" : "text-slate-800"}`}>
                       {feat}
                     </span>
@@ -291,7 +291,7 @@ export default function SectorShowcase() {
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                   Impact Mesuré sur le Terrain
                 </p>
-                <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-amber-500">
+                <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-amber-500 dark:from-emerald-400 dark:to-amber-300">
                   {activeSector.statNumber}
                 </div>
                 <p className={`text-xs font-semibold ${isDark ? "text-slate-300" : "text-slate-700"}`}>
@@ -308,7 +308,7 @@ export default function SectorShowcase() {
                   <Zap className="w-4 h-4 text-amber-500" />
                   <span>Configuration instantanée</span>
                 </div>
-                <p className="text-[11px] text-slate-400 leading-relaxed">
+                <p className="text-[11px] text-slate-500 leading-relaxed">
                   Activez les modules spécifiques (tables, variantes, codes-barres) en un clic dans vos paramètres.
                 </p>
               </div>

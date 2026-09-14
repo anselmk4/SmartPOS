@@ -23,7 +23,7 @@ export default function PricingSection() {
       isPopular: false,
       isBusiness: false,
       features: [
-        "1 Caisse tactile 0.0ms (Offline-First)",
+        "1 Caisse tactile 0ms (Offline-First)",
         "Jusqu'à 100 ventes / mois",
         "Carnet de dettes (10 clients max)",
         "Export comptable Excel (CSV) & PDF",
@@ -69,23 +69,23 @@ export default function PricingSection() {
       priceUSDMonthly: 13,
       priceCDFAnnual: 300000,
       priceUSDAnnual: 130,
-      badge: "⭐ Le Plus Populaire",
+      badge: "Le Plus Populaire",
       isPopular: true,
       isBusiness: false,
       features: [
         "Ventes & Transactions ILLIMITÉES",
         "Caisses & Caissiers ILLIMITÉS (PIN)",
         "Bilan Personnalisé & Synthèse Fiscale A4",
-        "Tarifs Dynamiques (Soirées & Promos)",
+        "Tarifs Dynamiques (Soirée Karaoké & Promos)",
         "Factures en attente & Additions serveurs",
         "Filtres de dates & Classement personnel",
-        "Calcul des marges nettes & bénéfices",
+        "Calcul des marges nettes & bénéfices réels",
         "Supervision à distance par le patron",
         "Support WhatsApp prioritaire 6j/7",
       ],
       ctaText: "Passer en Pro",
       ctaHref: "/auth/register?plan=PRO",
-      btnClassDark: "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black shadow-lg shadow-emerald-950/40",
+      btnClassDark: "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black shadow-lg shadow-emerald-950",
       btnClassLight: "bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-lg shadow-emerald-600/30",
     },
     {
@@ -96,7 +96,7 @@ export default function PricingSection() {
       priceUSDMonthly: 43.5,
       priceCDFAnnual: 1000000,
       priceUSDAnnual: 435,
-      badge: "🏢 Multi-Magasins",
+      badge: "Multi-Boutiques",
       isPopular: false,
       isBusiness: true,
       features: [
@@ -104,7 +104,7 @@ export default function PricingSection() {
         "Jusqu'à 10 Boutiques & Dépôts inclus",
         "Gestion de la Paie & Bulletins de Salaire",
         "Gestion des Congés & Absences personnel",
-        "Bilan Personnalisé consolidé & Déclaration",
+        "Bilan Personnalisé consolidé & Déclaration A4",
         "Transferts de stock inter-magasins traçables",
         "Gérants dédiés par boutique (PIN)",
         "Vue consolidée du réseau en temps réel",
@@ -112,7 +112,7 @@ export default function PricingSection() {
       ],
       ctaText: "Choisir Multi-Magasins",
       ctaHref: "/auth/register?plan=BUSINESS",
-      btnClassDark: "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black shadow-lg shadow-amber-950/40",
+      btnClassDark: "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black shadow-lg shadow-amber-950",
       btnClassLight: "bg-amber-500 hover:bg-amber-600 text-white font-black shadow-lg shadow-amber-500/30",
     },
   ];
@@ -120,7 +120,7 @@ export default function PricingSection() {
   return (
     <section
       id="pricing"
-      className={`py-20 sm:py-24 px-4 sm:px-6 lg:px-8 relative border-b transition-colors duration-300 ${
+      className={`py-20 sm:py-28 px-4 sm:px-6 lg:px-8 relative border-b transition-colors duration-300 ${
         isDark ? "bg-slate-950 text-white border-slate-800/80" : "bg-white text-slate-900 border-slate-200"
       }`}
     >
@@ -128,10 +128,10 @@ export default function PricingSection() {
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-12">
           <div
-            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold shadow-sm ${
+            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold shadow-md ${
               isDark
                 ? "bg-slate-900 border border-emerald-500/30 text-emerald-400"
-                : "bg-emerald-50 border border-emerald-300 text-emerald-900 shadow-slate-100"
+                : "bg-emerald-50 border border-emerald-300 text-emerald-900"
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -140,7 +140,7 @@ export default function PricingSection() {
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight">
             Un investissement rentabilisé dès le{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-teal-500 to-amber-500 dark:from-emerald-400 dark:via-teal-300 dark:to-amber-300">
               premier mois.
             </span>
           </h2>
@@ -164,7 +164,7 @@ export default function PricingSection() {
                     ? isDark
                       ? "bg-slate-800 text-white shadow-sm"
                       : "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
                 Paiement Mensuel
@@ -174,7 +174,7 @@ export default function PricingSection() {
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                   billingCycle === "annual"
                     ? "bg-emerald-500 text-slate-950 font-black shadow-sm"
-                    : "text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
                 <span>Annuel</span>
@@ -195,7 +195,7 @@ export default function PricingSection() {
                 className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                   currency === "CDF"
                     ? "bg-emerald-500 text-slate-950 font-black shadow-sm"
-                    : "text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
                 Franc Congolais (FC)
@@ -205,7 +205,7 @@ export default function PricingSection() {
                 className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                   currency === "USD"
                     ? "bg-emerald-500 text-slate-950 font-black shadow-sm"
-                    : "text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
                 Dollars ($)
@@ -227,14 +227,14 @@ export default function PricingSection() {
                 className={`rounded-3xl p-6 sm:p-7 flex flex-col justify-between relative transition-all duration-300 ${
                   plan.isPopular
                     ? isDark
-                      ? "bg-slate-900/90 border-2 border-emerald-500/80 shadow-2xl shadow-emerald-950/60 lg:-translate-y-2"
-                      : "bg-white border-2 border-emerald-500 shadow-xl shadow-emerald-200/50 lg:-translate-y-2"
+                      ? "bg-gradient-to-b from-slate-900 via-slate-900 to-emerald-950/40 border-2 border-emerald-500/80 shadow-2xl shadow-emerald-950/60 lg:-translate-y-2"
+                      : "bg-gradient-to-b from-white to-emerald-50/40 border-2 border-emerald-500 shadow-xl shadow-emerald-200/50 lg:-translate-y-2"
                     : plan.isBusiness
                     ? isDark
-                      ? "bg-slate-900/90 border-2 border-amber-500/60 shadow-xl shadow-amber-950/40"
-                      : "bg-white border-2 border-amber-500/80 shadow-lg shadow-amber-200/40"
+                      ? "bg-gradient-to-b from-slate-900 via-slate-900 to-amber-950/40 border-2 border-amber-500/60 shadow-xl shadow-amber-950/40"
+                      : "bg-gradient-to-b from-white to-amber-50/40 border-2 border-amber-500/80 shadow-lg shadow-amber-200/40"
                     : isDark
-                    ? "bg-slate-900/60 border border-slate-800 hover:border-slate-700 shadow-lg"
+                    ? "bg-slate-900/80 border border-slate-800 hover:border-slate-700 shadow-lg"
                     : "bg-white border border-slate-200 hover:border-slate-300 shadow-md shadow-slate-200"
                 }`}
               >
@@ -273,7 +273,7 @@ export default function PricingSection() {
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-400 leading-relaxed mb-6">{plan.tagline}</p>
+                  <p className="text-xs text-slate-500 leading-relaxed mb-6">{plan.tagline}</p>
 
                   {/* Price Display */}
                   <div className={`pb-6 mb-6 border-b ${isDark ? "border-slate-800" : "border-slate-200"}`}>
@@ -291,7 +291,7 @@ export default function PricingSection() {
                           ? "$0"
                           : `$${priceUSD.toFixed(2)}`}
                       </span>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-slate-500">
                         {priceCDF === 0 ? "/ à vie" : isMonthly ? "/ mois" : "/ an"}
                       </span>
                     </div>

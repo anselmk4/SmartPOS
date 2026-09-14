@@ -41,7 +41,7 @@ export default function CtaBanner() {
               </span>
             </h2>
 
-            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto">
+            <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">
               Rejoignez les centaines de commerçants, gérants et entrepreneurs qui ont éliminé les pertes de caisse et récupéré leurs créances grâce à Kuettu Global POS.
             </p>
 
@@ -74,7 +74,7 @@ export default function CtaBanner() {
               </div>
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-amber-400" />
-                <span>Prêt en 2 minutes</span>
+                <span>Prêt à l'emploi en 2 minutes</span>
               </div>
               <div className="flex items-center gap-2">
                 <Store className="w-4 h-4 text-teal-400" />
