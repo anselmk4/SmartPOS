@@ -8,6 +8,8 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { useSync } from "@/lib/sync/sync-context";
 import LoginPage from "./auth/login/page";
 import PosInteractiveMockup from "@/components/landing/pos-interactive-mockup";
+import PosStockShowcase from "@/components/landing/pos-stock-showcase";
+import RevealOnScroll from "@/components/landing/reveal-on-scroll";
 import LandingFooter from "@/components/landing/landing-footer";
 import {
   Store,
@@ -272,696 +274,720 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================= */}
+      {/* 1.5 NOUVELLE SECTION VITRINE : PANIER POS & STOCK         */}
+      {/* Inspirée fidèlement de la maquette Dribbble / 21st.dev    */}
+      {/* ========================================================= */}
+      <PosStockShowcase />
+
+      {/* ========================================================= */}
       {/* 2. SECTION 1 : OFFLINE & CLOUD (#features) */}
       {/* ========================================================= */}
       <section id="features" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-          {/* Left Column : Realistic Image */}
-          <div className="lg:col-span-6 order-2 lg:order-1">
-            <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 group">
-              <img
-                src="/images/offline-pos.jpg"
-                alt="Encaissement tactile sans coupure réseau sur tablette"
-                className="w-full h-[340px] sm:h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute top-4 right-4 bg-emerald-600 text-white px-3 py-1 rounded-full text-xs font-black shadow-md flex items-center gap-1.5">
-                <WifiOff className="w-3.5 h-3.5" />
-                <span>0ms Latence Locale</span>
-              </div>
-              <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-sm text-white p-3 rounded-2xl text-xs max-w-xs border border-white/10">
-                <p className="font-bold text-emerald-400">Déconnexion Internet ?</p>
-                <p className="text-[11px] text-slate-300 mt-0.5">
-                  Aucun blocage. Le stock se décompte et les tickets s'impriment immédiatement.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column : Features */}
-          <div className="lg:col-span-6 order-1 lg:order-2 space-y-4 text-left">
-            <span className="text-xs font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3.5 py-1 rounded-full border border-emerald-200">
-              Résilience & Continuité d'Activité
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 leading-tight">
-              Vendez sans aucune interruption, même sans Internet ni électricité continue
-            </h2>
-            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-              En Afrique, les pannes d'électricité et les coupures 3G/4G ne doivent plus jamais paralyser votre caisse.
-              <b> Kuettu Global POS</b> stocke 100% des articles, clients et ventes dans la mémoire locale sécurisée de votre appareil.
-            </p>
-
-            <div className="space-y-2.5 pt-2">
-              <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-bold text-xs sm:text-sm text-slate-900">Encaissement Tactile Ultra-Fluide</div>
-                  <div className="text-xs text-slate-500">Ajout d'articles au panier instantané, calcul automatique de la monnaie et rendu en CDF ou USD.</div>
+        <RevealOnScroll direction="up">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            {/* Left Column : Realistic Image */}
+            <div className="lg:col-span-6 order-2 lg:order-1">
+              <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 group">
+                <img
+                  src="/images/offline-pos.jpg"
+                  alt="Encaissement tactile sans coupure réseau sur tablette"
+                  className="w-full h-[340px] sm:h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute top-4 right-4 bg-emerald-600 text-white px-3 py-1 rounded-full text-xs font-black shadow-md flex items-center gap-1.5">
+                  <WifiOff className="w-3.5 h-3.5" />
+                  <span>0ms Latence Locale</span>
                 </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-bold text-xs sm:text-sm text-slate-900">Sauvegarde Automatique Continue</div>
-                  <div className="text-xs text-slate-500">Dès que le réseau revient, toutes les ventes sont sauvegardées automatiquement sur nos serveurs Cloud sécurisés.</div>
+                <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-sm text-white p-3 rounded-2xl text-xs max-w-xs border border-white/10">
+                  <p className="font-bold text-emerald-400">Déconnexion Internet ?</p>
+                  <p className="text-[11px] text-slate-300 mt-0.5">
+                    Aucun blocage. Le stock se décompte et les tickets s'impriment immédiatement.
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="pt-2">
-              <Link
-                href="/pos"
-                className="inline-flex items-center gap-2 py-3 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow transition-all"
-              >
-                <span>Tester la caisse tactile</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+            {/* Right Column : Features */}
+            <div className="lg:col-span-6 order-1 lg:order-2 space-y-4 text-left">
+              <span className="text-xs font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3.5 py-1 rounded-full border border-emerald-200">
+                Résilience & Continuité d'Activité
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-black text-slate-900 leading-tight">
+                Vendez sans aucune interruption, même sans Internet ni électricité continue
+              </h2>
+              <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+                En Afrique, les pannes d'électricité et les coupures 3G/4G ne doivent plus jamais paralyser votre caisse.
+                <b> Kuettu Global POS</b> stocke 100% des articles, clients et ventes dans la mémoire locale sécurisée de votre appareil.
+              </p>
+
+              <div className="space-y-2.5 pt-2">
+                <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-xs sm:text-sm text-slate-900">Encaissement Tactile Ultra-Fluide</div>
+                    <div className="text-xs text-slate-500">Ajout d'articles au panier instantané, calcul automatique de la monnaie et rendu en CDF ou USD.</div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-xs sm:text-sm text-slate-900">Sauvegarde Automatique Continue</div>
+                    <div className="text-xs text-slate-500">Dès que le réseau revient, toutes les ventes sont sauvegardées automatiquement sur nos serveurs Cloud sécurisés.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Link
+                  href="/pos"
+                  className="inline-flex items-center gap-2 py-3 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow transition-all"
+                >
+                  <span>Tester la caisse tactile</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
+        </RevealOnScroll>
       </section>
 
       {/* ========================================================= */}
       {/* 3. SECTION 2 : CARNET DE DETTES & WHATSAPP */}
       {/* ========================================================= */}
       <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100 bg-gradient-to-b from-rose-50/30 to-white">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-          {/* Left Column : Features */}
-          <div className="lg:col-span-6 space-y-4 text-left">
-            <span className="text-xs font-black uppercase tracking-wider text-rose-700 bg-rose-50 px-3.5 py-1 rounded-full border border-rose-200">
-              Recouvrement Intelligent
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 leading-tight">
-              Carnet de Dettes & Relances WhatsApp en 1 Clic
-            </h2>
-            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-              Fini les cahiers de crédit tachés, raturés ou égarés qui vous font perdre de l'argent.
-              Suivez l'historique complet de chaque débiteur et encaissez vos créances plus rapidement.
-            </p>
+        <RevealOnScroll direction="up">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            {/* Left Column : Features */}
+            <div className="lg:col-span-6 space-y-4 text-left">
+              <span className="text-xs font-black uppercase tracking-wider text-rose-700 bg-rose-50 px-3.5 py-1 rounded-full border border-rose-200">
+                Recouvrement Intelligent
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-black text-slate-900 leading-tight">
+                Carnet de Dettes & Relances WhatsApp en 1 Clic
+              </h2>
+              <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+                Fini les cahiers de crédit tachés, raturés ou égarés qui vous font perdre de l'argent.
+                Suivez l'historique complet de chaque débiteur et encaissez vos créances plus rapidement.
+              </p>
 
-            <div className="space-y-3 pt-2">
-              <div className="p-3.5 rounded-2xl bg-white border border-rose-100 shadow-sm flex items-start gap-3">
-                <MessageCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-bold text-xs sm:text-sm text-slate-900">3 Modèles de Messages Personnalisés</div>
-                  <div className="text-xs text-slate-500">Courtois, Rappel d'échéance ou Recouvrement ferme pré-rempli avec le nom et le montant exact.</div>
+              <div className="space-y-3 pt-2">
+                <div className="p-3.5 rounded-2xl bg-white border border-rose-100 shadow-sm flex items-start gap-3">
+                  <MessageCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-xs sm:text-sm text-slate-900">3 Modèles de Messages Personnalisés</div>
+                    <div className="text-xs text-slate-500">Courtois, Rappel d'échéance ou Recouvrement ferme pré-rempli avec le nom et le montant exact.</div>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-white border border-rose-100 shadow-sm flex items-start gap-3">
+                  <Receipt className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-xs sm:text-sm text-slate-900">Reçus Numériques & Historique de Remboursement</div>
+                    <div className="text-xs text-slate-500">Envoyez les reçus de paiement par WhatsApp pour rassurer vos clients et éviter toute contestation.</div>
+                  </div>
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-white border border-rose-100 shadow-sm flex items-start gap-3">
-                <Receipt className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-bold text-xs sm:text-sm text-slate-900">Reçus Numériques & Historique de Remboursement</div>
-                  <div className="text-xs text-slate-500">Envoyez les reçus de paiement par WhatsApp pour rassurer vos clients et éviter toute contestation.</div>
+              <div className="pt-2">
+                <Link
+                  href="/debts"
+                  className="inline-flex items-center gap-2 py-3 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 transition-all"
+                >
+                  <span>Explorer le Carnet de Dettes</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Right Column : Realistic Image */}
+            <div className="lg:col-span-6">
+              <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 group">
+                <img
+                  src="/images/whatsapp-debt.jpg"
+                  alt="Commerçant effectuant une relance de dette par WhatsApp"
+                  className="w-full h-[340px] sm:h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute top-4 left-4 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-black shadow-md flex items-center gap-1.5">
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>WhatsApp Connecté</span>
+                </div>
+                <div className="absolute bottom-4 right-4 bg-slate-900/90 backdrop-blur-sm text-white p-3 rounded-2xl text-xs max-w-xs border border-white/10 text-left">
+                  <p className="font-bold text-emerald-400">Message Pré-rempli :</p>
+                  <p className="text-[10px] text-slate-300 mt-0.5">
+                    "Bonjour M. Kasongo, rappel de votre solde de 45 000 FC pour votre achat du 12/08..."
+                  </p>
                 </div>
               </div>
             </div>
-
-            <div className="pt-2">
-              <Link
-                href="/debts"
-                className="inline-flex items-center gap-2 py-3 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 transition-all"
-              >
-                <span>Explorer le Carnet de Dettes</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
           </div>
-
-          {/* Right Column : Realistic Image */}
-          <div className="lg:col-span-6">
-            <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 group">
-              <img
-                src="/images/whatsapp-debt.jpg"
-                alt="Commerçant effectuant une relance de dette par WhatsApp"
-                className="w-full h-[340px] sm:h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute top-4 left-4 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-black shadow-md flex items-center gap-1.5">
-                <MessageCircle className="w-3.5 h-3.5" />
-                <span>WhatsApp Connecté</span>
-              </div>
-              <div className="absolute bottom-4 right-4 bg-slate-900/90 backdrop-blur-sm text-white p-3 rounded-2xl text-xs max-w-xs border border-white/10 text-left">
-                <p className="font-bold text-emerald-400">Message Pré-rempli :</p>
-                <p className="text-[10px] text-slate-300 mt-0.5">
-                  "Bonjour M. Kasongo, rappel de votre solde de 45 000 FC pour votre achat du 12/08..."
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        </RevealOnScroll>
       </section>
 
       {/* ========================================================= */}
       {/* 4. SECTION 3 : MULTI-BOUTIQUES & SUPERVISION */}
       {/* ========================================================= */}
       <section id="about" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-          {/* Left Column : Realistic Image */}
-          <div className="lg:col-span-6 order-2 lg:order-1">
-            <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 group">
-              <img
-                src="/images/multi-store.jpg"
-                alt="Gérant supervisant son réseau de boutiques et dépôts"
-                className="w-full h-[340px] sm:h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute top-4 right-4 bg-indigo-600 text-white px-3 py-1 rounded-full text-xs font-black shadow-md flex items-center gap-1.5">
-                <Building className="w-3.5 h-3.5" />
-                <span>Multi-Boutiques & Dépôts</span>
-              </div>
-              <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-sm text-white p-3 rounded-2xl text-xs max-w-xs border border-white/10 text-left">
-                <p className="font-bold text-indigo-300">Supervision en Temps Réel :</p>
-                <p className="text-[10px] text-slate-300 mt-0.5">
-                  Consolidation du chiffre d'affaires et contrôle des transferts de stock entre vos dépôts.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column : Features */}
-          <div className="lg:col-span-6 order-1 lg:order-2 space-y-4 text-left">
-            <span className="text-xs font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 px-3.5 py-1 rounded-full border border-indigo-200">
-              Plan Business Multi-Magasins
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 leading-tight">
-              Pilotez vos Boutiques & Dépôts à Distance sur Votre Smartphone
-            </h2>
-            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-              Vous possédez plusieurs points de vente ou des dépôts de distribution ?
-              Créez jusqu'à 10 boutiques sous le même compte avec des stocks étanches et des gérants dédiés.
-            </p>
-
-            <div className="space-y-2.5 pt-2">
-              <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
-                <ArrowRightLeft className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-bold text-xs sm:text-sm text-slate-900">Transferts de Stock Traçables</div>
-                  <div className="text-xs text-slate-500">Déplacez des cartons ou marchandises d'un dépôt central vers vos magasins avec traçabilité complète.</div>
+        <RevealOnScroll direction="up">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            {/* Left Column : Realistic Image */}
+            <div className="lg:col-span-6 order-2 lg:order-1">
+              <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 group">
+                <img
+                  src="/images/multi-store.jpg"
+                  alt="Gérant supervisant son réseau de boutiques et dépôts"
+                  className="w-full h-[340px] sm:h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute top-4 right-4 bg-indigo-600 text-white px-3 py-1 rounded-full text-xs font-black shadow-md flex items-center gap-1.5">
+                  <Building className="w-3.5 h-3.5" />
+                  <span>Multi-Boutiques & Dépôts</span>
                 </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
-                <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-bold text-xs sm:text-sm text-slate-900">Protection Anti-Fraude & Marges Masquées</div>
-                  <div className="text-xs text-slate-500">Les caissiers n'ont pas accès à vos bénéfices réels ni à vos prix d'achat fournisseurs.</div>
+                <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-sm text-white p-3 rounded-2xl text-xs max-w-xs border border-white/10 text-left">
+                  <p className="font-bold text-indigo-300">Supervision en Temps Réel :</p>
+                  <p className="text-[10px] text-slate-300 mt-0.5">
+                    Consolidation du chiffre d'affaires et contrôle des transferts de stock entre vos dépôts.
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="pt-2">
-              <Link
-                href="/owner"
-                className="inline-flex items-center gap-2 py-3 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition-all"
-              >
-                <span>Accéder à l'Espace Gérant</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+            {/* Right Column : Features */}
+            <div className="lg:col-span-6 order-1 lg:order-2 space-y-4 text-left">
+              <span className="text-xs font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 px-3.5 py-1 rounded-full border border-indigo-200">
+                Plan Business Multi-Magasins
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-black text-slate-900 leading-tight">
+                Pilotez vos Boutiques & Dépôts à Distance sur Votre Smartphone
+              </h2>
+              <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+                Vous possédez plusieurs points de vente ou des dépôts de distribution ?
+                Créez jusqu'à 10 boutiques sous le même compte avec des stocks étanches et des gérants dédiés.
+              </p>
+
+              <div className="space-y-2.5 pt-2">
+                <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
+                  <ArrowRightLeft className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-xs sm:text-sm text-slate-900">Transferts de Stock Traçables</div>
+                    <div className="text-xs text-slate-500">Déplacez des cartons ou marchandises d'un dépôt central vers vos magasins avec traçabilité complète.</div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
+                  <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-xs sm:text-sm text-slate-900">Protection Anti-Fraude & Marges Masquées</div>
+                    <div className="text-xs text-slate-500">Les caissiers n'ont pas accès à vos bénéfices réels ni à vos prix d'achat fournisseurs.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Link
+                  href="/owner"
+                  className="inline-flex items-center gap-2 py-3 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition-all"
+                >
+                  <span>Accéder à l'Espace Gérant</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
+        </RevealOnScroll>
       </section>
 
       {/* ========================================================= */}
       {/* 5. SECTION 4 : MOBILE MONEY (#mobile-money) */}
       {/* ========================================================= */}
       <section id="mobile-money" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100 bg-gradient-to-b from-sky-50/40 to-white">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-          {/* Left Column : Features */}
-          <div className="lg:col-span-6 space-y-4 text-left">
-            <span className="text-xs font-black uppercase tracking-wider text-sky-700 bg-sky-50 px-3.5 py-1 rounded-full border border-sky-200">
-              Paiements Mobile Money Intégrés
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 leading-tight">
-              Paiements Mobile Money & Double Devise CDF / USD
-            </h2>
-            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-              Acceptez les paiements par **Vodacom M-Pesa**, **Airtel Money**, **Orange Money** et **Afrimoney** en direct à la caisse et pour vos abonnements.
-            </p>
+        <RevealOnScroll direction="up">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            {/* Left Column : Features */}
+            <div className="lg:col-span-6 space-y-4 text-left">
+              <span className="text-xs font-black uppercase tracking-wider text-sky-700 bg-sky-50 px-3.5 py-1 rounded-full border border-sky-200">
+                Paiements Mobile Money Intégrés
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-black text-slate-900 leading-tight">
+                Paiements Mobile Money & Double Devise CDF / USD
+              </h2>
+              <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+                Acceptez les paiements par **Vodacom M-Pesa**, **Airtel Money**, **Orange Money** et **Afrimoney** en direct à la caisse et pour vos abonnements.
+              </p>
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <div className="p-3 bg-white rounded-2xl border border-sky-100 shadow-sm">
-                <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                  <Coins className="w-4 h-4 text-amber-500" />
-                  <span>Francs & Dollars</span>
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="p-3 bg-white rounded-2xl border border-sky-100 shadow-sm">
+                  <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <Coins className="w-4 h-4 text-amber-500" />
+                    <span>Francs & Dollars</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Gestion séparée des espèces en CDF et en Dollars avec taux paramétrable.
+                  </p>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Gestion séparée des espèces en CDF et en Dollars avec taux paramétrable.
-                </p>
+
+                <div className="p-3 bg-white rounded-2xl border border-sky-100 shadow-sm">
+                  <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <Smartphone className="w-4 h-4 text-sky-600" />
+                    <span>Push USSD Mobile Direct</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Débit direct et confirmation instantanée sur le téléphone du client.
+                  </p>
+                </div>
               </div>
 
-              <div className="p-3 bg-white rounded-2xl border border-sky-100 shadow-sm">
-                <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                  <Smartphone className="w-4 h-4 text-sky-600" />
-                  <span>Push USSD Mobile Direct</span>
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Débit direct et confirmation instantanée sur le téléphone du client.
-                </p>
+              <div className="pt-2">
+                <Link
+                  href="/billing"
+                  className="inline-flex items-center gap-2 py-3 px-5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-md shadow-sky-600/20 transition-all"
+                >
+                  <span>Découvrir les forfaits Mobile Money</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
             </div>
 
-            <div className="pt-2">
-              <Link
-                href="/billing"
-                className="inline-flex items-center gap-2 py-3 px-5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-md shadow-sky-600/20 transition-all"
-              >
-                <span>Découvrir les forfaits Mobile Money</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+            {/* Right Column : Realistic Image */}
+            <div className="lg:col-span-6">
+              <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 group">
+                <img
+                  src="/images/mobile-money.jpg"
+                  alt="Paiement Mobile Money M-Pesa au comptoir d'une boutique"
+                  className="w-full h-[340px] sm:h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute top-4 left-4 bg-sky-600 text-white px-3 py-1 rounded-full text-xs font-black shadow-md flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>M-Pesa • Airtel • Orange</span>
+                </div>
+                <div className="absolute bottom-4 right-4 bg-slate-900/90 backdrop-blur-sm text-white p-3 rounded-2xl text-xs max-w-xs border border-white/10 text-left">
+                  <p className="font-bold text-sky-300">Rapprochement de Caisse :</p>
+                  <p className="text-[10px] text-slate-300 mt-0.5">
+                    Clôture journalière (Ticket Z) séparant le cash du tiroir et les soldes Mobile Money.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-
-          {/* Right Column : Realistic Image */}
-          <div className="lg:col-span-6">
-            <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 group">
-              <img
-                src="/images/mobile-money.jpg"
-                alt="Paiement Mobile Money M-Pesa au comptoir d'une boutique"
-                className="w-full h-[340px] sm:h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute top-4 left-4 bg-sky-600 text-white px-3 py-1 rounded-full text-xs font-black shadow-md flex items-center gap-1.5">
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>M-Pesa • Airtel • Orange</span>
-              </div>
-              <div className="absolute bottom-4 right-4 bg-slate-900/90 backdrop-blur-sm text-white p-3 rounded-2xl text-xs max-w-xs border border-white/10 text-left">
-                <p className="font-bold text-sky-300">Rapprochement de Caisse :</p>
-                <p className="text-[10px] text-slate-300 mt-0.5">
-                  Clôture journalière (Ticket Z) séparant le cash du tiroir et les soldes Mobile Money.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        </RevealOnScroll>
       </section>
 
       {/* ========================================================= */}
       {/* 6. TYPES D'ENTREPRISES SECTION (#types) */}
       {/* ========================================================= */}
       <section id="types" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-slate-50 border-y border-slate-200/80">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-14">
-            <span className="text-xs font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3.5 py-1 rounded-full border border-indigo-200">
-              Adapté à Votre Activité
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3">
-              Une solution taillée sur mesure pour tous les secteurs de commerce
-            </h2>
-            <p className="text-slate-500 text-sm sm:text-base mt-2">
-              Que vous gériez une boutique de quartier, un dépôt de gros ou une quincaillerie, Kuettu s'adapte à votre mode de fonctionnement.
-            </p>
+        <RevealOnScroll direction="up">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center max-w-3xl mx-auto mb-14">
+              <span className="text-xs font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3.5 py-1 rounded-full border border-indigo-200">
+                Adapté à Votre Activité
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3">
+                Une solution taillée sur mesure pour tous les secteurs de commerce
+              </h2>
+              <p className="text-slate-500 text-sm sm:text-base mt-2">
+                Que vous gériez une boutique de quartier, un dépôt de gros ou une quincaillerie, Kuettu s'adapte à votre mode de fonctionnement.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {businessTypes.map((b) => (
+                <div
+                  key={b.title}
+                  className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between relative overflow-hidden"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-3xl p-2.5 bg-slate-100 rounded-2xl">{b.icon}</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                      {b.badge}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="font-extrabold text-slate-900 text-base mb-1">{b.title}</h3>
+                    <div className="text-xs font-semibold text-indigo-600 mb-2.5">{b.subtitle}</div>
+                    <p className="text-xs text-slate-600 leading-relaxed">{b.desc}</p>
+                  </div>
+
+                  <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-700">
+                    <span>Prêt à l'emploi</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {businessTypes.map((b) => (
-              <div
-                key={b.title}
-                className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between relative overflow-hidden"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-3xl p-2.5 bg-slate-100 rounded-2xl">{b.icon}</span>
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                    {b.badge}
-                  </span>
-                </div>
-
-                <div>
-                  <h3 className="font-extrabold text-slate-900 text-base mb-1">{b.title}</h3>
-                  <div className="text-xs font-semibold text-indigo-600 mb-2.5">{b.subtitle}</div>
-                  <p className="text-xs text-slate-600 leading-relaxed">{b.desc}</p>
-                </div>
-
-                <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-700">
-                  <span>Prêt à l'emploi</span>
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        </RevealOnScroll>
       </section>
 
       {/* ========================================================= */}
       {/* 7. SECTION TARIFS & LES 4 PLANS OFFICIELS (#pricing) */}
       {/* ========================================================= */}
       <section id="pricing" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto mb-14">
-          <span className="text-xs font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-3.5 py-1 rounded-full border border-blue-200">
-            Forfaits & Tarifs Transparents
-          </span>
-          <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3">
-            Des formules adaptées à chaque taille de commerce
-          </h2>
-          <p className="text-slate-500 text-sm sm:text-base mt-2">
-            Payez simplement en Francs Congolais ou Dollars via Vodacom M-Pesa, Airtel Money, Orange Money ou Afrimoney.
-          </p>
-        </div>
-
-        {/* 4 Official Plans Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
-          {/* Plan 1: FREE (Découverte) */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
-                Pour démarrer
-              </span>
-              <h3 className="text-lg font-black text-slate-900 mt-3">Découverte</h3>
-              <div className="mt-3 mb-5">
-                <span className="text-3xl font-black text-slate-900">0 FC</span>
-                <span className="text-xs text-slate-500 ml-1">Gratuit à vie</span>
-              </div>
-              <p className="text-xs text-slate-600 mb-5 leading-relaxed">
-                Idéal pour tester la caisse tactile locale sans aucun frais.
-              </p>
-
-              <ul className="space-y-2.5 text-xs text-slate-700">
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>1 Caisse tactile locale</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>100 ventes par mois</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>Carnet de dettes (max 10 clients)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>Fonctionne 100% hors-ligne</span>
-                </li>
-              </ul>
-            </div>
-
-            <Link
-              href="/auth/register"
-              className="mt-6 w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs text-center transition-colors block"
-            >
-              Créer un Compte Gratuit
-            </Link>
+        <RevealOnScroll direction="up">
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <span className="text-xs font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-3.5 py-1 rounded-full border border-blue-200">
+              Forfaits & Tarifs Transparents
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3">
+              Des formules adaptées à chaque taille de commerce
+            </h2>
+            <p className="text-slate-500 text-sm sm:text-base mt-2">
+              Payez simplement en Francs Congolais ou Dollars via Vodacom M-Pesa, Airtel Money, Orange Money ou Afrimoney.
+            </p>
           </div>
 
-          {/* Plan 2: BASIC (Commerçant Basic) */}
-          <div className="bg-white rounded-3xl p-6 border border-emerald-300 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                Accessible & Efficace
-              </span>
-              <h3 className="text-lg font-black text-slate-900 mt-3">Commerçant Basic</h3>
-              <div className="mt-3 mb-5">
-                <span className="text-3xl font-black text-slate-900">15 000 FC</span>
-                <span className="text-xs text-slate-500 ml-1">/ mois (~5,50 $)</span>
+          {/* 4 Official Plans Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
+            {/* Plan 1: FREE (Découverte) */}
+            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
+                  Pour démarrer
+                </span>
+                <h3 className="text-lg font-black text-slate-900 mt-3">Découverte</h3>
+                <div className="mt-3 mb-5">
+                  <span className="text-3xl font-black text-slate-900">0 FC</span>
+                  <span className="text-xs text-slate-500 ml-1">Gratuit à vie</span>
+                </div>
+                <p className="text-xs text-slate-600 mb-5 leading-relaxed">
+                  Idéal pour tester la caisse tactile locale sans aucun frais.
+                </p>
+
+                <ul className="space-y-2.5 text-xs text-slate-700">
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>1 Caisse tactile locale</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>100 ventes par mois</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Carnet de dettes (max 10 clients)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Fonctionne 100% hors-ligne</span>
+                  </li>
+                </ul>
               </div>
-              <p className="text-xs text-slate-600 mb-5 leading-relaxed">
-                Parfait pour les boutiques de quartier avec relances de dettes.
-              </p>
 
-              <ul className="space-y-2.5 text-xs text-slate-700">
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>1 000 ventes par mois</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>Jusqu'à 10 Caisses & Caissiers</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>Carnet de dettes (100 clients)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>Relances WhatsApp en 1 clic</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>Sauvegarde Cloud automatique</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>Clôture quotidienne (Ticket Z)</span>
-                </li>
-              </ul>
+              <Link
+                href="/auth/register"
+                className="mt-6 w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs text-center transition-colors block"
+              >
+                Créer un Compte Gratuit
+              </Link>
             </div>
 
-            <Link
-              href="/auth/register"
-              className="mt-6 w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs text-center shadow transition-colors block"
-            >
-              Choisir le Forfait Basic
-            </Link>
-          </div>
+            {/* Plan 2: BASIC (Commerçant Basic) */}
+            <div className="bg-white rounded-3xl p-6 border border-emerald-300 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Accessible & Efficace
+                </span>
+                <h3 className="text-lg font-black text-slate-900 mt-3">Commerçant Basic</h3>
+                <div className="mt-3 mb-5">
+                  <span className="text-3xl font-black text-slate-900">15 000 FC</span>
+                  <span className="text-xs text-slate-500 ml-1">/ mois (~5,50 $)</span>
+                </div>
+                <p className="text-xs text-slate-600 mb-5 leading-relaxed">
+                  Parfait pour les boutiques de quartier avec relances de dettes.
+                </p>
 
-          {/* Plan 3: PRO (Commerçant Pro - Star) */}
-          <div className="bg-gradient-to-b from-blue-900 via-slate-900 to-blue-950 text-white rounded-3xl p-6 border-2 border-blue-500 shadow-2xl flex flex-col justify-between relative overflow-hidden transform lg:-translate-y-2">
-            <div className="absolute top-3.5 right-3.5 bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow">
-              Plus Populaire ⭐
-            </div>
-
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
-                Performance Maximale
-              </span>
-              <h3 className="text-xl font-black text-white mt-3">Commerçant Pro</h3>
-              <div className="mt-3 mb-5">
-                <span className="text-3xl font-black text-white">30 000 FC</span>
-                <span className="text-xs text-blue-300 ml-1">/ mois (~11 $)</span>
+                <ul className="space-y-2.5 text-xs text-slate-700">
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>1 000 ventes par mois</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Jusqu'à 10 Caisses & Caissiers</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Carnet de dettes (100 clients)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Relances WhatsApp en 1 clic</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Sauvegarde Cloud automatique</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Clôture quotidienne (Ticket Z)</span>
+                  </li>
+                </ul>
               </div>
-              <p className="text-xs text-slate-300 mb-5 leading-relaxed">
-                Le choix N°1 pour éliminer les pertes, marges nettes et dettes illimitées.
-              </p>
 
-              <ul className="space-y-2.5 text-xs text-slate-200">
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span><b>Ventes & Caisses illimitées</b></span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span><b>Carnet de dettes illimité</b></span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Relances WhatsApp automatiques</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Calcul des marges & bénéfices net</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Supervision gérant à distance</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>Sauvegarde Cloud continue</span>
-                </li>
-              </ul>
+              <Link
+                href="/auth/register"
+                className="mt-6 w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs text-center shadow transition-colors block"
+              >
+                Choisir le Forfait Basic
+              </Link>
             </div>
 
-            <Link
-              href="/auth/register"
-              className="mt-6 w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs text-center shadow-lg shadow-blue-600/40 transition-all block"
-            >
-              Essai Gratuit 14 Jours
-            </Link>
-          </div>
-
-          {/* Plan 4: BUSINESS (Multi-Magasins) */}
-          <div className="bg-white rounded-3xl p-6 border border-indigo-300 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
-                Réseaux & Dépôts
-              </span>
-              <h3 className="text-lg font-black text-slate-900 mt-3">Business Multi-Magasins</h3>
-              <div className="mt-3 mb-5">
-                <span className="text-3xl font-black text-slate-900">100 000 FC</span>
-                <span className="text-xs text-slate-500 ml-1">/ mois (~35 $)</span>
+            {/* Plan 3: PRO (Commerçant Pro - Star) */}
+            <div className="bg-gradient-to-b from-blue-900 via-slate-900 to-blue-950 text-white rounded-3xl p-6 border-2 border-blue-500 shadow-2xl flex flex-col justify-between relative overflow-hidden transform lg:-translate-y-2">
+              <div className="absolute top-3.5 right-3.5 bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow">
+                Plus Populaire ⭐
               </div>
-              <p className="text-xs text-slate-600 mb-5 leading-relaxed">
-                Multi-boutiques, transferts entre dépôts et gérants isolés.
-              </p>
 
-              <ul className="space-y-2.5 text-xs text-slate-700">
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-                  <span><b>Jusqu'à 10 Boutiques & Dépôts</b></span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-                  <span>Transferts de stock inter-magasins</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-                  <span>Gérants de boutiques dédiés</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-                  <span>Export comptable Excel (CSV) & PDF</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-                  <span>Consolidation réseau en temps réel</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-                  <span>Support prioritaire VIP WhatsApp</span>
-                </li>
-              </ul>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                  Performance Maximale
+                </span>
+                <h3 className="text-xl font-black text-white mt-3">Commerçant Pro</h3>
+                <div className="mt-3 mb-5">
+                  <span className="text-3xl font-black text-white">30 000 FC</span>
+                  <span className="text-xs text-blue-300 ml-1">/ mois (~11 $)</span>
+                </div>
+                <p className="text-xs text-slate-300 mb-5 leading-relaxed">
+                  Le choix N°1 pour éliminer les pertes, marges nettes et dettes illimitées.
+                </p>
+
+                <ul className="space-y-2.5 text-xs text-slate-200">
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span><b>Ventes & Caisses illimitées</b></span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span><b>Carnet de dettes illimité</b></span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span>Relances WhatsApp automatiques</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span>Calcul des marges & bénéfices net</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span>Supervision gérant à distance</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span>Sauvegarde Cloud continue</span>
+                  </li>
+                </ul>
+              </div>
+
+              <Link
+                href="/auth/register"
+                className="mt-6 w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs text-center shadow-lg shadow-blue-600/40 transition-all block"
+              >
+                Essai Gratuit 14 Jours
+              </Link>
             </div>
 
-            <Link
-              href="/auth/register"
-              className="mt-6 w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs text-center shadow transition-all block"
-            >
-              Choisir le Plan Business
-            </Link>
+            {/* Plan 4: BUSINESS (Multi-Magasins) */}
+            <div className="bg-white rounded-3xl p-6 border border-indigo-300 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  Réseaux & Dépôts
+                </span>
+                <h3 className="text-lg font-black text-slate-900 mt-3">Business Multi-Magasins</h3>
+                <div className="mt-3 mb-5">
+                  <span className="text-3xl font-black text-slate-900">100 000 FC</span>
+                  <span className="text-xs text-slate-500 ml-1">/ mois (~35 $)</span>
+                </div>
+                <p className="text-xs text-slate-600 mb-5 leading-relaxed">
+                  Multi-boutiques, transferts entre dépôts et gérants isolés.
+                </p>
+
+                <ul className="space-y-2.5 text-xs text-slate-700">
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                    <span><b>Jusqu'à 10 Boutiques & Dépôts</b></span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                    <span>Transferts de stock inter-magasins</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                    <span>Gérants de boutiques dédiés</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                    <span>Export comptable Excel (CSV) & PDF</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                    <span>Consolidation réseau en temps réel</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                    <span>Support prioritaire VIP WhatsApp</span>
+                  </li>
+                </ul>
+              </div>
+
+              <Link
+                href="/auth/register"
+                className="mt-6 w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs text-center shadow transition-all block"
+              >
+                Choisir le Plan Business
+              </Link>
+            </div>
           </div>
-        </div>
+        </RevealOnScroll>
       </section>
 
       {/* ========================================================= */}
       {/* 8. MATÉRIEL COMPATIBLE (#hardware) */}
       {/* ========================================================= */}
       <section id="hardware" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-slate-900 text-white border-t border-slate-800">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-14">
-            <span className="text-xs font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3.5 py-1 rounded-full border border-emerald-500/20">
-              Prêt Pour Votre Matériel
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-white mt-3">
-              100% Compatible avec vos Équipements de Caisse
-            </h2>
-            <p className="text-slate-400 text-sm sm:text-base mt-2">
-              Pas besoin d'acheter de matériel propriétaire coûteux. Utilisez ce que vous possédez déjà.
-            </p>
+        <RevealOnScroll direction="up">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center max-w-3xl mx-auto mb-14">
+              <span className="text-xs font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3.5 py-1 rounded-full border border-emerald-500/20">
+                Prêt Pour Votre Matériel
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-black text-white mt-3">
+                100% Compatible avec vos Équipements de Caisse
+              </h2>
+              <p className="text-slate-400 text-sm sm:text-base mt-2">
+                Pas besoin d'acheter de matériel propriétaire coûteux. Utilisez ce que vous possédez déjà.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-slate-800/60 p-6 rounded-3xl border border-slate-700/60 text-left space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                  <Smartphone className="w-6 h-6" />
+                </div>
+                <h3 className="font-bold text-white text-base">Smartphones & Tablettes</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Fonctionne sur Android, iPhone, iPad ou tablettes tactiles bon marché sans configuration complexe.
+                </p>
+              </div>
+
+              <div className="bg-slate-800/60 p-6 rounded-3xl border border-slate-700/60 text-left space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                  <Printer className="w-6 h-6" />
+                </div>
+                <h3 className="font-bold text-white text-base">Imprimantes Thermiques</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Impression directe de tickets de caisse 58mm et 80mm via Bluetooth, Wi-Fi ou câble USB.
+                </p>
+              </div>
+
+              <div className="bg-slate-800/60 p-6 rounded-3xl border border-slate-700/60 text-left space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                  <Barcode className="w-6 h-6" />
+                </div>
+                <h3 className="font-bold text-white text-base">Lecteurs Code-Barres</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Compatible avec les douchettes USB et scanners Bluetooth pour scanner vos articles en 1 seconde.
+                </p>
+              </div>
+
+              <div className="bg-slate-800/60 p-6 rounded-3xl border border-slate-700/60 text-left space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                  <Laptop className="w-6 h-6" />
+                </div>
+                <h3 className="font-bold text-white text-base">PC & Ordinateurs Portables</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Utilisable sur navigateur Chrome/Edge sous Windows, macOS ou Linux avec raccourcis clavier caisse.
+                </p>
+              </div>
+            </div>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-slate-800/60 p-6 rounded-3xl border border-slate-700/60 text-left space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
-                <Smartphone className="w-6 h-6" />
-              </div>
-              <h3 className="font-bold text-white text-base">Smartphones & Tablettes</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Fonctionne sur Android, iPhone, iPad ou tablettes tactiles bon marché sans configuration complexe.
-              </p>
-            </div>
-
-            <div className="bg-slate-800/60 p-6 rounded-3xl border border-slate-700/60 text-left space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-                <Printer className="w-6 h-6" />
-              </div>
-              <h3 className="font-bold text-white text-base">Imprimantes Thermiques</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Impression directe de tickets de caisse 58mm et 80mm via Bluetooth, Wi-Fi ou câble USB.
-              </p>
-            </div>
-
-            <div className="bg-slate-800/60 p-6 rounded-3xl border border-slate-700/60 text-left space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
-                <Barcode className="w-6 h-6" />
-              </div>
-              <h3 className="font-bold text-white text-base">Lecteurs Code-Barres</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Compatible avec les douchettes USB et scanners Bluetooth pour scanner vos articles en 1 seconde.
-              </p>
-            </div>
-
-            <div className="bg-slate-800/60 p-6 rounded-3xl border border-slate-700/60 text-left space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
-                <Laptop className="w-6 h-6" />
-              </div>
-              <h3 className="font-bold text-white text-base">PC & Ordinateurs Portables</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Utilisable sur navigateur Chrome/Edge sous Windows, macOS ou Linux avec raccourcis clavier caisse.
-              </p>
-            </div>
-          </div>
-        </div>
+        </RevealOnScroll>
       </section>
 
       {/* ========================================================= */}
       {/* 9. FAQ ACCORDION SECTION (#faq) */}
       {/* ========================================================= */}
       <section id="faq" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
-        <div className="text-center mb-12">
-          <span className="text-xs font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-3.5 py-1 rounded-full border border-blue-200">
-            Foire Aux Questions
-          </span>
-          <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3">
-            Questions Fréquentes sur Kuettu Global POS
-          </h2>
-          <p className="text-slate-500 text-sm sm:text-base mt-2">
-            Tout ce que vous devez savoir pour démarrer sereinement votre commerce.
-          </p>
-        </div>
+        <RevealOnScroll direction="up">
+          <div className="text-center mb-12">
+            <span className="text-xs font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-3.5 py-1 rounded-full border border-blue-200">
+              Foire Aux Questions
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3">
+              Questions Fréquentes sur Kuettu Global POS
+            </h2>
+            <p className="text-slate-500 text-sm sm:text-base mt-2">
+              Tout ce que vous devez savoir pour démarrer sereinement votre commerce.
+            </p>
+          </div>
 
-        <div className="space-y-3">
-          {faqs.map((faq, index) => {
-            const isOpen = openFaqIndex === index;
-            return (
-              <div
-                key={index}
-                className="border border-slate-200 rounded-2xl overflow-hidden transition-all bg-white shadow-sm"
-              >
-                <button
-                  type="button"
-                  onClick={() => toggleFaq(index)}
-                  className="w-full p-4 sm:p-5 text-left font-bold text-sm sm:text-base text-slate-900 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors"
+          <div className="space-y-3">
+            {faqs.map((faq, index) => {
+              const isOpen = openFaqIndex === index;
+              return (
+                <div
+                  key={index}
+                  className="border border-slate-200 rounded-2xl overflow-hidden transition-all bg-white shadow-sm"
                 >
-                  <span>{faq.question}</span>
-                  <ChevronDown
-                    className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-300 ${
-                      isOpen ? "rotate-180 text-blue-600" : ""
-                    }`}
-                  />
-                </button>
-                {isOpen && (
-                  <div className="px-4 pb-5 sm:px-5 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
-                    {faq.answer}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleFaq(index)}
+                    className="w-full p-4 sm:p-5 text-left font-bold text-sm sm:text-base text-slate-900 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors"
+                  >
+                    <span>{faq.question}</span>
+                    <ChevronDown
+                      className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-300 ${
+                        isOpen ? "rotate-180 text-blue-600" : ""
+                      }`}
+                    />
+                  </button>
+                  {isOpen && (
+                    <div className="px-4 pb-5 sm:px-5 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                      {faq.answer}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </RevealOnScroll>
       </section>
 
       {/* ========================================================= */}
       {/* 10. BOTTOM FINAL CTA BANNER */}
       {/* ========================================================= */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white text-center">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-400/30">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Essai Gratuit 14 Jours Sans Engagement</span>
+        <RevealOnScroll direction="up">
+          <div className="max-w-4xl mx-auto space-y-6">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-400/30">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Essai Gratuit 14 Jours Sans Engagement</span>
+            </div>
+
+            <h2 className="text-2xl sm:text-4xl font-black max-w-2xl mx-auto leading-tight">
+              Transformez la Gestion de Votre Commerce Dès Aujourd'hui
+            </h2>
+
+            <p className="text-slate-300 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
+              Rejoignez les commerçants, supermarchés, quincailleries et dépôts d'Afrique qui éliminent les pertes de caisse et récupèrent leurs dettes avec Kuettu Global POS.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <Link
+                href="/auth/register"
+                className="w-full sm:w-auto py-3.5 px-8 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm shadow-xl shadow-blue-600/30 transition-all touch-press flex items-center justify-center gap-2"
+              >
+                <span>Créer ma Boutique en 30s</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                href="/auth/login"
+                className="w-full sm:w-auto py-3.5 px-6 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/20 transition-all touch-press"
+              >
+                <span>Se Connecter au Terminal</span>
+              </Link>
+            </div>
           </div>
-
-          <h2 className="text-2xl sm:text-4xl font-black max-w-2xl mx-auto leading-tight">
-            Transformez la Gestion de Votre Commerce Dès Aujourd'hui
-          </h2>
-
-          <p className="text-slate-300 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
-            Rejoignez les commerçants, supermarchés, quincailleries et dépôts d'Afrique qui éliminent les pertes de caisse et récupèrent leurs dettes avec Kuettu Global POS.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <Link
-              href="/auth/register"
-              className="w-full sm:w-auto py-3.5 px-8 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm shadow-xl shadow-blue-600/30 transition-all touch-press flex items-center justify-center gap-2"
-            >
-              <span>Créer ma Boutique en 30s</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              href="/auth/login"
-              className="w-full sm:w-auto py-3.5 px-6 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/20 transition-all touch-press"
-            >
-              <span>Se Connecter au Terminal</span>
-            </Link>
-          </div>
-        </div>
+        </RevealOnScroll>
       </section>
 
       {/* ========================================================= */}
