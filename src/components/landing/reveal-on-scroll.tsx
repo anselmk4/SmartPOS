@@ -53,17 +53,29 @@ export default function RevealOnScroll({
   const getDirectionClasses = () => {
     switch (direction) {
       case "up":
-        return isVisible ? "translate-y-0 opacity-100 scale-100" : "translate-y-8 opacity-0 scale-[0.98]";
+        return isVisible
+          ? "translate-y-0 opacity-100 scale-100 blur-0"
+          : "translate-y-14 opacity-0 scale-[0.96] blur-[6px]";
       case "down":
-        return isVisible ? "translate-y-0 opacity-100 scale-100" : "-translate-y-8 opacity-0 scale-[0.98]";
+        return isVisible
+          ? "translate-y-0 opacity-100 scale-100 blur-0"
+          : "-translate-y-14 opacity-0 scale-[0.96] blur-[6px]";
       case "left":
-        return isVisible ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0";
+        return isVisible
+          ? "translate-x-0 opacity-100 blur-0"
+          : "translate-x-14 opacity-0 blur-[6px]";
       case "right":
-        return isVisible ? "translate-x-0 opacity-100" : "-translate-x-8 opacity-0";
+        return isVisible
+          ? "translate-x-0 opacity-100 blur-0"
+          : "-translate-x-14 opacity-0 blur-[6px]";
       case "none":
-        return isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95";
+        return isVisible
+          ? "opacity-100 scale-100 blur-0"
+          : "opacity-0 scale-95 blur-[6px]";
       default:
-        return isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0";
+        return isVisible
+          ? "translate-y-0 opacity-100 scale-100 blur-0"
+          : "translate-y-14 opacity-0 scale-[0.96] blur-[6px]";
     }
   };
 
@@ -71,11 +83,12 @@ export default function RevealOnScroll({
     <div
       ref={ref}
       style={{
-        transitionDuration: "750ms",
+        transitionDuration: "850ms",
         transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
         transitionDelay: `${delay}ms`,
+        willChange: "transform, opacity, filter",
       }}
-      className={`transition-all ${getDirectionClasses()} ${className}`}
+      className={`transition-all duration-850 ease-out transform-gpu ${getDirectionClasses()} ${className}`}
     >
       {children}
     </div>

@@ -6,7 +6,7 @@ import { ShieldCheck, FileText, ArrowLeft, CheckCircle2, Lock, Scale, Building2,
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 sm:px-6 lg:px-8 landing-sf-pro font-sans antialiased tracking-tight">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Navigation & Header */}
         <div>
