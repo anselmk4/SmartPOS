@@ -103,7 +103,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, unitPrice, costPrice, stockQuantity, minStockAlert, category, name, barcode } = body;
+    const { id, unitPrice, costPrice, stockQuantity, minStockAlert, category, name, barcode, storeId, tenantId } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -120,6 +120,20 @@ export async function PUT(req: NextRequest) {
     if (category !== undefined) updateData.category = category.trim();
     if (name !== undefined) updateData.name = name.trim();
     if (barcode !== undefined) updateData.barcode = barcode ? barcode.trim() : null;
+    if (storeId !== undefined) {
+      updateData.storeId = storeId;
+      // Auto-resolve tenantId from store
+      const storeRec = await prisma.store.findUnique({
+        where: { id: storeId },
+        select: { tenantId: true },
+      });
+      if (storeRec?.tenantId) {
+        updateData.tenantId = storeRec.tenantId;
+      }
+    }
+    if (tenantId !== undefined && !updateData.tenantId) {
+      updateData.tenantId = tenantId;
+    }
 
     const updated = await prisma.product.update({
       where: { id },

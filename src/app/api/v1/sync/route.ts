@@ -177,6 +177,18 @@ export async function POST(req: NextRequest) {
           } else if (entity === "product" && (action === "CREATE" || action === "UPDATE")) {
             const cleanUnitPrice = data.unitPrice !== undefined ? sanitizeSyncPrice(data.unitPrice) : undefined;
             const cleanCostPrice = data.costPrice !== undefined ? sanitizeSyncPrice(data.costPrice) : undefined;
+            const targetStoreId = data.storeId || storeId;
+            let resolvedTenantId = data.tenantId || tenantId;
+
+            if (targetStoreId) {
+              const storeRec = await prisma.store.findUnique({
+                where: { id: targetStoreId },
+                select: { tenantId: true },
+              });
+              if (storeRec?.tenantId) {
+                resolvedTenantId = storeRec.tenantId;
+              }
+            }
 
             await prisma.product.upsert({
               where: { id: data.id },
@@ -194,8 +206,8 @@ export async function POST(req: NextRequest) {
               },
               create: {
                 id: data.id,
-                tenantId: data.tenantId || tenantId,
-                storeId: data.storeId || storeId,
+                tenantId: resolvedTenantId,
+                storeId: targetStoreId,
                 name: data.name || "Article",
                 unitPrice: cleanUnitPrice ?? 0,
                 costPrice: cleanCostPrice ?? 0,
@@ -223,6 +235,18 @@ export async function POST(req: NextRequest) {
             syncedIds.push(id);
           } else if (entity === "customer" && (action === "CREATE" || action === "UPDATE")) {
             const cleanDebt = data.currentDebtBalance !== undefined ? sanitizeSyncDebt(data.currentDebtBalance) : undefined;
+            const targetStoreId = data.storeId || storeId;
+            let resolvedTenantId = data.tenantId || tenantId;
+
+            if (targetStoreId) {
+              const storeRec = await prisma.store.findUnique({
+                where: { id: targetStoreId },
+                select: { tenantId: true },
+              });
+              if (storeRec?.tenantId) {
+                resolvedTenantId = storeRec.tenantId;
+              }
+            }
 
             await prisma.customer.upsert({
               where: { id: data.id },
@@ -235,8 +259,8 @@ export async function POST(req: NextRequest) {
               },
               create: {
                 id: data.id,
-                tenantId: data.tenantId || tenantId,
-                storeId: data.storeId || storeId,
+                tenantId: resolvedTenantId,
+                storeId: targetStoreId,
                 name: data.name || "Client",
                 phone: data.phone || null,
                 currentDebtBalance: cleanDebt ?? 0,
@@ -389,14 +413,27 @@ export async function POST(req: NextRequest) {
             });
             syncedIds.push(id);
           } else if (entity === "debt_payment" && action === "CREATE") {
+            const targetStoreId = data.storeId || storeId;
+            let resolvedTenantId = data.tenantId || tenantId;
+
+            if (targetStoreId) {
+              const storeRec = await prisma.store.findUnique({
+                where: { id: targetStoreId },
+                select: { tenantId: true },
+              });
+              if (storeRec?.tenantId) {
+                resolvedTenantId = storeRec.tenantId;
+              }
+            }
+
             if (data.customerId) {
               await prisma.customer.upsert({
                 where: { id: data.customerId },
                 update: {},
                 create: {
                   id: data.customerId,
-                  tenantId: data.tenantId || tenantId,
-                  storeId: data.storeId || storeId,
+                  tenantId: resolvedTenantId,
+                  storeId: targetStoreId,
                   name: data.customerName || "Client",
                   createdAt: new Date(data.createdAt || now),
                   updatedAt: now,
@@ -421,8 +458,8 @@ export async function POST(req: NextRequest) {
               },
               create: {
                 id: data.id,
-                tenantId: data.tenantId || tenantId,
-                storeId: data.storeId || storeId,
+                tenantId: resolvedTenantId,
+                storeId: targetStoreId,
                 customerId: data.customerId,
                 amount: data.amount,
                 paymentMethod,

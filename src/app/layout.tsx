@@ -11,6 +11,7 @@ import { SimulationBanner } from "@/components/navigation/simulation-banner";
 import { PWARegister } from "@/components/pwa/pwa-register";
 import { PlanPaymentGate } from "@/components/auth/plan-payment-gate";
 import { FirstLoginGuideModal } from "@/components/onboarding/first-login-guide-modal";
+import { PostHogProvider } from "@/lib/analytics/posthog-provider";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -223,33 +224,35 @@ export default function RootLayout({
         />
       </head>
       <body className="h-full bg-[#f6f8fc] text-slate-900 font-sans antialiased">
-        <AdminAuthProvider>
-          <AuthProvider>
-            <SyncProvider>
-              <SidebarProvider>
-                <div className="flex min-h-screen bg-[#f6f8fc]">
-                  {/* Left Retractable Dashboard Sidebar */}
-                  <Sidebar />
+        <PostHogProvider>
+          <AdminAuthProvider>
+            <AuthProvider>
+              <SyncProvider>
+                <SidebarProvider>
+                  <div className="flex min-h-screen bg-[#f6f8fc]">
+                    {/* Left Retractable Dashboard Sidebar */}
+                    <Sidebar />
 
-                  {/* Main Content Area */}
-                  <div className="flex-1 flex flex-col min-w-0 min-h-0">
-                    <Navbar />
-                    <SimulationBanner />
-                    <main className="flex-1 flex flex-col min-h-0">
-                      <PlanPaymentGate>{children}</PlanPaymentGate>
-                    </main>
+                    {/* Main Content Area */}
+                    <div className="flex-1 flex flex-col min-w-0 min-h-0">
+                      <Navbar />
+                      <SimulationBanner />
+                      <main className="flex-1 flex flex-col min-h-0">
+                        <PlanPaymentGate>{children}</PlanPaymentGate>
+                      </main>
+                    </div>
                   </div>
-                </div>
 
-                {/* PWA Service Worker & Install Manager */}
-                <PWARegister />
+                  {/* PWA Service Worker & Install Manager */}
+                  <PWARegister />
 
-                {/* First Connection Onboarding Guide */}
-                <FirstLoginGuideModal />
-              </SidebarProvider>
-            </SyncProvider>
-          </AuthProvider>
-        </AdminAuthProvider>
+                  {/* First Connection Onboarding Guide */}
+                  <FirstLoginGuideModal />
+                </SidebarProvider>
+              </SyncProvider>
+            </AuthProvider>
+          </AdminAuthProvider>
+        </PostHogProvider>
       </body>
     </html>
   );

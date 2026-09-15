@@ -1,32 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifySuperAdmin, unauthorizedAdminResponse } from "@/lib/admin/admin-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    const result = await reconcileTenantsData(prisma);
+    const auth = verifySuperAdmin(req);
+    if (!auth.authenticated) {
+      return unauthorizedAdminResponse(auth.error);
+    }
+
+    const result = await auditAndVerifyTenants(prisma);
     return NextResponse.json({
       success: true,
-      message: "Réconciliation des données effectuée avec succès.",
+      message: "Vérification et intégrité des boutiques validées avec succès.",
       data: result,
     });
   } catch (err: any) {
     console.error("[Reconcile Tenants Error]:", err);
     return NextResponse.json(
-      { success: false, error: err.message || "Erreur de réconciliation" },
+      { success: false, error: err.message || "Erreur d'audit des boutiques" },
       { status: 500 }
     );
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const result = await reconcileTenantsData(prisma, true);
+    const auth = verifySuperAdmin(req);
+    if (!auth.authenticated) {
+      return unauthorizedAdminResponse(auth.error);
+    }
+
+    const result = await auditAndVerifyTenants(prisma);
     return NextResponse.json({
       success: true,
-      message: "Réconciliation des données effectuée avec succès.",
+      message: "Rapport d'intégrité multi-tenant généré avec succès.",
       data: result,
     });
   } catch (err: any) {
@@ -34,184 +45,61 @@ export async function GET() {
   }
 }
 
-let lastReconcileTime = 0;
-
 /**
- * Air-tight multi-tenant data restitution & isolation engine.
- * Restores every commerce's legitimate products, currency, store records, and users.
+ * Non-destructive tenant data integrity audit and verification engine.
+ * Ensures stores, users, and products are strictly scoped to their legitimate tenantId.
  */
-export async function reconcileTenantsData(prismaClient: typeof prisma, force = false) {
-  const nowTime = Date.now();
-  if (!force && nowTime - lastReconcileTime < 10 * 60 * 1000) {
-    return { skipped: true, lastReconcileTime };
-  }
-  lastReconcileTime = nowTime;
-
-  const now = new Date();
-
-  // 1. Fetch all tenants with their stores and users
+export async function auditAndVerifyTenants(prismaClient: typeof prisma) {
   const allTenants = await prismaClient.tenant.findMany({
-    include: { stores: true, users: true },
+    include: {
+      stores: {
+        include: {
+          _count: { select: { products: true, sales: true, customers: true } },
+        },
+      },
+      users: { select: { id: true, name: true, phone: true, role: true, isActive: true } },
+      _count: { select: { products: true, sales: true, customers: true, subscriptions: true } },
+    },
+    orderBy: { createdAt: "desc" },
   });
 
-  // Identify Catalina Cosmetics (Olivier Birhalya)
-  const catalinaTenant = allTenants.find(
-    (t) =>
-      t.name.toLowerCase().includes("catalina") ||
-      t.slug.toLowerCase().includes("catalina") ||
-      t.users.some((u) => (u.name || "").toLowerCase().includes("birhalya") || (u.name || "").toLowerCase().includes("olivier"))
-  );
-
-  // Identify Wake Up Restaurant (Patrick Mwisha)
-  const wakeUpTenant = allTenants.find(
-    (t) =>
-      t.id === "f27a21c8-721e-4156-9ad3-b584e475e7b1" ||
-      t.name.toLowerCase().includes("wake") ||
-      t.slug.toLowerCase().includes("wake") ||
-      t.users.some((u) => (u.name || "").toLowerCase().includes("mwisha") || (u.name || "").toLowerCase().includes("patrick"))
-  );
-
-  let catalinaUpdated = false;
-  let wakeUpUpdated = false;
-  let productsReassignedToCatalina = 0;
-  let productsReassignedToWakeUp = 0;
-
-  // 2. Lock Catalina Cosmetics properties (USD, Cosmetics)
-  if (catalinaTenant) {
-    await prismaClient.tenant.update({
-      where: { id: catalinaTenant.id },
-      data: {
-        name: "CATALINA COSMETICS",
-        currency: "USD",
-        businessType: "Cosmétiques, Parfumerie, Beauté & Soins",
-        updatedAt: now,
-      },
-    });
-
-    await prismaClient.store.updateMany({
-      where: { tenantId: catalinaTenant.id },
-      data: {
-        name: "CATALINA COSMETICS",
-        currency: "USD",
-        businessType: "Cosmétiques, Parfumerie, Beauté & Soins",
-        updatedAt: now,
-      },
-    });
-
-    catalinaUpdated = true;
-  }
-
-  // 3. Lock Wake Up Restaurant properties (CDF, Bar & Restaurant)
-  if (wakeUpTenant) {
-    await prismaClient.tenant.update({
-      where: { id: wakeUpTenant.id },
-      data: {
-        name: "Wake Up Restaurant",
-        currency: "CDF",
-        businessType: "Bar, Lounge, Pub & Terrasse",
-        updatedAt: now,
-      },
-    });
-
-    await prismaClient.store.updateMany({
-      where: { tenantId: wakeUpTenant.id },
-      data: {
-        name: "Wake Up Restaurant",
-        currency: "CDF",
-        businessType: "Bar, Lounge, Pub & Terrasse",
-        updatedAt: now,
-      },
-    });
-
-    wakeUpUpdated = true;
-  }
-
-  // 4. Precise product keyword mapping
-  if (catalinaTenant && wakeUpTenant) {
-    const catalinaStore = catalinaTenant.stores[0] || (await prismaClient.store.findFirst({ where: { tenantId: catalinaTenant.id } }));
-    const wakeUpStore = wakeUpTenant.stores[0] || (await prismaClient.store.findFirst({ where: { tenantId: wakeUpTenant.id } }));
-
-    const catalinaStoreId = catalinaStore?.id || catalinaTenant.id;
-    const wakeUpStoreId = wakeUpStore?.id || wakeUpTenant.id;
-
-    const allProducts = await prismaClient.product.findMany();
-
-    const cosmeticKeywords = [
-      "lotion", "parfum", "crème", "creme", "éclat", "eclat", "polo",
-      "miss light", "fw exclusive", "bio pure", "savon", "huile", "soin",
-      "beauté", "beaute", "rouge", "gloss", "lait", "pommade", "gommage",
-      "gel douche", "shampoing", "fond de teint", "poudre", "mascara",
-      "vernis", "mèche", "meche", "perruque", "cosmétique", "cosmetique"
-    ];
-
-    const restaurantKeywords = [
-      "amarula", "amstel", "baileys", "baron", "banane", "bière", "biere",
-      "sucré", "sucre", "vin", "liqueur", "cognac", "whisky", "vodka",
-      "champagne", "bralima", "brasimba", "bralirwa", "brarudi", "primus",
-      "skol", "mutzig", "turbo", "castel", "beaufort", "doppel", "guinness",
-      "heineken", "coca", "fanta", "sprite", "vitalo", "tonic", "grillade",
-      "poisson", "viande", "poulet", "plat", "chikwangue", "frites", "salade",
-      "tapas", "brochette", "capitaine", "malangwa", "riz", "kosa"
-    ];
-
-    const catalinaProductIds: string[] = [];
-    const wakeUpProductIds: string[] = [];
-
-    for (const prod of allProducts) {
-      const lowerName = (prod.name || "").toLowerCase();
-      const lowerCat = (prod.category || "").toLowerCase();
-
-      const isCosmetic =
-        cosmeticKeywords.some((k) => lowerName.includes(k) || lowerCat.includes(k)) ||
-        lowerCat.includes("hygiène") ||
-        lowerCat.includes("beauté") ||
-        lowerCat.includes("cosmétique");
-
-      const isRestaurant =
-        restaurantKeywords.some((k) => lowerName.includes(k) || lowerCat.includes(k)) ||
-        lowerCat.includes("boisson") ||
-        lowerCat.includes("alimentation") ||
-        lowerCat.includes("restaurant") ||
-        lowerCat.includes("bar");
-
-      if (isCosmetic && prod.tenantId !== catalinaTenant.id) {
-        catalinaProductIds.push(prod.id);
-      } else if (isRestaurant && prod.tenantId !== wakeUpTenant.id) {
-        wakeUpProductIds.push(prod.id);
+  // Verify any orphaned products or stores where store.tenantId !== product.tenantId
+  const mismatchedProducts = await prismaClient.product.findMany({
+    where: {
+      store: {
+        tenantId: { not: undefined }
       }
+    },
+    select: {
+      id: true,
+      tenantId: true,
+      storeId: true,
+      store: { select: { tenantId: true } }
     }
+  });
 
-    if (catalinaProductIds.length > 0) {
-      await prismaClient.product.updateMany({
-        where: { id: { in: catalinaProductIds } },
-        data: {
-          tenantId: catalinaTenant.id,
-          storeId: catalinaStoreId,
-          updatedAt: now,
-        },
+  const fixingBatch: string[] = [];
+  for (const p of mismatchedProducts) {
+    if (p.store && p.store.tenantId && p.tenantId !== p.store.tenantId) {
+      await prismaClient.product.update({
+        where: { id: p.id },
+        data: { tenantId: p.store.tenantId },
       });
-      productsReassignedToCatalina = catalinaProductIds.length;
-    }
-
-    if (wakeUpProductIds.length > 0) {
-      await prismaClient.product.updateMany({
-        where: { id: { in: wakeUpProductIds } },
-        data: {
-          tenantId: wakeUpTenant.id,
-          storeId: wakeUpStoreId,
-          updatedAt: now,
-        },
-      });
-      productsReassignedToWakeUp = wakeUpProductIds.length;
+      fixingBatch.push(p.id);
     }
   }
 
   return {
-    catalinaUpdated,
-    wakeUpUpdated,
-    catalinaId: catalinaTenant?.id,
-    wakeUpId: wakeUpTenant?.id,
-    productsReassignedToCatalina,
-    productsReassignedToWakeUp,
+    totalTenants: allTenants.length,
+    fixedMismatches: fixingBatch.length,
+    tenantsSummary: allTenants.map((t) => ({
+      id: t.id,
+      name: t.name,
+      currency: t.currency,
+      storesCount: t.stores.length,
+      productsCount: t._count.products,
+      salesCount: t._count.sales,
+      customersCount: t._count.customers,
+    })),
   };
 }

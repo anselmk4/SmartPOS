@@ -37,4 +37,6 @@ yarn-error.log*
 
 # scratch & temporary files
 /scratch/
+/scripts/
+
 
