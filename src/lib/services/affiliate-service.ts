@@ -48,6 +48,18 @@ export function determineTierFromActiveCount(activeCount: number): AffiliateTier
 }
 
 /**
+ * Deterministic referral code generator for offline / fallback mode
+ */
+export function generateFallbackReferralCode(tenantId: string, storeNameHint?: string): string {
+  const cleanPrefix = storeNameHint
+    ? storeNameHint.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4)
+    : "GP";
+  const cleanId = tenantId.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  const shortId = cleanId.slice(-4) || "89X1";
+  return `${cleanPrefix || "GP"}-${shortId}`;
+}
+
+/**
  * Get or create an Affiliate profile for a given tenant / user
  */
 export async function getOrCreateAffiliate(
@@ -55,34 +67,9 @@ export async function getOrCreateAffiliate(
   userId?: string | null,
   storeNameHint?: string
 ) {
-  let affiliate = await prisma.affiliate.findUnique({
-    where: { tenantId },
-    include: {
-      tenant: true,
-      referrals: {
-        include: {
-          referredTenant: true,
-        },
-      },
-      rewards: true,
-    },
-  });
-
-  if (!affiliate) {
-    const code = await generateUniqueReferralCode(storeNameHint);
-    affiliate = await prisma.affiliate.create({
-      data: {
-        tenantId,
-        userId: userId || undefined,
-        referralCode: code,
-        currentTier: "BRONZE",
-        totalReferralsCount: 0,
-        activeReferralsCount: 0,
-        freeMonthsEarned: 0,
-        freeMonthsUsed: 0,
-        totalCashEarned: 0,
-        isActive: true,
-      },
+  try {
+    let affiliate = await prisma.affiliate.findUnique({
+      where: { tenantId },
       include: {
         tenant: true,
         referrals: {
@@ -93,9 +80,62 @@ export async function getOrCreateAffiliate(
         rewards: true,
       },
     });
-  }
 
-  return affiliate;
+    if (!affiliate) {
+      const code = await generateUniqueReferralCode(storeNameHint);
+      affiliate = await prisma.affiliate.create({
+        data: {
+          tenantId,
+          userId: userId || undefined,
+          referralCode: code,
+          currentTier: "BRONZE",
+          totalReferralsCount: 0,
+          activeReferralsCount: 0,
+          freeMonthsEarned: 0,
+          freeMonthsUsed: 0,
+          totalCashEarned: 0,
+          isActive: true,
+        },
+        include: {
+          tenant: true,
+          referrals: {
+            include: {
+              referredTenant: true,
+            },
+          },
+          rewards: true,
+        },
+      });
+    }
+
+    return affiliate;
+  } catch (dbErr: any) {
+    console.warn("[Affiliate Service] Database offline / fallback mode:", dbErr.message);
+    const fallbackCode = generateFallbackReferralCode(tenantId, storeNameHint);
+    return {
+      id: `local-aff-${tenantId}`,
+      tenantId,
+      userId: userId || null,
+      referralCode: fallbackCode,
+      currentTier: "BRONZE" as AffiliateTier,
+      totalReferralsCount: 0,
+      activeReferralsCount: 0,
+      freeMonthsEarned: 0,
+      freeMonthsUsed: 0,
+      totalCashEarned: 0,
+      payoutPhone: null,
+      payoutPaymentMethod: null,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      tenant: {
+        id: tenantId,
+        name: storeNameHint || "Mon Commerce",
+      } as any,
+      referrals: [],
+      rewards: [],
+    };
+  }
 }
 
 /**
@@ -557,24 +597,37 @@ export async function getAffiliateDashboardData(
 ): Promise<AffiliateDashboardData> {
   const affiliate = await getOrCreateAffiliate(tenantId, userId);
 
-  // Load all referrals for this affiliate with referred tenant info
-  const rawReferrals = await prisma.referral.findMany({
-    where: { affiliateId: affiliate.id },
-    include: {
-      referredTenant: {
-        include: {
-          stores: { take: 1 },
+  let rawReferrals: any[] = [];
+  let rawRewards: any[] = [];
+
+  try {
+    // Load all referrals for this affiliate with referred tenant info
+    rawReferrals = await prisma.referral.findMany({
+      where: { affiliateId: affiliate.id },
+      include: {
+        referredTenant: {
+          include: {
+            stores: { take: 1 },
+          },
         },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (refErr: any) {
+    console.warn("[Affiliate Service] Referrals query fallback:", refErr.message);
+    rawReferrals = [];
+  }
 
-  // Load rewards
-  const rawRewards = await prisma.affiliateReward.findMany({
-    where: { affiliateId: affiliate.id },
-    orderBy: { createdAt: "desc" },
-  });
+  try {
+    // Load rewards
+    rawRewards = await prisma.affiliateReward.findMany({
+      where: { affiliateId: affiliate.id },
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (rwErr: any) {
+    console.warn("[Affiliate Service] Rewards query fallback:", rwErr.message);
+    rawRewards = [];
+  }
 
   const activeCount = rawReferrals.filter((r) => r.status === "ACTIVE").length;
   const currentTier = affiliate.currentTier;

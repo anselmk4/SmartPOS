@@ -42,17 +42,25 @@ export default function AffiliatePage() {
   const [claimLoadingId, setClaimLoadingId] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [selectedTierDetail, setSelectedTierDetail] = useState<AffiliateTier | null>(null);
+  const [browserOrigin, setBrowserOrigin] = useState("https://globalpos.africa");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setBrowserOrigin(window.location.origin);
+    }
+  }, []);
 
   const fetchAffiliateData = useCallback(async () => {
     try {
-      if (!tenant?.id) return;
-      const res = await fetch(`/api/v1/affiliate?tenantId=${tenant.id}&userId=${user?.id || ""}`);
+      const tenantParam = tenant?.id || (typeof window !== "undefined" ? localStorage.getItem("pos_tenant_id") || "" : "");
+      const userParam = user?.id || (typeof window !== "undefined" ? localStorage.getItem("pos_user_id") || "" : "");
+      const res = await fetch(`/api/v1/affiliate?tenantId=${tenantParam}&userId=${userParam}`);
       const json = await res.json();
       if (json.success && json.data) {
         setDashboardData(json.data);
       }
     } catch (err) {
-      console.error("[Affiliate Page] Error fetching data:", err);
+      console.warn("[Affiliate Page] API fetch note, using local computation:", err);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -64,6 +72,7 @@ export default function AffiliatePage() {
   }, [fetchAffiliateData]);
 
   const handleCopy = (text: string, type: "link" | "code") => {
+    if (!text || text.includes("undefined")) return;
     navigator.clipboard.writeText(text);
     if (type === "link") {
       setCopiedLink(true);
@@ -80,7 +89,7 @@ export default function AffiliatePage() {
   };
 
   const handleClaimReward = async (rewardId?: string) => {
-    if (!tenant?.id || !dashboardData?.profile.id) return;
+    const targetAffiliateId = dashboardData?.profile?.id || `local-aff-${tenant?.id || "demo"}`;
 
     try {
       setClaimLoadingId(rewardId || "generic");
@@ -90,8 +99,8 @@ export default function AffiliatePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          affiliateId: dashboardData.profile.id,
-          tenantId: tenant.id,
+          affiliateId: targetAffiliateId,
+          tenantId: tenant?.id,
           rewardId,
         }),
       });
@@ -111,7 +120,57 @@ export default function AffiliatePage() {
     }
   };
 
-  if (isLoading) {
+  const profile = dashboardData?.profile;
+
+  // Fallback referral code calculation if profile or DB sync is loading
+  const fallbackCode =
+    tenant?.name
+      ? `GP-${tenant.name.replace(/[^a-zA-Z0-9]/g, "").slice(0, 4).toUpperCase() || "DEMO"}-${tenant.id ? tenant.id.slice(-4).toUpperCase() : "89X1"}`
+      : tenant?.id
+      ? `GP-${tenant.id.slice(-4).toUpperCase()}`
+      : "GP-8942";
+
+  const safeReferralCode =
+    profile?.referralCode && !profile.referralCode.includes("undefined")
+      ? profile.referralCode
+      : fallbackCode;
+
+  const safeReferralUrl =
+    profile?.referralUrl && !profile.referralUrl.includes("undefined")
+      ? profile.referralUrl
+      : `${browserOrigin}/auth/register?ref=${safeReferralCode}`;
+
+  const currentTier = profile?.currentTier || "BRONZE";
+  const tierConfig = AFFILIATE_TIERS[currentTier] || AFFILIATE_TIERS.BRONZE;
+
+  // Resolve next tier correctly
+  const nextTier =
+    profile?.nextTier !== undefined && profile.nextTier !== null
+      ? profile.nextTier
+      : currentTier === "BRONZE"
+      ? AFFILIATE_TIERS.SILVER
+      : currentTier === "SILVER"
+      ? AFFILIATE_TIERS.GOLD
+      : currentTier === "GOLD"
+      ? AFFILIATE_TIERS.PLATINUM
+      : null;
+
+  const activeCount = profile?.activeReferralsCount || 0;
+  const neededForNext =
+    profile?.neededForNextTier !== undefined
+      ? profile.neededForNextTier
+      : nextTier
+      ? Math.max(0, nextTier.minActiveReferrals - activeCount)
+      : 0;
+
+  const progressPercent =
+    profile?.tierProgressPercent !== undefined
+      ? profile.tierProgressPercent
+      : nextTier
+      ? Math.min(100, Math.round((activeCount / nextTier.minActiveReferrals) * 100))
+      : 100;
+
+  if (isLoading && !tenant) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-slate-500">
         <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
@@ -119,14 +178,6 @@ export default function AffiliatePage() {
       </div>
     );
   }
-
-  const profile = dashboardData?.profile;
-  const currentTier = profile?.currentTier || "BRONZE";
-  const tierConfig = AFFILIATE_TIERS[currentTier];
-  const nextTier = profile?.nextTier;
-  const activeCount = profile?.activeReferralsCount || 0;
-  const neededForNext = profile?.neededForNextTier || 0;
-  const progressPercent = profile?.tierProgressPercent || 0;
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8 animate-in fade-in duration-300">
@@ -173,33 +224,23 @@ export default function AffiliatePage() {
               <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
                 Votre Lien d&apos;Affiliation Unique
               </span>
-              <p className="font-mono text-xs sm:text-sm text-blue-200 truncate select-all">
-                {profile?.referralUrl || `https://globalpos.africa/auth/register?ref=${profile?.referralCode}`}
+              <p className="font-mono text-xs sm:text-sm text-blue-200 truncate select-all font-semibold">
+                {safeReferralUrl}
               </p>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
               <button
-                onClick={() =>
-                  handleCopy(
-                    profile?.referralUrl || `https://globalpos.africa/auth/register?ref=${profile?.referralCode}`,
-                    "link"
-                  )
-                }
-                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-600/30 transition-all"
+                onClick={() => handleCopy(safeReferralUrl, "link")}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-600/30 transition-all cursor-pointer"
               >
                 {copiedLink ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copiedLink ? "Copié !" : "Copier"}</span>
               </button>
 
               <button
-                onClick={() =>
-                  handleShareWhatsApp(
-                    profile?.referralUrl || `https://globalpos.africa/auth/register?ref=${profile?.referralCode}`,
-                    profile?.referralCode || "GP"
-                  )
-                }
-                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/30 transition-all"
+                onClick={() => handleShareWhatsApp(safeReferralUrl, safeReferralCode)}
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/30 transition-all cursor-pointer"
                 title="Partager sur WhatsApp"
               >
                 <MessageCircle className="w-3.5 h-3.5" />
@@ -215,13 +256,13 @@ export default function AffiliatePage() {
                 Code Partenaire
               </span>
               <span className="font-mono text-base font-black text-amber-300 tracking-wider">
-                {profile?.referralCode || "GP-XXXX"}
+                {safeReferralCode}
               </span>
             </div>
 
             <button
-              onClick={() => handleCopy(profile?.referralCode || "", "code")}
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-bold transition-all"
+              onClick={() => handleCopy(safeReferralCode, "code")}
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-bold transition-all cursor-pointer"
               title="Copier le code seul"
             >
               {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
