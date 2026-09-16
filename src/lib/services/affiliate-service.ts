@@ -327,34 +327,86 @@ export async function recalculateAffiliateTier(affiliateId: string): Promise<{
     },
   });
 
-  // If upgraded or reached a milestone, grant rewards
-  if (upgraded) {
-    const tierConfig = AFFILIATE_TIERS[newTier];
-    let freeMonthsToGrant = 0;
-
-    if (newTier === "SILVER") {
-      freeMonthsToGrant = 1; // 1 mois gratuit débloqué
-    } else if (newTier === "GOLD") {
-      freeMonthsToGrant = 1; // 1 mois supplémentaire
-    } else if (newTier === "PLATINUM") {
-      freeMonthsToGrant = 2; // 2 mois bonus + statut VIP
-    }
-
-    if (freeMonthsToGrant > 0) {
+  // If reached specific gamification milestones, grant rewards
+  // Milestone 1: 10 active referrals -> 15 days (0.5 month) Plan PRO
+  if (activeCount >= 10) {
+    const existingBronzeReward = affiliate.rewards.find(
+      (r) => r.rewardType === "FREE_MONTH" && r.notes?.includes("10 filleuls")
+    );
+    if (!existingBronzeReward) {
       await prisma.affiliateReward.create({
         data: {
           affiliateId,
           rewardType: "FREE_MONTH",
-          rewardValue: freeMonthsToGrant,
+          rewardValue: 0.5,
           status: "GRANTED",
-          notes: `Déblocage du Palier ${tierConfig.displayName} (${activeCount} filleuls actifs) !`,
+          notes: "Récompense Palier Bronze : 15 jours offerts du forfait PRO (10 filleuls actifs atteints) !",
         },
       });
-
       await prisma.affiliate.update({
         where: { id: affiliateId },
+        data: { freeMonthsEarned: { increment: 1 } },
+      });
+    }
+  }
+
+  // Milestone 2: 20 active referrals -> 1 month free / quarter
+  if (activeCount >= 20) {
+    const existingSilverReward = affiliate.rewards.find(
+      (r) => r.rewardType === "FREE_MONTH" && r.notes?.includes("20 filleuls")
+    );
+    if (!existingSilverReward) {
+      await prisma.affiliateReward.create({
         data: {
-          freeMonthsEarned: { increment: freeMonthsToGrant },
+          affiliateId,
+          rewardType: "FREE_MONTH",
+          rewardValue: 1,
+          status: "GRANTED",
+          notes: "Récompense Palier Argent : 1 mois d'abonnement gratuit par trimestre (20 filleuls actifs atteints) !",
+        },
+      });
+      await prisma.affiliate.update({
+        where: { id: affiliateId },
+        data: { freeMonthsEarned: { increment: 1 } },
+      });
+    }
+  }
+
+  // Milestone 3: 30 active referrals -> 6 months PRO free
+  if (activeCount >= 30) {
+    const existingGoldReward = affiliate.rewards.find(
+      (r) => r.rewardType === "FREE_MONTH" && r.notes?.includes("30e filleul")
+    );
+    if (!existingGoldReward) {
+      await prisma.affiliateReward.create({
+        data: {
+          affiliateId,
+          rewardType: "FREE_MONTH",
+          rewardValue: 6,
+          status: "GRANTED",
+          notes: "Récompense Palier Or : 6 mois d'abonnement PRO 100% offerts (dès le 30e filleul actif) !",
+        },
+      });
+      await prisma.affiliate.update({
+        where: { id: affiliateId },
+        data: { freeMonthsEarned: { increment: 6 } },
+      });
+    }
+  }
+
+  // Milestone 4: 41+ active referrals -> Platinum VIP 100% Free
+  if (upgraded && newTier === "PLATINUM") {
+    const existingPlatReward = affiliate.rewards.find(
+      (r) => r.rewardType === "TIER_UPGRADE" && r.notes?.includes("Platine")
+    );
+    if (!existingPlatReward) {
+      await prisma.affiliateReward.create({
+        data: {
+          affiliateId,
+          rewardType: "TIER_UPGRADE",
+          rewardValue: 12,
+          status: "GRANTED",
+          notes: "Déblocage Palier VIP Platine : Compte GlobalPOS 100% GRATUIT à vie dès le 41e filleul actif + 10% Cash !",
         },
       });
     }
@@ -393,11 +445,10 @@ export async function handlePaymentConversion(
       return { success: true, converted: false };
     }
 
-    const wasPending = referral.status === "PENDING";
     const now = new Date();
 
     // Update referral status to ACTIVE
-    const updatedRef = await prisma.referral.update({
+    await prisma.referral.update({
       where: { id: referral.id },
       data: {
         status: "ACTIVE",
@@ -407,41 +458,12 @@ export async function handlePaymentConversion(
       },
     });
 
-    // If this is the first payment conversion, grant the initial 15 days or 1st referral reward
-    if (wasPending) {
-      // Check if this is the affiliate's 1st referral
-      const totalActive = await prisma.referral.count({
-        where: { affiliateId: referral.affiliateId, status: "ACTIVE" },
-      });
-
-      if (totalActive === 1) {
-        // Grant Bronze bonus: 0.5 month (15 days) reward
-        await prisma.affiliateReward.create({
-          data: {
-            affiliateId: referral.affiliateId,
-            referralId: referral.id,
-            rewardType: "FREE_MONTH",
-            rewardValue: 0.5,
-            status: "GRANTED",
-            notes: "Bonus d'activation : 15 jours offerts pour votre 1er filleul actif !",
-          },
-        });
-
-        await prisma.affiliate.update({
-          where: { id: referral.affiliateId },
-          data: {
-            freeMonthsEarned: { increment: 1 }, // Count as 1 reward milestone
-          },
-        });
-      }
-    }
-
     // Recalculate affiliate tier & perks
     const tierResult = await recalculateAffiliateTier(referral.affiliateId);
 
-    // If affiliate is Platinum, calculate and accumulate 15% cash commission
+    // If affiliate is Platinum (41+ filleuls), calculate and accumulate 10% cash commission on PRO plan payments
     if (tierResult.newTier === "PLATINUM" && paymentAmount > 0) {
-      const commission = Math.round(paymentAmount * 0.15 * 100) / 100;
+      const commission = Math.round(paymentAmount * 0.10 * 100) / 100;
       if (commission > 0) {
         await prisma.affiliateReward.create({
           data: {
@@ -450,7 +472,7 @@ export async function handlePaymentConversion(
             rewardType: "PAYOUT",
             rewardValue: commission,
             status: "GRANTED",
-            notes: `Commission VIP 15% sur paiement de ${paymentAmount} (Réf: ${transactionId || "N/A"})`,
+            notes: `Commission VIP 10% sur paiement forfait PRO de ${paymentAmount} (Réf: ${transactionId || "N/A"})`,
           },
         });
 

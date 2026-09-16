@@ -369,7 +369,7 @@ export default function AffiliatePage() {
               <span className="text-sm font-semibold text-slate-500">{rawCurrency || "USD"}</span>
             </div>
             <span className="text-[11px] text-slate-500 font-medium">
-              {currentTier === "PLATINUM" ? "15% PawaPay actif" : "Débloqué au Palier Platine VIP"}
+              {currentTier === "PLATINUM" ? "10% PawaPay actif sur plan PRO" : "10% Cash débloqué dès 41 filleuls (Platine VIP)"}
             </span>
           </div>
         </div>

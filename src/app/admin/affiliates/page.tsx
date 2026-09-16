@@ -135,7 +135,7 @@ export default function AdminAffiliatesPage() {
             <DollarSign className="w-4 h-4 text-purple-400" />
           </div>
           <div className="text-3xl font-black text-purple-400">{stats.totalCashPaidOut.toLocaleString("fr-FR")} USD</div>
-          <span className="text-[11px] text-slate-500 font-mono">15% Payouts PawaPay</span>
+          <span className="text-[11px] text-slate-500 font-mono">10% Payouts PawaPay (Plan PRO)</span>
         </div>
       </div>
 

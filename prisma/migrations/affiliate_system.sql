@@ -98,10 +98,10 @@ CREATE TABLE IF NOT EXISTS "tier_rules" (
 -- 6. INSERT DEFAULT TIER RULES
 INSERT INTO "tier_rules" ("tier_name", "display_name", "min_active_referrals", "free_months_reward", "discount_percent", "cash_commission_percent", "perks_json", "order_index")
 VALUES
-    ('BRONZE', 'Bronze', 1, 0, 10.0, 0.0, '["15 jours offerts à l''activation du 1er filleul", "10% de réduction récurrente sur votre abonnement", "Kit de partage WhatsApp et réseaux"]', 1),
-    ('SILVER', 'Argent', 4, 1, 20.0, 0.0, '["1 mois d''abonnement gratuit par trimestre", "Badge Partenaire Argent", "Support prioritaire par chat"]', 2),
-    ('GOLD', 'Or', 10, 1, 50.0, 5.0, '["1 mois gratuit par mois (Compte 100% autofinancé)", "Ligne directe WhatsApp avec notre équipe", "Formation gratuite des caissiers"]', 3),
-    ('PLATINUM', 'VIP Platine', 25, 999, 100.0, 15.0, '["Compte GlobalPOS 100% GRATUIT à vie", "15% de commission Cash Mobile Money sur chaque paiement", "Gestionnaire de compte dédié", "Statut officiel d''ambassadeur"]', 4)
+    ('BRONZE', 'Bronze', 1, 0, 0.0, 0.0, '["15 jours offerts du plan PRO dès 10 filleuls", "Kit de promotion & liens de partage WhatsApp", "Accès au tableau de bord affilié en temps réel"]', 1),
+    ('SILVER', 'Argent', 11, 1, 0.0, 0.0, '["1 mois gratuit par trimestre dès 20 filleuls", "Badge Partenaire Argent", "Support prioritaire par chat"]', 2),
+    ('GOLD', 'Or', 21, 6, 0.0, 0.0, '["6 mois offerts dès le 30e filleul (Objectif 40)", "Ligne directe WhatsApp avec notre équipe", "Formation gratuite des caissiers"]', 3),
+    ('PLATINUM', 'VIP Platine', 41, 999, 100.0, 10.0, '["Compte GlobalPOS 100% GRATUIT dès le 41e filleul", "10% de commission Cash sur chaque paiement du plan PRO", "Paiement Mobile Money automatique", "Account Manager dédié VIP"]', 4)
 ON CONFLICT ("tier_name") DO UPDATE SET
     "display_name" = EXCLUDED."display_name",
     "min_active_referrals" = EXCLUDED."min_active_referrals",
