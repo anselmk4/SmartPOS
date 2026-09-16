@@ -467,6 +467,35 @@ function BillingPageContent() {
         );
       })()}
 
+      {/* 🎁 PROGRAMME D'AFFILIATION & MOIS GRATUITS BANNER */}
+      <div className="p-6 rounded-3xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-amber-950 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-white/25 backdrop-blur-md flex items-center justify-center text-amber-950 font-black shrink-0 shadow-xs">
+            <Gift className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/30 text-[10px] font-black uppercase tracking-wider mb-1">
+              <Sparkles className="w-3 h-3 text-amber-950" />
+              <span>Autofinancement 100% Gratuit</span>
+            </div>
+            <h4 className="text-base sm:text-lg font-black text-amber-950">
+              Gagnez des Mois Gratuits en Parrainant d&apos;autres Commerçants
+            </h4>
+            <p className="text-xs text-amber-900/90 font-medium">
+              Chaque filleul actif prolonge votre abonnement et débloque des récompenses Mobile Money PawaPay.
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href="/affiliate"
+          className="px-5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md shrink-0 flex items-center gap-2 transition-all"
+        >
+          <span>Voir mon Espace Affiliation</span>
+          <ArrowRight className="w-4 h-4 text-amber-400" />
+        </Link>
+      </div>
+
       {/* ========================================================= */}
       {/* 📜 HISTORIQUE DES PAIEMENTS & SOUSCRIPTIONS EFFECTUÉS */}
       {/* ========================================================= */}

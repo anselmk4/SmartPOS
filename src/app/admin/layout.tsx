@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Database,
   RefreshCw,
+  Gift,
 } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -93,6 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: "Boutiques & Commerces", href: "/admin/tenants", icon: Store, count: counts.tenants },
     { label: "Utilisateurs & Caissiers", href: "/admin/users", icon: Users, count: counts.users },
     { label: "Abonnements & Mobile Money", href: "/admin/subscriptions", icon: CreditCard, count: counts.subscriptions },
+    { label: "Programme Affiliés", href: "/admin/affiliates", icon: Gift, count: null },
     { label: "Catalogue & Stocks Réseau", href: "/admin/catalog", icon: Package, count: counts.products },
     { label: "Paramètres Système", href: "/admin/settings", icon: Settings, count: null },
   ];

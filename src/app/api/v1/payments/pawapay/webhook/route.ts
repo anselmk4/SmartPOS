@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkPawaPayDepositStatus } from "@/lib/payments/pawapay-client";
 import { sendPaymentNotificationEmail } from "@/lib/services/email-service";
+import { handlePaymentConversion } from "@/lib/services/affiliate-service";
 import type { SubscriptionPlan, PaymentMethod } from "@/lib/shared/types";
 import crypto from "crypto";
 
@@ -173,6 +174,11 @@ export async function POST(req: NextRequest) {
             });
           }
         }
+
+        // Trigger Gamified Affiliate Conversion & Reward Calculation
+        handlePaymentConversion(tenantId, payAmount, transactionId).catch((affErr) => {
+          console.warn("[PawaPay Webhook] Affiliate conversion processing note:", affErr.message);
+        });
 
         // Send payment notification email to kuettusocial@gmail.com and CC info@kuettu.com
         const ownerEmail = updatedTenant.users?.find((u) => u.role === "OWNER")?.email || updatedTenant.users?.[0]?.email;

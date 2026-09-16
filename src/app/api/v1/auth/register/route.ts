@@ -5,6 +5,7 @@ import { hashPinCode } from "@/lib/security/password";
 import { triggerRegistrationOtp } from "@/lib/services/otp-service";
 import { getSystemVerificationConfig } from "@/lib/services/system-settings";
 import { createSessionToken } from "@/lib/security/jwt";
+import { linkReferralSignup, getOrCreateAffiliate } from "@/lib/services/affiliate-service";
 import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
     const body = await req.json();
     const {
       tenantId,
@@ -27,10 +29,15 @@ export async function POST(req: NextRequest) {
       currency = "CDF",
       pinCode = "1234",
       plan = "FREE",
+      referralCode,
+      ref,
+      deviceFingerprint,
       captchaToken,
       captchaAnswer,
       honeypot,
     } = body;
+
+    const incomingRefCode = referralCode || ref || searchParams.get("ref") || searchParams.get("referralCode");
 
     // 1. Anti-Bot Honeypot validation
     if (honeypot && String(honeypot).trim().length > 0) {
@@ -193,7 +200,28 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 4. Trigger OTP verification (SMS Twilio / Supabase Email)
+    // 4. Link to Referrer Affiliate if referral code was provided
+    if (incomingRefCode) {
+      const clientIp = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "127.0.0.1";
+      await linkReferralSignup({
+        referralCode: String(incomingRefCode).trim(),
+        referredTenantId: tenant.id,
+        referredUserId: user.id,
+        signupIp: clientIp,
+        deviceFingerprint: deviceFingerprint ? String(deviceFingerprint) : undefined,
+        phone: cleanPhone,
+        email: cleanEmail || undefined,
+      }).catch((refErr) => {
+        console.warn("[Register API] Referral linking note:", refErr.message);
+      });
+    }
+
+    // 5. Initialize own Affiliate Profile for the new merchant
+    await getOrCreateAffiliate(tenant.id, user.id, storeName).catch((affErr) => {
+      console.warn("[Register API] Initializing affiliate profile note:", affErr.message);
+    });
+
+    // 6. Trigger OTP verification (SMS Twilio / Supabase Email)
     let otpData = null;
     let token: string | undefined = undefined;
 

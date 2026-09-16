@@ -20,6 +20,7 @@ import {
   Store as StoreIcon,
   Crown,
   Zap,
+  Gift,
   ChevronLeft,
   ChevronRight,
   Receipt,
@@ -275,6 +276,15 @@ export function Sidebar() {
       color: "text-purple-600",
       bgActive: "bg-blue-600 text-white shadow-sm shadow-blue-500/25",
       allowed: !isWaiter && isOwner,
+    },
+    {
+      label: "Affiliation & Cadeaux",
+      shortLabel: "Affiliation",
+      href: "/affiliate",
+      icon: Gift,
+      color: "text-pink-600",
+      bgActive: "bg-blue-600 text-white shadow-sm shadow-blue-500/25",
+      allowed: !isWaiter && (isOwner || isManager),
     },
     {
       label: "Paramètres",

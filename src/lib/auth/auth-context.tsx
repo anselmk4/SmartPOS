@@ -98,6 +98,7 @@ interface AuthContextType {
     currency?: string;
     pinCode?: string;
     plan?: SubscriptionPlan;
+    referralCode?: string;
     captchaToken?: string;
     captchaAnswer?: string;
     honeypot?: string;
@@ -701,6 +702,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     currency?: string;
     pinCode?: string;
     plan?: SubscriptionPlan;
+    referralCode?: string;
     captchaToken?: string;
     captchaAnswer?: string;
     honeypot?: string;
@@ -790,6 +792,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               currency: data.currency,
               pinCode: data.pinCode,
               plan: data.plan,
+              referralCode: data.referralCode,
               captchaToken: data.captchaToken,
               captchaAnswer: data.captchaAnswer,
               honeypot: data.honeypot,

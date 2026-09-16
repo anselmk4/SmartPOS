@@ -112,6 +112,7 @@ function RegisterForm() {
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>("FREE");
   const [planNotice, setPlanNotice] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [referralCode, setReferralCode] = useState<string>("");
   const [captchaState, setCaptchaState] = useState<CaptchaValidationState>({
     isValid: false,
     captchaToken: "",
@@ -121,6 +122,25 @@ function RegisterForm() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Read referral code from URL parameters or localStorage
+  useEffect(() => {
+    try {
+      const refFromUrl = searchParams.get("ref") || searchParams.get("referralCode") || searchParams.get("r");
+      if (refFromUrl && refFromUrl.trim()) {
+        const cleanRef = refFromUrl.trim().toUpperCase();
+        setReferralCode(cleanRef);
+        localStorage.setItem("globalpos_referral_code", cleanRef);
+      } else {
+        const storedRef = localStorage.getItem("globalpos_referral_code");
+        if (storedRef) {
+          setReferralCode(storedRef);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [searchParams]);
 
   const countries = [
     { code: "CD", name: "RD Congo (CDF / USD)", currency: "CDF", prefix: "+243" },
@@ -227,6 +247,7 @@ function RegisterForm() {
       currency,
       pinCode: pinCode.trim(),
       plan: selectedPlan,
+      referralCode: referralCode ? referralCode.trim().toUpperCase() : undefined,
       captchaToken: captchaState.captchaToken,
       captchaAnswer: captchaState.captchaAnswer,
       honeypot: captchaState.honeypot,
@@ -620,7 +641,35 @@ function RegisterForm() {
                 </div>
               </div>
 
-              {/* Field 3: Anti-Bot Security Captcha */}
+              {/* Field 3: Code de Parrainage / Affiliation (Optionnel) */}
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1.5">
+                  Code de Parrainage / Partenaire (Optionnel)
+                </label>
+                <div className="relative">
+                  <Sparkles className="w-4 h-4 text-amber-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="ex: GP-8K9F2 (ou laissez vide)"
+                    value={referralCode}
+                    onChange={(e) => {
+                      const val = e.target.value.toUpperCase();
+                      setReferralCode(val);
+                      if (val) localStorage.setItem("globalpos_referral_code", val);
+                      else localStorage.removeItem("globalpos_referral_code");
+                    }}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-mono uppercase tracking-wider font-semibold focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                  />
+                </div>
+                {referralCode && (
+                  <span className="text-[10px] text-emerald-600 font-bold mt-1 block flex items-center gap-1">
+                    <Check className="w-3 h-3 text-emerald-600 inline" />
+                    Code partenaire appliqué : bénéficiez de vos avantages de bienvenue !
+                  </span>
+                )}
+              </div>
+
+              {/* Field 4: Anti-Bot Security Captcha */}
               <CaptchaChallenge onValidationChange={setCaptchaState} className="mt-2" />
 
               {/* Field 4: Terms & Privacy Agreement Checkbox */}
