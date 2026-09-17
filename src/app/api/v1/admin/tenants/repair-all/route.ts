@@ -246,25 +246,34 @@ export async function POST(req: NextRequest) {
       phone: "+243 970295579",
       role: "OWNER",
       pinCode: "1234",
-      searchNames: ["Patrick Mwisha", "Patrick"],
+      searchNames: ["Patrick Mwisha", "Patrick", "Mwisha"],
       searchPhones: ["+243 970295579", "+243970295579", "0970295579"],
     });
 
-    // Ensure 4 total staff members under Wake Up Restaurant
-    const wakeStaffNames = ["Caisse 1", "Serveur 1", "Serveur 2"];
-    const currentWakeUsers = await prisma.user.findMany({ where: { tenantId: wakeTargetTenant.id } });
-    const missingWakeStaff = 4 - currentWakeUsers.length;
-    for (let i = 0; i < missingWakeStaff; i++) {
-      await prisma.user.create({
-        data: {
-          tenantId: wakeTargetTenant.id,
-          name: wakeStaffNames[i] || `Serveur ${i + 1}`,
-          role: "WAITER",
-          pinCode: "0000",
-          isActive: true,
-        },
-      });
-    }
+    // Ensure Nshangalume aristote is the CASHIER of Wake Up Restaurant (safe upsert)
+    await safeUpsertTenantUser({
+      tenantId: wakeTargetTenant.id,
+      name: "Nshangalume aristote",
+      phone: "+243 970295579",
+      role: "CASHIER",
+      pinCode: "0000",
+      searchNames: ["Nshangalume", "Aristote", "Nshangalume aristote"],
+      searchPhones: ["+243 970295579", "+243970295579"],
+    });
+
+    // Purge all other users from Wake Up Restaurant
+    const purgedWakeUsers = await prisma.user.deleteMany({
+      where: {
+        tenantId: wakeTargetTenant.id,
+        NOT: [
+          { name: { contains: "Patrick", mode: "insensitive" } },
+          { name: { contains: "Mwisha", mode: "insensitive" } },
+          { name: { contains: "Nshangalume", mode: "insensitive" } },
+          { name: { contains: "Aristote", mode: "insensitive" } },
+        ],
+      },
+    });
+    logs.push(`Wake Up Restaurant configuré : Patrick Mwisha (Propriétaire) et Nshangalume Aristote (Caissier). ${purgedWakeUsers.count} utilisateur(s) supplémentaire(s) purgé(s).`);
 
     // Delete duplicate wake tenants
     for (const wt of wakeTenants) {
@@ -444,6 +453,14 @@ export async function POST(req: NextRequest) {
       await prisma.store.delete({ where: { id: eg.id } }).catch(() => {});
     }
 
+    // Ensure Bienfait Matabaro is detached/deleted from Genesis Shop (he belongs to Catalina Cosmetics)
+    await prisma.user.deleteMany({
+      where: {
+        tenantId: genesisTenant.id,
+        name: { contains: "Bienfait", mode: "insensitive" },
+      },
+    }).catch(() => {});
+
     // Ensure all products under Genesis Shop have updatedAt refreshed
     await prisma.product.updateMany({
       where: { tenantId: genesisTenant.id },
@@ -451,10 +468,16 @@ export async function POST(req: NextRequest) {
     });
 
     // =========================================================================
-    // 3. REPAIR: CATALINA COSMETICS (Bienfait Matabaro)
+    // 3. REPAIR: CATALINA COSMETICS (Bienfait Matabaro - Gérant)
     // =========================================================================
     let catalinaTenant = await prisma.tenant.findFirst({
-      where: { name: { contains: "Catalina", mode: "insensitive" } },
+      where: {
+        OR: [
+          { name: { contains: "Catalina", mode: "insensitive" } },
+          { phone: { contains: "972563597" } },
+        ],
+      },
+      include: { stores: true, users: true },
     });
 
     if (!catalinaTenant) {
@@ -463,17 +486,62 @@ export async function POST(req: NextRequest) {
           name: "Catalina Cosmetics",
           slug: "catalina-cosmetics",
           businessType: "Cosmétiques & Beauté",
+          phone: "+243972563597",
           plan: "PRO",
           planStatus: "ACTIVE",
           countryCode: "CD",
           currency: "CDF",
           isActive: true,
+          createdAt: now,
+          updatedAt: now,
         },
+        include: { stores: true, users: true },
       });
       logs.push("Créé le compte tenant Catalina Cosmetics.");
+    } else {
+      catalinaTenant = await prisma.tenant.update({
+        where: { id: catalinaTenant.id },
+        data: {
+          name: "Catalina Cosmetics",
+          phone: "+243972563597",
+          businessType: "Cosmétiques & Beauté",
+          plan: "PRO",
+          planStatus: "ACTIVE",
+          isActive: true,
+        },
+        include: { stores: true, users: true },
+      });
+      logs.push("Mis à jour le tenant Catalina Cosmetics.");
     }
 
-    // Reassign Bienfait Matabaro to Catalina Cosmetics (safe upsert)
+    // Ensure store exists under Catalina Cosmetics
+    let catalinaStore = await prisma.store.findFirst({
+      where: { tenantId: catalinaTenant.id },
+    });
+    if (!catalinaStore) {
+      catalinaStore = await prisma.store.create({
+        data: {
+          tenantId: catalinaTenant.id,
+          name: "Catalina Cosmetics - Siège",
+          ownerName: "BIENFAIT MATABARO",
+          phone: "+243972563597",
+          businessType: "Cosmétiques & Beauté",
+          currency: "CDF",
+        },
+      });
+    } else {
+      catalinaStore = await prisma.store.update({
+        where: { id: catalinaStore.id },
+        data: {
+          name: "Catalina Cosmetics - Siège",
+          ownerName: "BIENFAIT MATABARO",
+          phone: "+243972563597",
+          businessType: "Cosmétiques & Beauté",
+        },
+      });
+    }
+
+    // Ensure Bienfait Matabaro is MANAGER / GÉRANT of Catalina Cosmetics
     await safeUpsertTenantUser({
       tenantId: catalinaTenant.id,
       name: "BIENFAIT MATABARO",
@@ -483,7 +551,7 @@ export async function POST(req: NextRequest) {
       searchNames: ["Bienfait", "Matabaro", "Bienfait matabaro"],
       searchPhones: ["+243972563597", "+243 972563597", "0972563597"],
     });
-    logs.push("Rattaché Bienfait Matabaro à Catalina Cosmetics.");
+    logs.push("Rattaché Bienfait Matabaro comme Gérant exclusif de Catalina Cosmetics.");
 
     // =========================================================================
     // 4. REPAIR: HAPPY BORA (Diane - Serveur)

@@ -143,19 +143,30 @@ export async function POST(req: NextRequest) {
     });
 
     // 5. Setup Patrick Mwisha as OWNER
+    let patrickUser = await prisma.user.findFirst({
+      where: {
+        tenantId: targetTenantId,
+        OR: [
+          { name: { contains: "Patrick", mode: "insensitive" } },
+          { name: { contains: "Mwisha", mode: "insensitive" } },
+          { phone: { contains: "970295579" } },
+        ],
+      },
+    });
+
     if (patrickUser) {
       await prisma.user.update({
         where: { id: patrickUser.id },
         data: {
-          tenantId: targetTenantId,
           name: "Patrick Mwisha",
           phone: "+243 970295579",
           role: "OWNER",
+          pinCode: "1234",
           isActive: true,
         },
       });
     } else {
-      patrickUser = await prisma.user.create({
+      await prisma.user.create({
         data: {
           tenantId: targetTenantId,
           name: "Patrick Mwisha",
@@ -167,44 +178,55 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Clean out non-Patrick extraneous test users (like "Sidney mak") and keep the 4 staff members
-    await prisma.user.deleteMany({
+    // 6. Setup Nshangalume aristote as CASHIER
+    let aristoteUser = await prisma.user.findFirst({
       where: {
         tenantId: targetTenantId,
-        name: { contains: "Sidney", mode: "insensitive" },
+        OR: [
+          { name: { contains: "Nshangalume", mode: "insensitive" } },
+          { name: { contains: "Aristote", mode: "insensitive" } },
+        ],
       },
     });
 
-    // Reassign Patrick's staff to targetTenantId
-    for (const staff of patrickStaff.slice(0, 3)) {
+    if (aristoteUser) {
       await prisma.user.update({
-        where: { id: staff.id },
+        where: { id: aristoteUser.id },
         data: {
-          tenantId: targetTenantId,
+          name: "Nshangalume aristote",
+          phone: "+243 970295579",
+          role: "CASHIER",
+          pinCode: "0000",
           isActive: true,
         },
-      }).catch(() => {});
+      });
+    } else {
+      await prisma.user.create({
+        data: {
+          tenantId: targetTenantId,
+          name: "Nshangalume aristote",
+          phone: "+243 970295579",
+          role: "CASHIER",
+          pinCode: "0000",
+          isActive: true,
+        },
+      });
     }
 
-    // If fewer than 4 total users (1 owner + 3 staff), create missing staff members
-    const currentUsers = await prisma.user.findMany({ where: { tenantId: targetTenantId } });
-    if (currentUsers.length < 4) {
-      const needed = 4 - currentUsers.length;
-      const defaultStaffNames = ["Caisse 1", "Serveur 1", "Serveur 2"];
-      for (let i = 0; i < needed; i++) {
-        await prisma.user.create({
-          data: {
-            tenantId: targetTenantId,
-            name: defaultStaffNames[i] || `Caissier ${i + 1}`,
-            role: "CASHIER",
-            pinCode: "0000",
-            isActive: true,
-          },
-        });
-      }
-    }
+    // 7. Purge all other users from Wake Up Restaurant
+    await prisma.user.deleteMany({
+      where: {
+        tenantId: targetTenantId,
+        NOT: [
+          { name: { contains: "Patrick", mode: "insensitive" } },
+          { name: { contains: "Mwisha", mode: "insensitive" } },
+          { name: { contains: "Nshangalume", mode: "insensitive" } },
+          { name: { contains: "Aristote", mode: "insensitive" } },
+        ],
+      },
+    });
 
-    // 6. Delete other duplicate wake up tenants
+    // 8. Delete other duplicate wake up tenants
     for (const ot of otherTenants) {
       await prisma.tenant.delete({
         where: { id: ot.id },
