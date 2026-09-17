@@ -554,8 +554,9 @@ export async function processCashClosing(params: {
   totalDebtRepaymentsCash: number;
   actualCashCounted: number;
   notes?: string;
+  closingDate?: string;
 }): Promise<CashClosing> {
-  const { tenantId = DEFAULT_TENANT_ID, storeId, userId, userName, openingCash, totalSalesCash, totalDebtRepaymentsCash, actualCashCounted, notes } = params;
+  const { tenantId = DEFAULT_TENANT_ID, storeId, userId, userName, openingCash, totalSalesCash, totalDebtRepaymentsCash, actualCashCounted, notes, closingDate } = params;
   const now = new Date().toISOString();
   const closingId = generateUUID();
 
@@ -575,7 +576,7 @@ export async function processCashClosing(params: {
     actualCashCounted,
     variance,
     notes,
-    createdAt: now,
+    createdAt: closingDate ? `${closingDate}T${new Date().toTimeString().split(" ")[0]}Z` : now,
   };
 
   await db.transaction("rw", [db.cashClosings, db.syncQueue], async () => {
