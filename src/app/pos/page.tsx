@@ -724,6 +724,147 @@ function POSPageContent() {
     });
   };
 
+  const handlePrintInvoiceA4 = async (sale: Sale, items: SaleItem[]) => {
+    const storeName = authStore?.name || tenant?.name || "Kuettu Global POS";
+    const storeLogo = authStore?.logoUrl || tenant?.logoUrl;
+    const cust = customers.find((c) => c.id === sale.customerId);
+    const dateStr = new Date(sale.createdAt).toLocaleDateString("fr-FR");
+    const timeStr = new Date(sale.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
+    const itemsRows = items
+      .map(
+        (it, idx) => `
+        <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
+          <td style="padding: 8px; text-align: center; color: #64748b;">${idx + 1}</td>
+          <td style="padding: 8px;">
+            <b style="color: #0f172a;">${it.productName || "Article"}</b>
+            ${it.unitOfMeasure ? `<span style="font-size: 10px; color: #64748b; margin-left: 4px;">(${it.unitOfMeasure})</span>` : ""}
+          </td>
+          <td style="padding: 8px; text-align: center; font-weight: bold;">${it.quantity}</td>
+          <td style="padding: 8px; text-align: right;">${formatMoney(it.unitPrice)}</td>
+          <td style="padding: 8px; text-align: right; font-weight: bold; color: #0f172a;">${formatMoney(it.quantity * it.unitPrice)}</td>
+        </tr>`
+      )
+      .join("");
+
+    const bodyHtml = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; max-width: 800px; margin: 0 auto; padding: 20px;">
+        
+        <!-- Header Section -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1e3a8a; padding-bottom: 16px; margin-bottom: 24px;">
+          <div>
+            ${storeLogo ? `<img src="${storeLogo}" alt="${storeName}" style="max-height: 55px; max-width: 180px; margin-bottom: 6px; object-fit: contain;" />` : ""}
+            <h1 style="font-size: 20px; font-weight: 900; color: #1e3a8a; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">${storeName}</h1>
+            ${authStore?.businessType ? `<p style="font-size: 11px; color: #64748b; margin: 2px 0;">${authStore.businessType}</p>` : ""}
+            ${authStore?.address ? `<p style="font-size: 11px; color: #475569; margin: 2px 0;">📍 ${authStore.address}</p>` : ""}
+            ${authStore?.phone ? `<p style="font-size: 11px; color: #475569; margin: 2px 0;">📞 Tél : ${authStore.phone}</p>` : ""}
+            ${tenant?.email ? `<p style="font-size: 11px; color: #475569; margin: 2px 0;">✉️ Email : ${tenant.email}</p>` : ""}
+          </div>
+          <div style="text-align: right;">
+            <div style="display: inline-block; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; margin-bottom: 6px;">
+              FACTURE OFFICIELLE (ACQUITTÉE)
+            </div>
+            <h2 style="font-size: 15px; font-weight: 800; color: #0f172a; margin: 0;">N° ${sale.receiptNumber}</h2>
+            <p style="font-size: 11px; color: #64748b; margin: 3px 0 0 0;">Date : <b>${dateStr}</b> à ${timeStr}</p>
+            ${sale.tableOrLabel ? `<p style="font-size: 11px; color: #1e3a8a; margin: 2px 0; font-weight: bold;">Table / Réf : ${sale.tableOrLabel}</p>` : ""}
+          </div>
+        </div>
+
+        <!-- Client & Payment Meta -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 24px;">
+          <div>
+            <span style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Client / Destinataire :</span>
+            <div style="font-size: 14px; font-weight: bold; color: #0f172a; margin-top: 3px;">${cust?.name || "Client Comptant (Passager)"}</div>
+            ${cust?.phone ? `<div style="font-size: 11px; color: #475569; margin-top: 2px;">Tél : ${cust.phone}</div>` : ""}
+            ${cust?.address ? `<div style="font-size: 11px; color: #475569; margin-top: 2px;">Adresse : ${cust.address}</div>` : ""}
+          </div>
+          <div>
+            <span style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Modalités de Règlement :</span>
+            <div style="font-size: 11px; color: #334155; margin-top: 3px;">Moyen de paiement : <b>${sale.paymentMethod}</b></div>
+            <div style="font-size: 11px; color: #334155; margin-top: 2px;">Caissier / Opérateur : <b>${user?.name || "Caisse Principale"}</b></div>
+            ${sale.notes ? `<div style="font-size: 10px; color: #64748b; margin-top: 2px;">Note : ${sale.notes}</div>` : ""}
+          </div>
+        </div>
+
+        <!-- Articles Table -->
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 20px;">
+          <thead>
+            <tr style="background: #1e3a8a; color: #ffffff; text-align: left;">
+              <th style="padding: 8px; width: 35px; text-align: center;">#</th>
+              <th style="padding: 8px;">Désignation de l'article</th>
+              <th style="padding: 8px; width: 70px; text-align: center;">Qté</th>
+              <th style="padding: 8px; width: 110px; text-align: right;">Prix Unitaire</th>
+              <th style="padding: 8px; width: 120px; text-align: right;">Montant Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsRows}
+          </tbody>
+        </table>
+
+        <!-- Totals & Payment Summary -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 24px;">
+          <div style="width: 320px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; font-size: 11px;">
+            ${sale.subtotalAmount && sale.subtotalAmount !== sale.totalAmount ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #475569;">
+                <span>Sous-total Brut :</span>
+                <span>${formatMoney(sale.subtotalAmount)}</span>
+              </div>` : ""}
+            ${sale.discountAmount && sale.discountAmount > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #15803d; font-weight: bold;">
+                <span>Remise déduite :</span>
+                <span>-${formatMoney(sale.discountAmount)}</span>
+              </div>` : ""}
+            <div style="display: flex; justify-content: space-between; margin-top: 4px; padding-top: 6px; border-top: 2px solid #cbd5e1; font-size: 14px; font-weight: 900; color: #1e3a8a;">
+              <span>TOTAL NET :</span>
+              <span>${formatMoney(sale.totalAmount)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 4px; font-weight: bold; color: #047857;">
+              <span>Montant Payé (${sale.paymentMethod}) :</span>
+              <span>${formatMoney(sale.amountPaid)}</span>
+            </div>
+            ${sale.debtAmount > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-top: 4px; padding-top: 4px; border-top: 1px solid #fecdd3; font-weight: 900; color: #b91c1c;">
+                <span>Reste en Dette :</span>
+                <span>${formatMoney(sale.debtAmount)}</span>
+              </div>` : ""}
+          </div>
+        </div>
+
+        <!-- Signatures & Official Validation Stamp -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 24px; padding-top: 16px; border-top: 1px dashed #cbd5e1;">
+          <div style="text-align: center; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; height: 90px; display: flex; flex-direction: column; justify-content: space-between;">
+            <span style="font-size: 10px; font-weight: bold; color: #64748b;">Signature & Cachet Client</span>
+            <div style="border-bottom: 1px dashed #cbd5e1; width: 60%; margin: 0 auto;"></div>
+          </div>
+          <div style="text-align: center; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; height: 90px; display: flex; flex-direction: column; justify-content: space-between;">
+            <span style="font-size: 10px; font-weight: bold; color: #64748b;">Signature & Cachet Caisse / Établissement</span>
+            <div style="border-bottom: 1px dashed #cbd5e1; width: 60%; margin: 0 auto;"></div>
+          </div>
+        </div>
+
+        <!-- Footer with QR Code & Platform Verification -->
+        <div style="border-top: 2px solid #e2e8f0; padding-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #64748b;">
+          <div>
+            <p style="margin: 0; font-weight: bold; color: #0f172a;">Facture certifiée conforme générée par Kuettu Global POS</p>
+            <p style="margin: 2px 0;">Vérification d'authenticité : <a href="https://globalpos.app" target="_blank" style="color: #2563eb; text-decoration: none;">https://globalpos.app</a></p>
+            <p style="margin: 2px 0;">Merci pour votre confiance !</p>
+          </div>
+          <div style="text-align: center;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https%3A%2F%2Fglobalpos.app" alt="QR Code Kuettu Global POS" style="width: 50px; height: 50px; display: block; margin: 0 auto 2px auto;" />
+            <span style="font-size: 8px; color: #94a3b8;">Scanner pour vérifier</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    await printIsolatedDocument({
+      title: `Facture_A4_${sale.receiptNumber}`,
+      width: "a4",
+      bodyHtml,
+    });
+  };
+
   const getWhatsAppReceiptUrl = (sale: Sale, items: SaleItem[]) => {
     const cust = customers.find((c) => c.id === sale.customerId);
     const storeName = authStore?.name || tenant?.name || "Kuettu Global POS";
@@ -1821,13 +1962,25 @@ function POSPageContent() {
                 <span>Envoyer le reçu sur WhatsApp</span>
               </a>
 
-              <button
-                onClick={() => handlePrintSaleReceipt(completedSale.sale, completedSale.items)}
-                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-slate-900/20"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Imprimer le ticket</span>
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handlePrintSaleReceipt(completedSale.sale, completedSale.items)}
+                  className="py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-slate-900/20 cursor-pointer transition-all active:scale-95"
+                  title="Imprimer au format ticket de caisse thermique (58mm / 80mm)"
+                >
+                  <Printer className="w-4 h-4 text-emerald-400" />
+                  <span>Imprimer Ticket</span>
+                </button>
+
+                <button
+                  onClick={() => handlePrintInvoiceA4(completedSale.sale, completedSale.items)}
+                  className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/20 cursor-pointer transition-all active:scale-95"
+                  title="Imprimer au format Facture A4 grand format / PDF"
+                >
+                  <FileText className="w-4 h-4 text-blue-200" />
+                  <span>Imprimer A4</span>
+                </button>
+              </div>
 
               <button
                 onClick={() => setCompletedSale(null)}
