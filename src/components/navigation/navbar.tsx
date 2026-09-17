@@ -61,6 +61,7 @@ export function Navbar() {
   // Public visitor menu items
   const publicNavItems = [
     { label: "Fonctionnalités", href: "/#features" },
+    { label: "Guide & Tuto", href: "/guide" },
     { label: "Types d'entreprises", href: "/#types" },
     { label: "Tarifs", href: "/#pricing" },
     { label: "À propos", href: "/#about" },

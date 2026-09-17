@@ -208,8 +208,8 @@ export default function LandingFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/#features" className="hover:text-amber-400 transition-colors">
-                  Guide de Prise en Main
+                <Link href="/guide" className="hover:text-amber-400 transition-colors font-semibold text-emerald-400">
+                  Guide Pas-à-Pas (Onboarding & Paiement)
                 </Link>
               </li>
               <li>

@@ -280,6 +280,38 @@ export default function LandingPage() {
       <PosStockShowcase />
 
       {/* ========================================================= */}
+      {/* 1.8 NOUVEAU BANDEAU GUIDE PAS-À-PAS                       */}
+      {/* ========================================================= */}
+      <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <RevealOnScroll direction="up">
+          <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-blue-800/60 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-2 max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-400/30">
+                <BookOpen className="w-3.5 h-3.5 text-blue-400" />
+                <span>Nouveau • Guide Complet de Prise en Main</span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-white">
+                Comprendre le parcours : De l'onboarding au paiement de votre forfait
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Apprenez en 7 étapes simples comment configurer vos devises, créer les codes PIN de vos caissiers, relancer vos dettes par WhatsApp et payer votre abonnement via Vodacom M-Pesa, Airtel Money, Orange Money ou Wave.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto shrink-0">
+              <Link
+                href="/guide"
+                className="w-full sm:w-auto py-3 px-6 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-950 flex items-center justify-center gap-2 transition-all active:scale-95"
+              >
+                <span>Consulter le Guide Pas-à-Pas</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        </RevealOnScroll>
+      </section>
+
+      {/* ========================================================= */}
       {/* 2. SECTION 1 : OFFLINE & CLOUD (#features) */}
       {/* ========================================================= */}
       <section id="features" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-slate-100">
