@@ -217,11 +217,11 @@ export default function AdminTenantsPage() {
             return planScoreB - planScoreA;
           }
 
-          // Penalize test names like "sidney mak"
+          // Prioritize real non-empty owners with data
           const ownerA = a.users?.find((u) => u.role === "OWNER")?.name?.toLowerCase() || "";
           const ownerB = b.users?.find((u) => u.role === "OWNER")?.name?.toLowerCase() || "";
-          const isTestA = ownerA.includes("sidney") || ownerA.includes("test") || ownerA.includes("apple");
-          const isTestB = ownerB.includes("sidney") || ownerB.includes("test") || ownerB.includes("apple");
+          const isTestA = ownerA.includes("apple") || ownerA.includes("fake");
+          const isTestB = ownerB.includes("apple") || ownerB.includes("fake");
           if (isTestA !== isTestB) {
             return isTestA ? 1 : -1;
           }
@@ -838,6 +838,35 @@ export default function AdminTenantsPage() {
                         <span>Inscrit le {new Date(t.createdAt).toLocaleDateString("fr-FR")}</span>
                       </div>
                     </div>
+
+                    {/* Multi-Stores Network Badges */}
+                    {t.stores && t.stores.length > 1 && (
+                      <div className="mb-4 p-2.5 bg-slate-800/90 rounded-2xl border border-blue-500/30 text-xs space-y-1.5">
+                        <div className="flex items-center justify-between text-blue-400 font-bold text-[11px]">
+                          <span className="flex items-center gap-1.5">
+                            <StoreIcon className="w-3.5 h-3.5" />
+                            <span>Réseau Multi-Boutiques ({t.stores.length})</span>
+                          </span>
+                          <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-mono font-bold">
+                            Même Propriétaire
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                          {t.stores.map((st) => (
+                            <span
+                              key={st.id}
+                              className="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-medium text-[10px] flex items-center gap-1"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                              <span>{st.name}</span>
+                              {st.ownerName && st.ownerName !== mainOwner && (
+                                <span className="text-slate-400 text-[9px]">({st.ownerName})</span>
+                              )}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Metrics Grid */}
                     <div className="grid grid-cols-4 gap-1.5 bg-slate-800/60 p-2.5 rounded-2xl border border-slate-800/80 mb-4 text-center">

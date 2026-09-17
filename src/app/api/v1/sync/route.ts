@@ -471,19 +471,19 @@ export async function POST(req: NextRequest) {
             });
             syncedIds.push(id);
           } else if (entity === "tenant" && (action === "CREATE" || action === "UPDATE")) {
-            const targetTenantId =
-              session?.tenantId && session.tenantId !== "global-platform-admin"
-                ? session.tenantId
-                : (tenantId || data.id);
+            // CRITICAL FIX: The target tenant ID MUST strictly be the entity's data.id.
+            // Never hijack or overwrite an existing session.tenantId with data belonging to a newly created tenant!
+            const targetTenantId = data.id || (session?.tenantId && session.tenantId !== "global-platform-admin" ? session.tenantId : tenantId);
             if (targetTenantId && targetTenantId !== "00000000-0000-4000-8000-000000000000") {
               const isTestName = data.name && (data.name.toLowerCase().includes("sidney") || data.name.toLowerCase().includes("apple"));
-              if (!isTestName) {
+              if (!isTestName && data.name) {
                 await prisma.tenant.upsert({
                   where: { id: targetTenantId },
                   update: {
                     name: data.name || undefined,
                     phone: data.phone || undefined,
                     businessType: data.businessType ?? undefined,
+                    currency: data.currency || undefined,
                     updatedAt: now,
                   },
                   create: {
@@ -492,6 +492,11 @@ export async function POST(req: NextRequest) {
                     slug: `tenant-${targetTenantId.substring(0, 8)}`,
                     phone: data.phone || undefined,
                     businessType: data.businessType ?? undefined,
+                    currency: data.currency || "CDF",
+                    countryCode: data.countryCode || "CD",
+                    plan: data.plan || "PRO",
+                    planStatus: "ACTIVE",
+                    isActive: true,
                     createdAt: now,
                     updatedAt: now,
                   },
@@ -500,38 +505,40 @@ export async function POST(req: NextRequest) {
             }
             syncedIds.push(id);
           } else if (entity === "store" && (action === "CREATE" || action === "UPDATE")) {
-            const activeTenantId = (session && session.tenantId !== "global-platform-admin" ? session.tenantId : null) || tenantId;
+            const activeTenantId = data.tenantId || (session && session.tenantId !== "global-platform-admin" ? session.tenantId : null) || tenantId;
             const isTestOwner = data.ownerName && data.ownerName.toLowerCase().includes("sidney");
             const cleanOwner = isTestOwner ? undefined : data.ownerName;
 
-            await prisma.store.upsert({
-              where: { id: data.id },
-              update: {
-                name: data.name,
-                businessType: data.businessType ?? undefined,
-                currency: data.currency ?? "CDF",
-                phone: data.phone,
-                address: data.address,
-                ownerName: cleanOwner,
-                updatedAt: now,
-              },
-              create: {
-                id: data.id,
-                tenantId: activeTenantId,
-                name: data.name || "Boutique Principale",
-                businessType: data.businessType ?? undefined,
-                currency: data.currency || "CDF",
-                phone: data.phone,
-                address: data.address,
-                ownerName: cleanOwner,
-                createdAt: new Date(data.createdAt || now),
-                updatedAt: now,
-              },
-            }).catch(() => {});
+            if (data.id && activeTenantId) {
+              await prisma.store.upsert({
+                where: { id: data.id },
+                update: {
+                  name: data.name,
+                  businessType: data.businessType ?? undefined,
+                  currency: data.currency ?? "CDF",
+                  phone: data.phone,
+                  address: data.address,
+                  ownerName: cleanOwner,
+                  updatedAt: now,
+                },
+                create: {
+                  id: data.id,
+                  tenantId: activeTenantId,
+                  name: data.name || "Boutique Principale",
+                  businessType: data.businessType ?? undefined,
+                  currency: data.currency || "CDF",
+                  phone: data.phone,
+                  address: data.address,
+                  ownerName: cleanOwner,
+                  createdAt: new Date(data.createdAt || now),
+                  updatedAt: now,
+                },
+              }).catch(() => {});
+            }
 
             syncedIds.push(id);
           } else if (entity === "user" && (action === "CREATE" || action === "UPDATE")) {
-            const activeTenantId = (session && session.tenantId !== "global-platform-admin" ? session.tenantId : null) || tenantId || data.tenantId;
+            const activeTenantId = data.tenantId || (session && session.tenantId !== "global-platform-admin" ? session.tenantId : null) || tenantId;
             const requestedRole = data.role || "CASHIER";
             const safePin = data.pinCode
               ? (String(data.pinCode).startsWith("pbkdf2:") ? data.pinCode : hashPinCode(String(data.pinCode)))

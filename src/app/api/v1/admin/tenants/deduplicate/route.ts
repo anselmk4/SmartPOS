@@ -65,11 +65,11 @@ export async function GET(req: NextRequest) {
             return planScoreB - planScoreA;
           }
 
-          // Penalize test names like "sidney mak"
+          // Prioritize real owners with data
           const ownerA = a.users?.find((u) => u.role === "OWNER")?.name?.toLowerCase() || "";
           const ownerB = b.users?.find((u) => u.role === "OWNER")?.name?.toLowerCase() || "";
-          const isTestA = ownerA.includes("sidney") || ownerA.includes("test") || ownerA.includes("apple");
-          const isTestB = ownerB.includes("sidney") || ownerB.includes("test") || ownerB.includes("apple");
+          const isTestA = ownerA.includes("apple") || ownerA.includes("fake");
+          const isTestB = ownerB.includes("apple") || ownerB.includes("fake");
           if (isTestA !== isTestB) {
             return isTestA ? 1 : -1;
           }

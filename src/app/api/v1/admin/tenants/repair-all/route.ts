@@ -279,8 +279,13 @@ export async function POST(req: NextRequest) {
     let genesisTenant = await prisma.tenant.findFirst({
       where: {
         OR: [
+          { id: { startsWith: "57838e95" } },
           { name: { contains: "Genesis", mode: "insensitive" } },
           { phone: { contains: "992036994" } },
+          { users: { some: { name: { contains: "Sidney", mode: "insensitive" } } } },
+          { users: { some: { name: { contains: "Makomo", mode: "insensitive" } } } },
+          { stores: { some: { name: { contains: "Genesis", mode: "insensitive" } } } },
+          { stores: { some: { name: { contains: "Principale", mode: "insensitive" } } } },
         ],
       },
       include: { stores: true, users: true },
@@ -289,7 +294,7 @@ export async function POST(req: NextRequest) {
     if (!genesisTenant) {
       genesisTenant = await prisma.tenant.create({
         data: {
-          name: "Genesis Shop",
+          name: "GENESIS SHOP",
           slug: "genesis-shop",
           phone: "+243992036994",
           businessType: "Boutique & Prêt-à-porter",
@@ -317,7 +322,7 @@ export async function POST(req: NextRequest) {
         },
         include: { stores: true, users: true },
       });
-      logs.push("Mis à jour le tenant Genesis Shop.");
+      logs.push("Mis à jour le tenant Genesis Shop (Rétabli le nom officiel).");
     }
 
     // Ensure Ansel Makomo is the OWNER (safe upsert)
@@ -329,6 +334,17 @@ export async function POST(req: NextRequest) {
       pinCode: "2201",
       searchNames: ["Ansel makomo", "Ansel", "Makomo"],
       searchPhones: ["+243992036994", "+243 992036994", "0992036994"],
+    });
+
+    // Ensure Sidney Makomo is a GÉRANT (MANAGER, safe upsert)
+    await safeUpsertTenantUser({
+      tenantId: genesisTenant.id,
+      name: "Sidney Makomo",
+      phone: "+243977202188",
+      role: "MANAGER",
+      pinCode: "1234",
+      searchNames: ["Sidney Makomo", "Sidney", "Makomo"],
+      searchPhones: ["+243977202188", "+243 977202188", "0977202188"],
     });
 
     // Ensure Junior Makomo is the GÉRANT (MANAGER, safe upsert)
@@ -503,19 +519,28 @@ export async function POST(req: NextRequest) {
     logs.push("Rattaché Diane à Happy Bora avec le rôle WAITER (Serveur).");
 
     // =========================================================================
-    // 5. PURGE: SIDNEY MAK / SIDNEY MAKOMO & PLACEHOLDER CASHIERS
+    // 5. PURGE: PLACEHOLDER DUMMY CASHIERS (KEEP ALL REAL USERS)
     // =========================================================================
     const deletedRogueUsers = await prisma.user.deleteMany({
       where: {
-        OR: [
-          { name: { contains: "Sidney", mode: "insensitive" } },
-          { phone: "+237 7736663" },
-          { phone: "+2377736663" },
-          { name: { contains: "Caissier (Principal)", mode: "insensitive" } },
+        AND: [
+          {
+            OR: [
+              { phone: "+237 7736663" },
+              { phone: "+2377736663" },
+              { name: "Caissier (Principal)" },
+              { name: "test cashier" },
+            ],
+          },
+          {
+            NOT: {
+              name: { contains: "Sidney", mode: "insensitive" },
+            },
+          },
         ],
       },
     });
-    logs.push(`Supprimé ${deletedRogueUsers.count} compte(s) fictif(s) (Sidney Makomo, caissiers temporaires).`);
+    logs.push(`Nettoyé ${deletedRogueUsers.count} compte(s) temporaire(s) résiduel(s).`);
 
     return NextResponse.json({
       success: true,

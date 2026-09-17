@@ -440,6 +440,55 @@ export function TenantDetailsSidebar({
                   </div>
                 </div>
 
+                {/* Multi-Stores & Branches Card */}
+                {tenant.stores && tenant.stores.length > 0 && (
+                  <div className="bg-slate-50/80 dark:bg-slate-800/50 rounded-3xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-700/60 space-y-3 text-xs">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                        <Store className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <span>Boutiques & Dépôts Rattachés ({tenant.stores.length})</span>
+                      </h3>
+                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                        {tenant.stores.length > 1 ? "Multi-Boutiques" : "Boutique Unique"}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {tenant.stores.map((s, idx) => (
+                        <div
+                          key={s.id}
+                          className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between gap-2"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1.5 flex-wrap">
+                              <span className="text-slate-400 font-mono text-[10px]">#{idx + 1}</span>
+                              <span className="text-blue-900 dark:text-blue-200 font-extrabold">{s.name}</span>
+                              {s.businessType && (
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                  {s.businessType}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 text-[10px] text-slate-500 mt-1 flex-wrap">
+                              {s.address && (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3 text-slate-400" />
+                                  <span>{s.address}</span>
+                                </span>
+                              )}
+                              {s.ownerName && (
+                                <span>
+                                  Gérant : <b className="text-slate-700 dark:text-slate-300">{s.ownerName}</b>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Owner / Contact Card - Clean High Contrast */}
                 <div className="bg-slate-50/80 dark:bg-slate-800/50 rounded-3xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-700/60 space-y-3.5 text-xs">
                   <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
