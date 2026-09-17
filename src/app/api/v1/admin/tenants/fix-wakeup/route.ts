@@ -44,21 +44,6 @@ export async function POST(req: NextRequest) {
     // Identify target main tenant (the one with products or Patrick)
     let tenantWithProducts = wakeTenants.find((t) => t.products.length > 0) || wakeTenants[0];
     let otherTenants = wakeTenants.filter((t) => t.id !== tenantWithProducts.id);
-
-    // Find Patrick Mwisha across all wake tenants
-    let patrickUser: any = null;
-    let patrickStaff: any[] = [];
-
-    for (const t of wakeTenants) {
-      for (const u of t.users) {
-        if (u.name.toLowerCase().includes("patrick") || (u.phone && u.phone.includes("970295579"))) {
-          patrickUser = u;
-        } else if (u.name.toLowerCase() !== "sidney mak") {
-          patrickStaff.push(u);
-        }
-      }
-    }
-
     const targetTenantId = tenantWithProducts.id;
 
     // 1. Update target tenant details
