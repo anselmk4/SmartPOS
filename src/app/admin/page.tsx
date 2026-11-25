@@ -22,6 +22,7 @@ import {
   Database,
   Crown,
   Award,
+  ScrollText,
 } from "lucide-react";
 
 interface OverviewData {
@@ -218,6 +219,14 @@ export default function AdminOverviewPage() {
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-blue-400" : ""}`} />
             <span>{isRefreshing ? "Actualisation..." : "Actualiser"}</span>
           </button>
+
+          <Link
+            href="/admin/logs"
+            className="py-2.5 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center gap-1.5 border border-slate-700 transition-all"
+          >
+            <ScrollText className="w-4 h-4 text-blue-400" />
+            <span>Journal des Logs</span>
+          </Link>
 
           <Link
             href="/admin/subscriptions"
