@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSync, COUNTRIES } from "@/lib/sync/sync-context";
 import { useAuth } from "@/lib/auth/auth-context";
+import { getTenantTrialInfo } from "@/lib/constants/plans";
 import { useSidebar } from "./sidebar-context";
 import CashReconciliationModal from "@/components/pos/cash-reconciliation-modal";
 import ExportReportModal from "@/components/reports/export-report-modal";
@@ -149,37 +150,47 @@ export function Navbar() {
                         </span>
                       )}
 
-                      {isOwner ? (
-                        <Link
-                          href="/billing"
-                          className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border transition-all ${
-                            plan === "BUSINESS"
-                              ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
-                              : plan === "PRO"
-                              ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
-                              : plan === "BASIC"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                              : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
-                          }`}
-                          title="Changer de forfait"
-                        >
-                          {plan === "BUSINESS" ? "Business" : plan === "PRO" ? "Pro" : plan === "BASIC" ? "Basic" : "Gratuit"}
-                        </Link>
-                      ) : (
-                        <span
-                          className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-                            plan === "BUSINESS"
-                              ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                              : plan === "PRO"
-                              ? "bg-blue-50 text-blue-700 border-blue-200"
-                              : plan === "BASIC"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : "bg-slate-100 text-slate-700 border-slate-200"
-                          }`}
-                        >
-                          {plan === "BUSINESS" ? "Business" : plan === "PRO" ? "Pro" : plan === "BASIC" ? "Basic" : "Gratuit"}
-                        </span>
-                      )}
+                      {(() => {
+                        const trialInfo = getTenantTrialInfo(tenant);
+                        const isFree = plan === "FREE";
+                        const planLabel =
+                          plan === "BUSINESS"
+                            ? "Business"
+                            : plan === "PRO"
+                            ? "Pro"
+                            : plan === "BASIC"
+                            ? "Basic"
+                            : trialInfo.isTrialExpired
+                            ? "Essai Expiré"
+                            : `Essai (${trialInfo.daysRemaining}j)`;
+
+                        const badgeColor =
+                          plan === "BUSINESS"
+                            ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+                            : plan === "PRO"
+                            ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                            : plan === "BASIC"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                            : trialInfo.isTrialExpired
+                            ? "bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100 font-black animate-pulse"
+                            : "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 font-bold";
+
+                        return isOwner ? (
+                          <Link
+                            href="/billing"
+                            className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border transition-all ${badgeColor}`}
+                            title="Gérer mon abonnement"
+                          >
+                            {planLabel}
+                          </Link>
+                        ) : (
+                          <span
+                            className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${badgeColor}`}
+                          >
+                            {planLabel}
+                          </span>
+                        );
+                      })()}
                     </div>
 
                     <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">

@@ -10,6 +10,7 @@ import { Navbar } from "@/components/navigation/navbar";
 import { SimulationBanner } from "@/components/navigation/simulation-banner";
 import { PWARegister } from "@/components/pwa/pwa-register";
 import { PlanPaymentGate } from "@/components/auth/plan-payment-gate";
+import { PersistentPlanBanner } from "@/components/navigation/persistent-plan-banner";
 import { FirstLoginGuideModal } from "@/components/onboarding/first-login-guide-modal";
 import { PostHogProvider } from "@/lib/analytics/posthog-provider";
 
@@ -237,6 +238,7 @@ export default function RootLayout({
                     <div className="flex-1 flex flex-col min-w-0 min-h-0">
                       <Navbar />
                       <SimulationBanner />
+                      <PersistentPlanBanner />
                       <main className="flex-1 flex flex-col min-h-0">
                         <PlanPaymentGate>{children}</PlanPaymentGate>
                       </main>

@@ -605,7 +605,7 @@ function RegisterForm() {
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
-                    { id: "FREE" as SubscriptionPlan, name: "Gratuit", isAvailable: true },
+                    { id: "FREE" as SubscriptionPlan, name: "Essai 7j", isAvailable: true },
                     { id: "BASIC" as SubscriptionPlan, name: "Basic", popular: false, isAvailable: true },
                     { id: "PRO" as SubscriptionPlan, name: "Pro", popular: true, isAvailable: true },
                     { id: "BUSINESS" as SubscriptionPlan, name: "Business", isAvailable: true },

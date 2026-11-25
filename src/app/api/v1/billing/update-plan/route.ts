@@ -52,15 +52,32 @@ export async function POST(req: NextRequest) {
     }
 
     const now = new Date();
-    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const targetStatus = (planStatus || "ACTIVE") as SubscriptionStatus;
+    const existingTenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+    const freeTrialMs = 7 * 24 * 60 * 60 * 1000;
+
+    let targetExpiresAt: Date;
+    let targetStatus: SubscriptionStatus = (planStatus || "ACTIVE") as SubscriptionStatus;
+
+    if (plan === "FREE") {
+      // Free trial is strictly 7 days from tenant creation
+      const createdDate = existingTenant?.createdAt ? new Date(existingTenant.createdAt) : now;
+      targetExpiresAt = existingTenant?.planExpiresAt && existingTenant.plan === "FREE"
+        ? existingTenant.planExpiresAt
+        : new Date(createdDate.getTime() + freeTrialMs);
+
+      if (targetExpiresAt.getTime() <= now.getTime()) {
+        targetStatus = "PAST_DUE";
+      }
+    } else {
+      targetExpiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    }
 
     const updated = await prisma.tenant.update({
       where: { id: tenantId },
       data: {
         plan: plan as SubscriptionPlan,
         planStatus: targetStatus,
-        planExpiresAt: plan === "FREE" ? null : periodEnd,
+        planExpiresAt: targetExpiresAt,
         updatedAt: now,
       },
       include: { stores: true, users: true },
@@ -78,7 +95,7 @@ export async function POST(req: NextRequest) {
           paymentStatus: "ACTIVE",
           transactionId: `sub-manual-${Date.now()}`,
           periodStart: now,
-          periodEnd,
+          periodEnd: targetExpiresAt,
         },
       }).catch((subErr) => {
         console.warn("[Billing Update Plan] Subscription insert note:", subErr.message);

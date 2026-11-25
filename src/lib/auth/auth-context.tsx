@@ -12,7 +12,7 @@ import {
   createStoreForTenant,
   assignManagerToStore,
 } from "../db/dexie-db";
-import type { User, Tenant, Store, UserRole, SubscriptionPlan, PlanConfig } from "../shared/types";
+import type { User, Tenant, Store, UserRole, SubscriptionPlan, SubscriptionStatus, PlanConfig } from "../shared/types";
 import { PLAN_CONFIGS } from "../shared/types";
 
 export interface CreateStoreParams {
@@ -716,10 +716,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }> => {
     try {
       const now = new Date().toISOString();
+      const freeTrialExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
       const tenantId = generateUUID();
       const storeId = generateUUID();
       const userId = generateUUID();
 
+      const chosenPlan = data.plan || "FREE";
       const newTenant: Tenant = {
         id: tenantId,
         name: data.storeName.trim(),
@@ -730,8 +732,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         address: data.address?.trim(),
         countryCode: data.countryCode || "CD",
         currency: data.currency || "CDF",
-        plan: data.plan || "PRO",
-        planStatus: "ACTIVE",
+        plan: chosenPlan,
+        planStatus: chosenPlan === "FREE" ? "ACTIVE" : "TRIAL",
+        planExpiresAt: chosenPlan === "FREE" ? freeTrialExpiresAt : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         isActive: true,
         createdAt: now,
         updatedAt: now,
@@ -1143,12 +1146,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateTenantPlan = async (newPlan: SubscriptionPlan) => {
     if (!tenant) return;
     const now = new Date().toISOString();
-    const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const freeTrialMs = 7 * 24 * 60 * 60 * 1000;
+    let periodEnd: string;
+    let targetStatus: SubscriptionStatus = "ACTIVE";
+
+    if (newPlan === "FREE") {
+      const createdTime = tenant.createdAt ? new Date(tenant.createdAt).getTime() : Date.now();
+      const trialEndTime = tenant.planExpiresAt && tenant.plan === "FREE"
+        ? new Date(tenant.planExpiresAt).getTime()
+        : createdTime + freeTrialMs;
+      periodEnd = new Date(trialEndTime).toISOString();
+      if (trialEndTime <= Date.now()) {
+        targetStatus = "PAST_DUE";
+      }
+    } else {
+      periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    }
+
     const updated: Tenant = {
       ...tenant,
       plan: newPlan,
-      planStatus: "ACTIVE",
-      planExpiresAt: newPlan === "FREE" ? undefined : periodEnd,
+      planStatus: targetStatus,
+      planExpiresAt: periodEnd,
       updatedAt: now,
     };
     await db.tenants.put(updated);
@@ -1169,8 +1188,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           body: JSON.stringify({
             tenantId: tenant.id,
             plan: newPlan,
-            planStatus: "ACTIVE",
-            planExpiresAt: newPlan === "FREE" ? undefined : periodEnd,
+            planStatus: targetStatus,
+            planExpiresAt: periodEnd,
           }),
         });
         if (res.ok) {

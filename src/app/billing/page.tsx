@@ -9,7 +9,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/dexie-db";
 import { PawaPayModal } from "@/components/billing/pawapay-modal";
 import { SubscriptionInvoiceModal } from "@/components/billing/subscription-invoice-modal";
-import { getPlanPriceInfo } from "@/lib/constants/plans";
+import { getPlanPriceInfo, getTenantTrialInfo } from "@/lib/constants/plans";
 import type { SubscriptionPlan, Subscription } from "@/lib/shared/types";
 import {
   CreditCard,
@@ -135,22 +135,29 @@ function BillingPageContent() {
     (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
   );
 
+  const hasActiveSubscription = allSubscriptions.some(
+    (s) => s.paymentStatus === "ACTIVE" && (!s.periodEnd || new Date(s.periodEnd).getTime() >= Date.now())
+  );
+  const trialInfo = getTenantTrialInfo(tenant, hasActiveSubscription);
+  const { isFreePlan, isTrialExpired, isPaymentRequired, daysRemaining: trialDaysRemaining } = trialInfo;
+
   const plans = [
     {
       id: "FREE" as SubscriptionPlan,
-      name: "Découverte",
+      name: "Découverte (Essai 7j)",
       priceInfo: getPlanPriceInfo("FREE", displayCurrency),
-      badge: "Pour démarrer",
+      badge: isTrialExpired ? "Essai 7j expiré" : `Essai 7 jours (${trialDaysRemaining}j restants)`,
       features: [
+        "Accessible gratuitement pendant 7 jours",
         "1 Caisse tactile locale (100% Hors-ligne)",
         "100 ventes par mois",
         "Carnet de dettes (max 10 clients)",
         "Export comptable Excel (CSV) & PDF",
         "Factures en attente & Additions",
-        "Pas de sauvegarde Cloud",
+        "Paiement d'un forfait requis après 7 jours",
       ],
-      color: "border-slate-200",
-      btnColor: "bg-slate-800 text-white hover:bg-slate-700",
+      color: isTrialExpired ? "border-rose-300 bg-rose-50/20" : "border-slate-200",
+      btnColor: isTrialExpired ? "bg-slate-300 text-slate-500 cursor-not-allowed" : "bg-slate-800 text-white hover:bg-slate-700",
     },
     {
       id: "BASIC" as SubscriptionPlan,
@@ -238,8 +245,12 @@ function BillingPageContent() {
   const handleOpenPayment = (plan: SubscriptionPlan) => {
     if (plan === currentPlan && !isCancelled) return;
     if (plan === "FREE") {
+      if (isTrialExpired) {
+        alert("Votre période d'essai gratuit de 7 jours est expirée. Le paiement d'un forfait (Basic, Pro ou Business) est requis pour continuer.");
+        return;
+      }
       updateTenantPlan("FREE");
-      setSuccessToast("Vous êtes maintenant sur le forfait Gratuit Découverte.");
+      setSuccessToast(`Vous êtes sur le forfait Découverte (${trialDaysRemaining} jours d'essai restants).`);
       setTimeout(() => setSuccessToast(null), 4000);
       return;
     }
@@ -288,6 +299,33 @@ function BillingPageContent() {
         <div className="fixed top-5 right-5 z-50 bg-emerald-600 text-white px-5 py-3.5 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-2 animate-in slide-in-from-top duration-300">
           <CheckCircle2 className="w-5 h-5 text-emerald-200" />
           <span>{successToast}</span>
+        </div>
+      )}
+
+      {/* ⚠️ Alerte Persistante : Essai 7 Jours Expiré & Paiement Requis */}
+      {isTrialExpired && (
+        <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top duration-300 border border-rose-400/30">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-black uppercase tracking-wider">
+              <AlertTriangle className="w-4 h-4 text-amber-300" />
+              <span>Période d'Essai de 7 Jours Expirée</span>
+            </div>
+            <h3 className="text-lg sm:text-xl font-black">
+              Accès Caisse Bloqué — Paiement d'un Forfait Obligatoire
+            </h3>
+            <p className="text-xs text-rose-100 max-w-2xl leading-relaxed">
+              Votre commerce <b>{tenant?.name}</b> a atteint la limite des 7 jours d'essai gratuit. Pour réactiver immédiatement votre caisse tactile, vos encaissements et la gestion de vos stocks, veuillez régler votre forfait par Mobile Money ci-dessous.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setSelectedPlanToBuy("PRO")}
+            className="px-6 py-3.5 rounded-2xl bg-white text-rose-950 hover:bg-rose-50 font-black text-xs shadow-lg shrink-0 flex items-center gap-2 transition-all touch-press"
+          >
+            <span>Activer le Forfait Pro (Recommandé)</span>
+            <ArrowRight className="w-4 h-4 text-rose-600" />
+          </button>
         </div>
       )}
 
@@ -785,7 +823,9 @@ function BillingPageContent() {
                   </div>
                   <span className="text-xs text-slate-400 block mt-0.5">
                     {p.id === "FREE"
-                      ? "Gratuit à vie"
+                      ? isTrialExpired
+                        ? "Essai 7 jours expiré"
+                        : "Essai gratuit 7 jours"
                       : isAnnual
                       ? "Facturé chaque année (2 mois offerts)"
                       : "Facturé chaque mois"}
@@ -806,13 +846,19 @@ function BillingPageContent() {
                 <button
                   type="button"
                   onClick={() => handleOpenPayment(p.id)}
-                  disabled={isCurrent}
+                  disabled={isCurrent || (p.id === "FREE" && isTrialExpired)}
                   className={`w-full py-3 px-4 rounded-2xl font-black text-xs transition-all touch-press flex items-center justify-center gap-1.5 shadow-md ${
-                    isCurrent ? "bg-slate-100 text-slate-400 cursor-default shadow-none" : p.btnColor
+                    isCurrent
+                      ? "bg-slate-100 text-slate-400 cursor-default shadow-none"
+                      : p.id === "FREE" && isTrialExpired
+                      ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
+                      : p.btnColor
                   }`}
                 >
                   {isCurrent ? (
                     <span>Forfait Actuel</span>
+                  ) : p.id === "FREE" && isTrialExpired ? (
+                    <span>Essai 7j Expiré</span>
                   ) : (
                     <>
                       <span>Choisir {p.name}</span>

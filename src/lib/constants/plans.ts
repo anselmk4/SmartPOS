@@ -18,18 +18,21 @@ export const EXCHANGE_RATES: Record<string, number> = {
   EUR: 0.92,
 };
 
+export const FREE_TRIAL_DAYS = 7;
+export const FREE_TRIAL_MS = FREE_TRIAL_DAYS * 24 * 60 * 60 * 1000;
+
 export const PLAN_PRICING_TABLE: Record<
   SubscriptionPlan,
   Record<string, { amount: number; formatted: string }>
 > = {
   FREE: {
-    CDF: { amount: 0, formatted: "Gratuit" },
-    USD: { amount: 0, formatted: "Gratuit" },
-    XOF: { amount: 0, formatted: "Gratuit" },
-    XAF: { amount: 0, formatted: "Gratuit" },
-    GNF: { amount: 0, formatted: "Gratuit" },
-    RWF: { amount: 0, formatted: "Gratuit" },
-    EUR: { amount: 0, formatted: "Gratuit" },
+    CDF: { amount: 0, formatted: "Gratuit (7j)" },
+    USD: { amount: 0, formatted: "Gratuit (7j)" },
+    XOF: { amount: 0, formatted: "Gratuit (7j)" },
+    XAF: { amount: 0, formatted: "Gratuit (7j)" },
+    GNF: { amount: 0, formatted: "Gratuit (7j)" },
+    RWF: { amount: 0, formatted: "Gratuit (7j)" },
+    EUR: { amount: 0, formatted: "Gratuit (7j)" },
   },
   BASIC: {
     CDF: { amount: 15000, formatted: "15 000 FC" },
@@ -71,8 +74,8 @@ export function getPlanPriceInfo(
   const planTable = PLAN_PRICING_TABLE[plan] || PLAN_PRICING_TABLE.FREE;
   const pricing = planTable[normCurrency] || planTable.CDF || { amount: 0, formatted: "0" };
 
-  const period = plan === "FREE" ? "Gratuit à vie" : "/ mois";
-  const rawPriceStr = plan === "FREE" ? "Gratuit" : `${pricing.formatted} ${period}`;
+  const period = plan === "FREE" ? "Essai 7 jours" : "/ mois";
+  const rawPriceStr = plan === "FREE" ? "Essai Gratuit 7 jours" : `${pricing.formatted} ${period}`;
 
   return {
     amount: pricing.amount,
@@ -80,6 +83,106 @@ export function getPlanPriceInfo(
     formatted: pricing.formatted,
     period,
     rawPriceStr,
+  };
+}
+
+export interface TenantTrialInfo {
+  isFreePlan: boolean;
+  isPaidPlan: boolean;
+  isTrialExpired: boolean;
+  daysRemaining: number;
+  hoursRemaining: number;
+  expiryDate: Date | null;
+  isPaymentRequired: boolean;
+  formattedExpiry: string;
+}
+
+/**
+ * Calculates trial and subscription status for a tenant
+ */
+export function getTenantTrialInfo(
+  tenant: {
+    plan?: string | null;
+    planStatus?: string | null;
+    planExpiresAt?: string | Date | null;
+    createdAt?: string | Date | null;
+  } | null | undefined,
+  hasActiveSubscription: boolean = false
+): TenantTrialInfo {
+  if (!tenant) {
+    return {
+      isFreePlan: false,
+      isPaidPlan: false,
+      isTrialExpired: false,
+      daysRemaining: 0,
+      hoursRemaining: 0,
+      expiryDate: null,
+      isPaymentRequired: false,
+      formattedExpiry: "",
+    };
+  }
+
+  const isFreePlan = (tenant.plan || "FREE") === "FREE";
+  const isPaidPlan = !isFreePlan;
+  const planStatus = tenant.planStatus || "ACTIVE";
+
+  // If user has an active paid subscription on record, no payment is required
+  if (hasActiveSubscription) {
+    return {
+      isFreePlan: false,
+      isPaidPlan: true,
+      isTrialExpired: false,
+      daysRemaining: 999,
+      hoursRemaining: 999,
+      expiryDate: null,
+      isPaymentRequired: false,
+      formattedExpiry: "",
+    };
+  }
+
+  // Calculate expiry date
+  let expiryDate: Date | null = null;
+  if (tenant.planExpiresAt) {
+    expiryDate = new Date(tenant.planExpiresAt);
+  } else if (tenant.createdAt) {
+    // Fall back to 7 days after tenant creation date
+    expiryDate = new Date(new Date(tenant.createdAt).getTime() + FREE_TRIAL_MS);
+  } else {
+    expiryDate = new Date(Date.now() + FREE_TRIAL_MS);
+  }
+
+  const now = Date.now();
+  const diffMs = expiryDate.getTime() - now;
+  const isTrialExpired = isFreePlan && diffMs <= 0;
+  const isPaidExpired = isPaidPlan && expiryDate.getTime() < now;
+  const daysRemaining = Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000)));
+  const hoursRemaining = Math.max(0, Math.ceil(diffMs / (60 * 60 * 1000)));
+
+  // Payment is strictly required if:
+  // 1) Free 7-day trial has expired
+  // 2) On paid plan awaiting payment (planStatus !== "ACTIVE") or paid plan expired
+  // 3) planStatus is PAST_DUE or CANCELLED
+  const isPaymentRequired =
+    (isFreePlan && isTrialExpired) ||
+    (isPaidPlan && (planStatus !== "ACTIVE" || isPaidExpired)) ||
+    planStatus === "PAST_DUE" ||
+    planStatus === "CANCELLED";
+
+  const formattedExpiry = expiryDate.toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  return {
+    isFreePlan,
+    isPaidPlan,
+    isTrialExpired,
+    daysRemaining,
+    hoursRemaining,
+    expiryDate,
+    isPaymentRequired,
+    formattedExpiry,
   };
 }
 

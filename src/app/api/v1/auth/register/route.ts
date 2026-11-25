@@ -97,7 +97,9 @@ export async function POST(req: NextRequest) {
     }
 
     const now = new Date();
-    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days trial/active
+    // Free plan is strictly limited to 7 days trial
+    const freeTrialMs = 7 * 24 * 60 * 60 * 1000;
+    const periodEnd = new Date(now.getTime() + (plan === "FREE" ? freeTrialMs : 30 * 24 * 60 * 60 * 1000));
 
     const config = await getSystemVerificationConfig();
     const requiresVerification = config.verificationMethod !== "DISABLED";

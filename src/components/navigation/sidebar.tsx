@@ -10,7 +10,7 @@ import { useSync } from "@/lib/sync/sync-context";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/dexie-db";
 import { PLAN_CONFIGS } from "@/lib/shared/types";
-import { getPlanPriceInfo } from "@/lib/constants/plans";
+import { getPlanPriceInfo, getTenantTrialInfo } from "@/lib/constants/plans";
 import {
   ShoppingCart,
   BookOpen,
@@ -111,6 +111,7 @@ export function Sidebar() {
   const percentUsed = maxSales ? Math.min(Math.round((monthlySalesCount / maxSales) * 100), 100) : 0;
   const nextPlan = plan === "FREE" ? "BASIC" : plan === "BASIC" ? "PRO" : plan === "PRO" ? "BUSINESS" : null;
   const nextPriceInfo = nextPlan ? getPlanPriceInfo(nextPlan, rawCurrency) : null;
+  const trialInfo = getTenantTrialInfo(tenant);
 
   // Reactively resolve business activity type across browsers, stores, and tenants
   const liveBusinessType =
@@ -478,10 +479,18 @@ export function Sidebar() {
                 </div>
                 <div className="min-w-0">
                   <span className="block text-[11px] font-black text-white truncate leading-tight">
-                    Forfait {currentPlanConfig.name}
+                    {plan === "FREE"
+                      ? trialInfo.isTrialExpired
+                        ? "Essai 7j Expiré"
+                        : `Essai (${trialInfo.daysRemaining}j)`
+                      : `Forfait ${currentPlanConfig.name}`}
                   </span>
-                  <span className="block text-[9px] text-slate-400 font-medium">
-                    {maxSales ? `${monthlySalesCount} / ${maxSales} ventes` : "Ventes illimitées"}
+                  <span className={`block text-[9px] font-medium ${plan === "FREE" && trialInfo.isTrialExpired ? "text-rose-400 font-black" : "text-slate-400"}`}>
+                    {plan === "FREE" && trialInfo.isTrialExpired
+                      ? "Paiement Requis"
+                      : maxSales
+                      ? `${monthlySalesCount} / ${maxSales} ventes`
+                      : "Ventes illimitées"}
                   </span>
                 </div>
               </div>

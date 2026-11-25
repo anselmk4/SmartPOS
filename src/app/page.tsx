@@ -678,10 +678,10 @@ export default function LandingPage() {
                 <h3 className="text-lg font-black text-slate-900 mt-3">Découverte</h3>
                 <div className="mt-3 mb-5">
                   <span className="text-3xl font-black text-slate-900">0 FC</span>
-                  <span className="text-xs text-slate-500 ml-1">Gratuit à vie</span>
+                  <span className="text-xs text-slate-500 ml-1">Essai 7 jours</span>
                 </div>
                 <p className="text-xs text-slate-600 mb-5 leading-relaxed">
-                  Idéal pour tester la caisse tactile locale sans aucun frais.
+                  Idéal pour tester la caisse tactile locale gratuitement pendant 7 jours.
                 </p>
 
                 <ul className="space-y-2.5 text-xs text-slate-700">
@@ -708,7 +708,7 @@ export default function LandingPage() {
                 href="/auth/register"
                 className="mt-6 w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs text-center transition-colors block"
               >
-                Créer un Compte Gratuit
+                Commencer l&apos;Essai 7 Jours
               </Link>
             </div>
 
@@ -814,7 +814,7 @@ export default function LandingPage() {
                 href="/auth/register"
                 className="mt-6 w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs text-center shadow-lg shadow-blue-600/40 transition-all block"
               >
-                Essai Gratuit 14 Jours
+                Essai Gratuit 7 Jours
               </Link>
             </div>
 
@@ -992,7 +992,7 @@ export default function LandingPage() {
           <div className="max-w-4xl mx-auto space-y-6">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-400/30">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Essai Gratuit 14 Jours Sans Engagement</span>
+              <span>Essai Gratuit 7 Jours Sans Engagement</span>
             </div>
 
             <h2 className="text-2xl sm:text-4xl font-black max-w-2xl mx-auto leading-tight">
