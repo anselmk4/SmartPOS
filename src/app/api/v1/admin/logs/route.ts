@@ -102,9 +102,13 @@ export async function GET(req: NextRequest) {
             items: {
               select: {
                 id: true,
-                productName: true,
                 quantity: true,
                 unitPrice: true,
+                product: {
+                  select: {
+                    name: true,
+                  },
+                },
               },
               take: 5,
             },
@@ -259,29 +263,37 @@ export async function GET(req: NextRequest) {
     // Format 2: Sales
     for (const s of sales) {
       const itemsCount = s.items?.length || 0;
-      const itemsPreview = s.items?.map((it) => `${it.quantity}x ${it.productName}`).join(", ") || "";
+      const itemsPreview =
+        s.items?.map((it: any) => `${it.quantity}x ${it.product?.name || "Article"}`).join(", ") || "";
+      const saleRef = s.receiptNumber || `VTE-${s.id.slice(0, 6).toUpperCase()}`;
+      const currency = s.tenant?.currency || "CDF";
       logs.push({
         id: `sale-${s.id}`,
         timestamp: s.createdAt.toISOString(),
         type: "SALE",
         categoryLabel: "Vente POS",
-        title: `Vente #${s.saleNumber} encaissée`,
-        description: `${s.totalAmount.toLocaleString("fr-FR")} ${s.currency} via ${s.paymentMethod} • ${itemsCount} article(s)${itemsPreview ? ` : ${itemsPreview}` : ""}`,
+        title: `Vente #${saleRef} encaissée`,
+        description: `${s.totalAmount.toLocaleString("fr-FR")} ${currency} via ${s.paymentMethod} • ${itemsCount} article(s)${itemsPreview ? ` : ${itemsPreview}` : ""}`,
         tenantId: s.tenantId,
         tenantName: s.tenant?.name || "Boutique",
         storeName: s.store?.name,
         userName: s.user?.name || "Caissier",
         userRole: s.user?.role || "CASHIER",
         amount: s.totalAmount,
-        currency: s.currency,
+        currency,
         status: s.status,
         metadata: {
-          saleNumber: s.saleNumber,
+          receiptNumber: s.receiptNumber,
+          saleRef,
           paymentMethod: s.paymentMethod,
+          amountPaid: s.amountPaid,
+          debtAmount: s.debtAmount,
           itemsCount,
-          subtotal: s.subtotal,
-          taxAmount: s.taxAmount,
-          discountAmount: s.discountAmount,
+          items: s.items?.map((it: any) => ({
+            name: it.product?.name || "Article",
+            quantity: it.quantity,
+            unitPrice: it.unitPrice,
+          })),
         },
       });
     }
